@@ -18,7 +18,7 @@ receiving security fixes.
 
 **Please do not open a public GitHub issue for security vulnerabilities.**
 
-Instead, use **[GitHub Security Advisories](https://github.com/KING-MASTER2012/Coreverse-DB/security/advisories/new)**
+Instead, use **[GitHub Security Advisories](https://github.com/Coreverse-Game-Engine/Coreverse-DB/security/advisories/new)**
 to report privately. This applies in particular to:
 
 - Row-Level Security (RLS) bypasses or privilege-escalation paths (e.g. a role gaining

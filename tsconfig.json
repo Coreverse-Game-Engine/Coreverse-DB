@@ -6,12 +6,21 @@
     "lib": ["ES2022", "DOM"],
     "strict": true,
     "declaration": true,
+    "declarationMap": true,
     "outDir": "./dist",
     "rootDir": "./src",
     "skipLibCheck": true,
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
-    "noUncheckedIndexedAccess": true
+    "noUncheckedIndexedAccess": true,
+    // Workaround, not a setting we chose: this repo does not set baseUrl
+    // anywhere. tsup 8.5.1's DTS step unconditionally injects
+    // `baseUrl: "."` into the compilerOptions it hands to
+    // rollup-plugin-dts (see https://github.com/egoist/tsup/issues/1388),
+    // and TypeScript 6.0 (see tsup.config.ts's comment on the
+    // @typescript/typescript6 alias) treats that as error TS5101 by
+    // default. Remove this line once tsup ships a fix for #1388.
+    "ignoreDeprecations": "6.0"
   },
   "include": ["src"]
 }

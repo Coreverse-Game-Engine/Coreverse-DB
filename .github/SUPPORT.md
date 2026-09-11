@@ -5,10 +5,10 @@ templates instead; for vulnerabilities, see [SECURITY.md](./SECURITY.md).
 
 ## Where to ask
 
-- **[GitHub Discussions](https://github.com/KING-MASTER2012/Coreverse-DB/discussions)** — the
+- **[GitHub Discussions](https://github.com/Coreverse-Game-Engine/Coreverse-DB/discussions)** — the
   right place for "how do I...", API usage questions, or design discussion before an issue
   exists.
-- **[Issues](https://github.com/KING-MASTER2012/Coreverse-DB/issues)** — for confirmed bugs or
+- **[Issues](https://github.com/Coreverse-Game-Engine/Coreverse-DB/issues)** — for confirmed bugs or
   concrete feature proposals only (use the templates).
 
 ## Before asking

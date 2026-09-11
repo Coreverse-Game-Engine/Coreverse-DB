@@ -6,17 +6,17 @@
 # Order matters: later (more specific) patterns override earlier ones.
 
 # Default owner for everything not matched below.
-*                               @KING-MASTER2012
+*                               @Coreverse-Game-Engine
 
 # --- Contract & generated client -------------------------------------------
-/openapi/                      @KING-MASTER2012
-/src/                           @KING-MASTER2012
-/orval.config.ts                @KING-MASTER2012
+/openapi/                      @Coreverse-Game-Engine
+/src/                           @Coreverse-Game-Engine
+/orval.config.ts                @Coreverse-Game-Engine
 
 # --- Database & backend -------------------------------------------------
-/supabase/migrations/           @KING-MASTER2012
-/supabase/functions/            @KING-MASTER2012
-/supabase/tests/                @KING-MASTER2012
+/supabase/migrations/           @Coreverse-Game-Engine
+/supabase/functions/            @Coreverse-Game-Engine
+/supabase/tests/                @Coreverse-Game-Engine
 
 # --- Governance / CI ------------------------------------------------------
-/.github/                       @KING-MASTER2012
+/.github/                       @Coreverse-Game-Engine
