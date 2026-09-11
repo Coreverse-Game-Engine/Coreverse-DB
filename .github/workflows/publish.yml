@@ -14,10 +14,6 @@ concurrency:
   group: publish-${{ github.ref }}
   cancel-in-progress: false
 
-env:
-  NODE_VERSION: "22"
-  PNPM_VERSION: "12.4.1"
-
 permissions:
   contents: read
   packages: write
@@ -30,13 +26,14 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # pnpm/action-setup automatically reads the packageManager field
+      # from package.json, so the pnpm version is defined in exactly one
+      # place.
       - uses: pnpm/action-setup@v4
-        with:
-          version: ${{ env.PNPM_VERSION }}
 
       - uses: actions/setup-node@v4
         with:
-          node-version: ${{ env.NODE_VERSION }}
+          node-version: "22"
           cache: pnpm
           registry-url: "https://npm.pkg.github.com"
           scope: "@coreverse"
@@ -46,8 +43,8 @@ jobs:
 
       # Fail fast if someone tags a version that doesn't match what's
       # actually committed in package.json -- CI does not bump/write the
-      # version itself, that's done locally via `pnpm version` before the
-      # tag is pushed.
+      # version itself, that's done locally via `pnpm version` before
+      # the tag is pushed.
       - name: Verify tag matches package.json version
         shell: bash
         run: |
