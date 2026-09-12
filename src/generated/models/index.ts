@@ -4,7 +4,7 @@
  * Coreverse DB API
  * Centralized data-access API for the Coreverse ecosystem. Coreverse DB defines and serves all data operations; Coreverse Launcher and Coreverse Website consume this API and never access Postgres/Supabase directly.
  *
- * OpenAPI spec version: 0.1.0
+ * OpenAPI spec version: 0.2.0
  */
 
 export * from "./acceptMembershipRequest200";
@@ -181,6 +181,10 @@ export * from "./replyToDiscussion400";
 export * from "./replyToDiscussion401";
 export * from "./replyToDiscussion403";
 export * from "./replyToDiscussionBody";
+export * from "./requestPasswordReset200";
+export * from "./requestPasswordReset400";
+export * from "./requestPasswordReset429";
+export * from "./requestPasswordResetBody";
 export * from "./requestToJoinTeam201";
 export * from "./requestToJoinTeam201Status";
 export * from "./requestToJoinTeam201Type";
@@ -226,3 +230,9 @@ export * from "./updateProject200";
 export * from "./updateProject400";
 export * from "./updateProject404";
 export * from "./updateProjectBody";
+export * from "./uploadMyAvatar200";
+export * from "./uploadMyAvatar400";
+export * from "./uploadMyAvatar401";
+export * from "./uploadMyAvatar404";
+export * from "./uploadMyAvatar413";
+export * from "./uploadMyAvatarBody";

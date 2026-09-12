@@ -4,7 +4,7 @@
  * Coreverse DB API
  * Centralized data-access API for the Coreverse ecosystem. Coreverse DB defines and serves all data operations; Coreverse Launcher and Coreverse Website consume this API and never access Postgres/Supabase directly.
  *
- * OpenAPI spec version: 0.1.0
+ * OpenAPI spec version: 0.2.0
  */
 /**
  * Trivial acknowledgement body for actions that don't return a resource.
@@ -1050,7 +1050,7 @@ export type UpdateMyProfileBody = {
    */
   full_name?: string;
   /**
-   * Storage path in the avatars bucket (client uploads the PNG directly to Storage first, then sends the path here).
+   * Storage path in the avatars bucket. Set this directly only if you already know a valid path (e.g. clearing the avatar with null); to upload a new image, use POST /profiles/me/avatar instead, which uploads the file and sets this for you.
    * @minLength 1
    */
   avatar_path?: string | null;
@@ -1078,6 +1078,71 @@ export type UpdateMyProfile401 = {
 };
 
 export type UpdateMyProfile404 = {
+  /** Short machine-readable error code, e.g. "invalid_version". */
+  error: string;
+  /** Human-readable explanation. */
+  message: string;
+};
+
+export type UploadMyAvatarBody = {
+  /** PNG or WebP image, up to 5 MB. */
+  file: Blob;
+};
+
+export type UploadMyAvatar200 = {
+  id: string;
+  full_name: string;
+  /** Public/signed URL resolved from the stored avatar_path, not the raw path itself. */
+  avatar_url?: string | null;
+};
+
+export type UploadMyAvatar400 = {
+  /** Short machine-readable error code, e.g. "invalid_version". */
+  error: string;
+  /** Human-readable explanation. */
+  message: string;
+};
+
+export type UploadMyAvatar401 = {
+  /** Short machine-readable error code, e.g. "invalid_version". */
+  error: string;
+  /** Human-readable explanation. */
+  message: string;
+};
+
+export type UploadMyAvatar404 = {
+  /** Short machine-readable error code, e.g. "invalid_version". */
+  error: string;
+  /** Human-readable explanation. */
+  message: string;
+};
+
+export type UploadMyAvatar413 = {
+  /** Short machine-readable error code, e.g. "invalid_version". */
+  error: string;
+  /** Human-readable explanation. */
+  message: string;
+};
+
+export type RequestPasswordResetBody = {
+  email: string;
+};
+
+/**
+ * Trivial acknowledgement body for actions that don't return a resource.
+ */
+export type RequestPasswordReset200 = {
+  ok: boolean;
+};
+
+export type RequestPasswordReset400 = {
+  /** Short machine-readable error code, e.g. "invalid_version". */
+  error: string;
+  /** Human-readable explanation. */
+  message: string;
+};
+
+export type RequestPasswordReset429 = {
   /** Short machine-readable error code, e.g. "invalid_version". */
   error: string;
   /** Human-readable explanation. */
