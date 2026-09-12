@@ -482,7 +482,7 @@ export const getUploadMyAvatarUrl = () => {
 };
 
 /**
- * Accepts a multipart upload, validates it server-side (PNG or WebP, up to 5 MB), writes it to the avatars bucket with the service role, and updates the caller's avatar_path. Clients no longer write to Storage directly for this -- see 20260912103000_avatar_upload_and_rate_limit.sql.
+ * Accepts a multipart upload, validates it server-side (PNG or WebP, up to 5 MB), writes it to the avatars bucket with the service role, and updates the caller's avatar_path. Clients no longer write to Storage directly for this -- see 20260912085602_avatar_upload_and_rate_limit.sql.
  * @summary Upload the caller's own avatar
  */
 export const uploadMyAvatar = async (

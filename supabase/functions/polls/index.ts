@@ -5,10 +5,10 @@
 
 import { serve, } from '@std/http/server';
 import { createUserClient, } from '../_shared/supabase-client.ts';
-import { errorResponse, jsonResponse, } from '../_shared/http.ts';
+import { errorResponse, jsonResponse, withCors, } from '../_shared/http.ts';
 import { CastVoteSchema, CreatePollSchema, UuidSchema, } from './schemas.ts';
 
-serve(async (req,) => {
+serve(withCors(async (req,) => {
   const url = new URL(req.url,);
   const segments = url.pathname
     .replace(/^\/functions\/v1\/polls\/?/, '',)
@@ -116,4 +116,4 @@ serve(async (req,) => {
       500,
     );
   }
-},);
+},),);

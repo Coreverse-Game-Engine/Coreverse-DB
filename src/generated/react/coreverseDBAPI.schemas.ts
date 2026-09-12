@@ -1126,6 +1126,8 @@ export type UploadMyAvatar413 = {
 
 export type RequestPasswordResetBody = {
   email: string;
+  /** Where the recovery link should land. Must be an exact `https://<allowed-website-origin>/{locale}/reset-password` URL (no query string or hash) -- the origin is checked against the deploy environment's allowed origins and the path against the known locale list. A redirectTo that doesn't match either is rejected with 400 invalid_redirect rather than silently falling back to Supabase Auth's Site URL. */
+  redirectTo: string;
 };
 
 /**

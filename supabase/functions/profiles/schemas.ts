@@ -15,7 +15,7 @@ export const UpdateProfileSchema = z.object({
 // POST /profiles/me/avatar (multipart upload)
 //
 // Mirrors the avatars bucket's own constraints (see the
-// 20260912103000_avatar_upload_and_rate_limit.sql migration) so a bad
+// 20260912085602_avatar_upload_and_rate_limit.sql migration) so a bad
 // file is rejected with a clear 400 before we ever call Storage.
 // ---------------------------------------------------------------------
 
