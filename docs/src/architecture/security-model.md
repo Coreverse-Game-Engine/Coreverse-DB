@@ -42,4 +42,6 @@ Two concrete cases:
 - **`/docs/reindex`** authenticates via a shared `X-Reindex-Token` secret instead of a user JWT, because the caller is CI in another repository (the engine or a tutorial repo), not a signed-in user.
 - **`/projects/{id}/download`** first checks the caller's access to the project using their own user-scoped client (so `identity.projects` RLS applies normally), and only *after* that check passes does it construct a service-role client to mint a short-lived (5 minute) signed Storage URL.
 
+A third, related case is **`POST /profiles/me/avatar`**: the caller *is* authenticated with their own JWT for the initial `getUser()` check, but the actual file upload runs through a service-role client, since avatar writes are no longer granted to `authenticated` at the Storage-policy level at all (see [Security › Storage Security](../security/storage-security.md)). And **`POST /auth/password-reset`** goes further still — it has no user JWT to begin with, so its rate-limit check runs entirely against a service-role client (see [API › Auth](../api/resources/auth.md)).
+
 See [Storage Security](../security/storage-security.md) for how avatar and project-archive access is controlled.

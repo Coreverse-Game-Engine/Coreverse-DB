@@ -25,4 +25,4 @@ This documentation is organized around the same domains as the codebase:
 - **Development** and **Operations** — day-to-day workflows and running the system in production.
 - **Reference** and **Contributing** — quick lookups and the rules for changing this repository.
 
-For a fast top-level overview, see the repository [`README.md`](https://github.com/KING-MASTER2012/Coreverse-DB) as well — this book goes into more depth on each part.
+For a fast top-level overview, see the repository [`README.md`](https://github.com/Coreverse-Game-Engine/Coreverse-DB) as well — this book goes into more depth on each part.
