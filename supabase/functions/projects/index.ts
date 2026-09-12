@@ -10,7 +10,7 @@
 import { serve, } from '@std/http/server';
 import { createUserClient, } from '../_shared/supabase-client.ts';
 import { createServiceClient, } from '../_shared/service-client.ts';
-import { errorResponse, jsonResponse, } from '../_shared/http.ts';
+import { errorResponse, jsonResponse, withCors, } from '../_shared/http.ts';
 import { CreateProjectSchema, UpdateProjectSchema, UuidSchema, } from './schemas.ts';
 
 const DOWNLOAD_URL_TTL_SECONDS = 300; // 5 minutes
@@ -18,7 +18,7 @@ const DOWNLOAD_URL_TTL_SECONDS = 300; // 5 minutes
 const SELECT_COLUMNS =
   'id, owner_id, team_id, name, description, archive_path, archive_size_bytes, archive_sha256, created_at, updated_at';
 
-serve(async (req,) => {
+serve(withCors(async (req,) => {
   const url = new URL(req.url,);
   const segments = url.pathname
     .replace(/^\/functions\/v1\/projects\/?/, '',)
@@ -151,4 +151,4 @@ serve(async (req,) => {
       500,
     );
   }
-},);
+},),);
