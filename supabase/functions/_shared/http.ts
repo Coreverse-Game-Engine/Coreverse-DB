@@ -1,12 +1,21 @@
-export function jsonResponse(body: unknown, status = 200,): Response {
+export function jsonResponse(
+  body: unknown,
+  status = 200,
+  extraHeaders?: Record<string, string>,
+): Response {
   return new Response(JSON.stringify(body,), {
     status,
-    headers: { 'Content-Type': 'application/json', },
+    headers: { 'Content-Type': 'application/json', ...extraHeaders, },
   },);
 }
 
-export function errorResponse(error: string, message: string, status: number,): Response {
-  return jsonResponse({ error, message, }, status,);
+export function errorResponse(
+  error: string,
+  message: string,
+  status: number,
+  extraHeaders?: Record<string, string>,
+): Response {
+  return jsonResponse({ error, message, }, status, extraHeaders,);
 }
 
 // Maps a Postgres error (from a SECURITY DEFINER function's `raise

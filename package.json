@@ -1,5 +1,5 @@
 {
-  "name": "@coreverse/db-client",
+  "name": "@Coreverse-Game-Engine/db-client",
   "version": "0.1.0",
   "description": "Typed TypeScript client (+ optional TanStack Query React hooks) for the Coreverse DB API, generated from openapi/openapi.yaml.",
   "type": "module",
@@ -7,11 +7,11 @@
   "author": "Coreverse-Game-Engine",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/coreverse/Coreverse-DB.git"
+    "url": "git+https://github.com/Coreverse-Game-Engine/Coreverse-DB.git"
   },
-  "homepage": "https://github.com/coreverse/Coreverse-DB#readme",
+  "homepage": "https://github.com/Coreverse-Game-Engine/Coreverse-DB#readme",
   "bugs": {
-    "url": "https://github.com/coreverse/Coreverse-DB/issues"
+    "url": "https://github.com/Coreverse-Game-Engine/Coreverse-DB/issues"
   },
   "keywords": [
     "coreverse",
