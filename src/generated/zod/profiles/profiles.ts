@@ -4,7 +4,7 @@
  * Coreverse DB API
  * Centralized data-access API for the Coreverse ecosystem. Coreverse DB defines and serves all data operations; Coreverse Launcher and Coreverse Website consume this API and never access Postgres/Supabase directly.
  *
- * OpenAPI spec version: 0.1.0
+ * OpenAPI spec version: 0.2.0
  */
 import * as zod from "zod";
 
@@ -39,12 +39,31 @@ export const UpdateMyProfileBody = zod
       .min(1)
       .nullish()
       .describe(
-        "Storage path in the avatars bucket (client uploads the PNG directly to Storage first, then sends the path here).\n",
+        "Storage path in the avatars bucket. Set this directly only if you already know a valid path (e.g. clearing the avatar with null); to upload a new image, use POST \/profiles\/me\/avatar instead, which uploads the file and sets this for you.\n",
       ),
   })
   .describe("At least one of full_name or avatar_path must be provided.");
 
 export const UpdateMyProfileResponse = zod.object({
+  id: zod.uuid(),
+  full_name: zod.string(),
+  avatar_url: zod
+    .url()
+    .nullish()
+    .describe(
+      "Public\/signed URL resolved from the stored avatar_path, not the raw path itself.",
+    ),
+});
+
+/**
+ * Accepts a multipart upload, validates it server-side (PNG or WebP, up to 5 MB), writes it to the avatars bucket with the service role, and updates the caller's avatar_path. Clients no longer write to Storage directly for this -- see 20260912103000_avatar_upload_and_rate_limit.sql.
+ * @summary Upload the caller's own avatar
+ */
+export const UploadMyAvatarBody = zod.object({
+  file: zod.instanceof(File).describe("PNG or WebP image, up to 5 MB."),
+});
+
+export const UploadMyAvatarResponse = zod.object({
   id: zod.uuid(),
   full_name: zod.string(),
   avatar_url: zod
