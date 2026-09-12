@@ -13,4 +13,4 @@ large_file_skip_byte_limit = 0
 tab_space_size = 2
 
 [sqlfluff:rules:references.keywords]
-ignore_words = role,version,path,label,status,type,key,value
+ignore_words = role,version,path,label,status,type,key,value,name,
