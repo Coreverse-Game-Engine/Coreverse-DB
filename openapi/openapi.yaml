@@ -7,7 +7,7 @@ info:
     defines and serves all data operations; Coreverse Launcher and
     Coreverse Website consume this API and never access Postgres/Supabase
     directly.
-  version: 0.1.0
+  version: 0.2.0
   license:
     name: GPL-3.0-only
     identifier: GPL-3.0-only
@@ -17,6 +17,8 @@ servers:
   - url: http://127.0.0.1:54321/functions/v1
     description: Local development (supabase start)
 tags:
+  - name: auth
+    description: Unauthenticated account-recovery actions.
   - name: releases
     description: Coreverse Engine release metadata and per-platform artifacts.
   - name: teams
@@ -66,6 +68,10 @@ paths:
     $ref: './paths/requests.yaml#/cancel'
   /profiles/me:
     $ref: './paths/profiles.yaml#/me'
+  /profiles/me/avatar:
+    $ref: './paths/profiles.yaml#/avatar'
+  /auth/password-reset:
+    $ref: './paths/auth.yaml#/passwordReset'
   /projects:
     $ref: './paths/projects.yaml#/list'
   /projects/{projectId}:
