@@ -4,7 +4,7 @@ See [Database › Domains › Storage](../database/domains/storage.md) for the b
 
 ## `avatars`
 
-Public bucket, but writes are constrained by policy to exactly the caller's own object name (`{user_id}.png`), so no user can overwrite another's avatar even though the bucket itself is public for reads. The fixed naming scheme also means there's never an orphaned old avatar to clean up.
+Public bucket for reads only. As of `20260912085602_avatar_upload_and_rate_limit.sql`, there is **no client-facing write policy on this bucket at all** — uploading is exclusively done server-side by the `profiles` Edge Function's `POST /profiles/me/avatar` route, using a service-role client after validating the file (PNG or WebP, up to 5 MB) itself. This is a deliberate move away from the bucket's original self-only-write design: validation now lives entirely in application code that's easy to reason about and extend, rather than being split between Storage's own MIME/size limits and RLS. See [API › Profiles](../api/resources/profiles.md) for the upload flow and [Database › Domains › Storage](../database/domains/storage.md) for the bucket policy history.
 
 ## `project-archives`
 

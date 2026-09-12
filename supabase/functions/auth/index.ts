@@ -5,7 +5,7 @@
 // that safe:
 //
 //   1. Rate limiting (identity.hit_rate_limit, added in
-//      20260912103000_avatar_upload_and_rate_limit.sql) keyed both by
+//      20260912085602_avatar_upload_and_rate_limit.sql) keyed both by
 //      the submitted email (a few requests per 15 min) and by the
 //      caller's IP (more requests per hour, across any email) -- the
 //      email key stops someone from spamming one inbox with reset
@@ -26,8 +26,8 @@
 import { serve, } from '@std/http/server';
 import { createAnonClient, } from '../_shared/supabase-client.ts';
 import { createServiceClient, } from '../_shared/service-client.ts';
-import { errorResponse, jsonResponse, } from '../_shared/http.ts';
-import { PasswordResetSchema, } from './schemas.ts';
+import { allowedOrigins, errorResponse, jsonResponse, withCors, } from '../_shared/http.ts';
+import { PasswordResetSchema, RESET_REDIRECT_PATH_PATTERN, } from './schemas.ts';
 
 const EMAIL_LIMIT = { maxHits: 3, windowSeconds: 15 * 60, }; // 3 / 15 min, per email
 const IP_LIMIT = { maxHits: 10, windowSeconds: 60 * 60, }; // 10 / hour, per IP
@@ -43,7 +43,7 @@ function callerIp(req: Request,): string {
   return first || 'no-forwarded-for-header';
 }
 
-serve(async (req,) => {
+serve(withCors(async (req,) => {
   const url = new URL(req.url,);
   const path = url.pathname.replace(/^\/functions\/v1\/auth\/?/, '',);
 
@@ -58,7 +58,10 @@ serve(async (req,) => {
     const body = await req.json().catch(() => ({}));
     const parsed = PasswordResetSchema.safeParse(body,);
     if (!parsed.success) return errorResponse('invalid_body', parsed.error.message, 400,);
-    const { email, } = parsed.data;
+    const { email, redirectTo, } = parsed.data;
+
+    const redirectError = validateRedirectTo(redirectTo,);
+    if (redirectError) return errorResponse('invalid_redirect', redirectError, 400,);
 
     const serviceClient = createServiceClient();
 
@@ -85,8 +88,12 @@ serve(async (req,) => {
     // Fire the actual reset email through a plain anon client. The
     // result is intentionally not branched on: whether the address
     // exists, and whether Supabase Auth's send succeeded, must not be
-    // observable from this response.
-    await createAnonClient().auth.resetPasswordForEmail(email,);
+    // observable from this response. redirectTo has already been
+    // validated against WEBSITE_ALLOWED_ORIGINS + the locale path
+    // pattern above -- Supabase Auth separately also checks it against
+    // its own Site URL / Additional Redirect URLs allowlist, so both
+    // allowlists need to list the same reset-password URLs.
+    await createAnonClient().auth.resetPasswordForEmail(email, { redirectTo, },);
 
     return jsonResponse({ ok: true, },);
   } catch (err) {
@@ -96,7 +103,7 @@ serve(async (req,) => {
       500,
     );
   }
-},);
+},),);
 
 async function hitRateLimit(
   serviceClient: ReturnType<typeof createServiceClient>,
@@ -117,4 +124,35 @@ async function hitRateLimit(
   // outer try/catch in the handler turns this into internal_error.
   if (error) throw new Error(`hit_rate_limit RPC failed: ${error.message}`,);
   return data === true;
+}
+
+// zod's .url() only confirms `redirectTo` parses as a URL -- it says
+// nothing about whether it's a URL we're willing to hand a live
+// recovery token to. That's an open-redirect risk (an attacker-supplied
+// redirectTo would leak the token to an attacker-controlled origin), so
+// this checks the two things that make a reset URL "ours": the origin
+// is one of our own deployed Website origins, and the path is exactly
+// `/{locale}/reset-password` -- not a prefix, not with extra segments,
+// and no query string or hash (both are stripped/ignored by callers
+// anyway, so silently allowing them here would just be misleading).
+// Returns null when valid, or a user-facing message when not.
+function validateRedirectTo(redirectTo: string,): string | null {
+  let url: URL;
+  try {
+    url = new URL(redirectTo,);
+  } catch {
+    return 'redirectTo must be a valid absolute URL.';
+  }
+
+  if (!allowedOrigins().includes(url.origin,)) {
+    return 'redirectTo origin is not on the allowed origins list.';
+  }
+  if (!RESET_REDIRECT_PATH_PATTERN.test(url.pathname,)) {
+    return 'redirectTo path must be exactly /{locale}/reset-password.';
+  }
+  if (url.search !== '' || url.hash !== '') {
+    return 'redirectTo must not include a query string or hash.';
+  }
+
+  return null;
 }

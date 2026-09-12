@@ -9,7 +9,7 @@
 
 import { serve, } from '@std/http/server';
 import { createUserClient, } from '../_shared/supabase-client.ts';
-import { errorResponse, jsonResponse, statusForPgError, } from '../_shared/http.ts';
+import { errorResponse, jsonResponse, statusForPgError, withCors, } from '../_shared/http.ts';
 import { UuidSchema, } from './schemas.ts';
 
 const RESPOND_RPC_BY_TYPE: Record<string, string> = {
@@ -18,7 +18,7 @@ const RESPOND_RPC_BY_TYPE: Record<string, string> = {
   ownership_transfer: 'respond_to_ownership_transfer',
 };
 
-serve(async (req,) => {
+serve(withCors(async (req,) => {
   if (req.method !== 'POST') {
     return errorResponse('method_not_allowed', 'Only POST is supported on this endpoint.', 405,);
   }
@@ -95,4 +95,4 @@ serve(async (req,) => {
       500,
     );
   }
-},);
+},),);
