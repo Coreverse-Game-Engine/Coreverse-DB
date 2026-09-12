@@ -1,0 +1,53 @@
+passwordReset:
+  post:
+    summary: Request a password reset email
+    description: >
+      Unauthenticated. Sends a Supabase Auth password reset email if the
+      address belongs to an account -- the response is identical either
+      way, so this cannot be used to enumerate accounts. Rate limited
+      per email (3 / 15 min) and per caller IP (10 / hour); either limit
+      being hit returns 429 with a Retry-After header. See
+      20260912103000_avatar_upload_and_rate_limit.sql for the rate
+      limiting primitive.
+    operationId: requestPasswordReset
+    tags: [auth]
+    security: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [email]
+            properties:
+              email:
+                type: string
+                format: email
+    responses:
+      '200':
+        description: >
+          Generic acknowledgement. Does not indicate whether the email
+          belongs to an account.
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/Ok.yaml'
+      '400':
+        description: Invalid or missing email.
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/Error.yaml'
+      '429':
+        description: >
+          Rate limit exceeded for this email or IP. See the Retry-After
+          header for how long to wait.
+        headers:
+          Retry-After:
+            description: Seconds to wait before retrying.
+            schema:
+              type: integer
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/Error.yaml'
