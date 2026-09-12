@@ -24,6 +24,7 @@ const externalRefsAllow = [
   "./paths/teams.yaml",
   "./paths/requests.yaml",
   "./paths/profiles.yaml",
+  "./paths/auth.yaml",
   "./paths/projects.yaml",
   "./paths/news.yaml",
   "./paths/polls.yaml",

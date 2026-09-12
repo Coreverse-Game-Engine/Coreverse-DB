@@ -4,7 +4,7 @@
  * Coreverse DB API
  * Centralized data-access API for the Coreverse ecosystem. Coreverse DB defines and serves all data operations; Coreverse Launcher and Coreverse Website consume this API and never access Postgres/Supabase directly.
  *
- * OpenAPI spec version: 0.1.0
+ * OpenAPI spec version: 0.2.0
  */
 import { useQuery } from "@tanstack/react-query";
 import type {
@@ -28,6 +28,12 @@ import type {
   UpdateMyProfile401,
   UpdateMyProfile404,
   UpdateMyProfileBody,
+  UploadMyAvatar200,
+  UploadMyAvatar400,
+  UploadMyAvatar401,
+  UploadMyAvatar404,
+  UploadMyAvatar413,
+  UploadMyAvatarBody,
 } from "../coreverseDBAPI.schemas";
 
 import { coreverseFetch } from "../../../client/http";
@@ -420,6 +426,221 @@ export function useUpdateMyProfile<
 } {
   const queryOptions = getUpdateMyProfileQueryOptions(
     updateMyProfileBody,
+    options,
+  );
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<
+    TData,
+    TError
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+export type uploadMyAvatarResponse200 = {
+  data: UploadMyAvatar200;
+  status: 200;
+};
+
+export type uploadMyAvatarResponse400 = {
+  data: UploadMyAvatar400;
+  status: 400;
+};
+
+export type uploadMyAvatarResponse401 = {
+  data: UploadMyAvatar401;
+  status: 401;
+};
+
+export type uploadMyAvatarResponse404 = {
+  data: UploadMyAvatar404;
+  status: 404;
+};
+
+export type uploadMyAvatarResponse413 = {
+  data: UploadMyAvatar413;
+  status: 413;
+};
+
+export type uploadMyAvatarResponseSuccess = uploadMyAvatarResponse200 & {
+  headers: Headers;
+};
+export type uploadMyAvatarResponseError = (
+  | uploadMyAvatarResponse400
+  | uploadMyAvatarResponse401
+  | uploadMyAvatarResponse404
+  | uploadMyAvatarResponse413
+) & {
+  headers: Headers;
+};
+
+export type uploadMyAvatarResponse =
+  uploadMyAvatarResponseSuccess | uploadMyAvatarResponseError;
+
+export const getUploadMyAvatarUrl = () => {
+  return `/profiles/me/avatar`;
+};
+
+/**
+ * Accepts a multipart upload, validates it server-side (PNG or WebP, up to 5 MB), writes it to the avatars bucket with the service role, and updates the caller's avatar_path. Clients no longer write to Storage directly for this -- see 20260912103000_avatar_upload_and_rate_limit.sql.
+ * @summary Upload the caller's own avatar
+ */
+export const uploadMyAvatar = async (
+  uploadMyAvatarBody: UploadMyAvatarBody,
+  options?: Parameters<typeof coreverseFetch>[1],
+): Promise<uploadMyAvatarResponse> => {
+  const formData = new FormData();
+  formData.append(`file`, uploadMyAvatarBody.file);
+
+  return coreverseFetch<uploadMyAvatarResponse>(getUploadMyAvatarUrl(), {
+    ...options,
+    method: "POST",
+    body: formData,
+  });
+};
+
+export const getUploadMyAvatarQueryKey = (
+  uploadMyAvatarBody?: UploadMyAvatarBody,
+) => {
+  return ["POST", `/profiles/me/avatar`, uploadMyAvatarBody] as const;
+};
+
+export const getUploadMyAvatarQueryOptions = <
+  TData = Awaited<ReturnType<typeof uploadMyAvatar>>,
+  TError =
+    | UploadMyAvatar400
+    | UploadMyAvatar401
+    | UploadMyAvatar404
+    | UploadMyAvatar413,
+>(
+  uploadMyAvatarBody: UploadMyAvatarBody,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof uploadMyAvatar>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof coreverseFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getUploadMyAvatarQueryKey(uploadMyAvatarBody);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof uploadMyAvatar>>> = ({
+    signal,
+  }) => uploadMyAvatar(uploadMyAvatarBody, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof uploadMyAvatar>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type UploadMyAvatarQueryResult = NonNullable<
+  Awaited<ReturnType<typeof uploadMyAvatar>>
+>;
+export type UploadMyAvatarQueryError =
+  UploadMyAvatar400 | UploadMyAvatar401 | UploadMyAvatar404 | UploadMyAvatar413;
+
+export function useUploadMyAvatar<
+  TData = Awaited<ReturnType<typeof uploadMyAvatar>>,
+  TError =
+    | UploadMyAvatar400
+    | UploadMyAvatar401
+    | UploadMyAvatar404
+    | UploadMyAvatar413,
+>(
+  uploadMyAvatarBody: UploadMyAvatarBody,
+  options: {
+    query: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof uploadMyAvatar>>, TError, TData>
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof uploadMyAvatar>>,
+          TError,
+          Awaited<ReturnType<typeof uploadMyAvatar>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof coreverseFetch>;
+  },
+  queryClient?: QueryClient,
+): DefinedUseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+export function useUploadMyAvatar<
+  TData = Awaited<ReturnType<typeof uploadMyAvatar>>,
+  TError =
+    | UploadMyAvatar400
+    | UploadMyAvatar401
+    | UploadMyAvatar404
+    | UploadMyAvatar413,
+>(
+  uploadMyAvatarBody: UploadMyAvatarBody,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof uploadMyAvatar>>, TError, TData>
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof uploadMyAvatar>>,
+          TError,
+          Awaited<ReturnType<typeof uploadMyAvatar>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof coreverseFetch>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+export function useUploadMyAvatar<
+  TData = Awaited<ReturnType<typeof uploadMyAvatar>>,
+  TError =
+    | UploadMyAvatar400
+    | UploadMyAvatar401
+    | UploadMyAvatar404
+    | UploadMyAvatar413,
+>(
+  uploadMyAvatarBody: UploadMyAvatarBody,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof uploadMyAvatar>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof coreverseFetch>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+/**
+ * @summary Upload the caller's own avatar
+ */
+
+export function useUploadMyAvatar<
+  TData = Awaited<ReturnType<typeof uploadMyAvatar>>,
+  TError =
+    | UploadMyAvatar400
+    | UploadMyAvatar401
+    | UploadMyAvatar404
+    | UploadMyAvatar413,
+>(
+  uploadMyAvatarBody: UploadMyAvatarBody,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof uploadMyAvatar>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof coreverseFetch>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+} {
+  const queryOptions = getUploadMyAvatarQueryOptions(
+    uploadMyAvatarBody,
     options,
   );
 
