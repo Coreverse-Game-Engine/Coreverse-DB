@@ -1,0 +1,1506 @@
+<!DOCTYPE HTML>
+<html lang="en" class="light" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Coreverse DB Documentation</title>
+        <meta name="robots" content="noindex">
+
+
+        <!-- Custom HTML head -->
+        
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="favicon.svg">
+        <link rel="shortcut icon" href="favicon.png">
+        <link rel="stylesheet" href="css/variables.css">
+        <link rel="stylesheet" href="css/general.css">
+        <link rel="stylesheet" href="css/chrome.css">
+        <link rel="stylesheet" href="css/print.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="FontAwesome/css/font-awesome.css">
+        <link rel="stylesheet" href="fonts/fonts.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" href="highlight.css">
+        <link rel="stylesheet" href="tomorrow-night.css">
+        <link rel="stylesheet" href="ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+
+    </head>
+    <body class="sidebar-visible no-js">
+    <div id="body-container">
+        <!-- Provide site root to javascript -->
+        <script>
+            var path_to_root = "";
+            var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "navy" : "light";
+        </script>
+
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                var theme = localStorage.getItem('mdbook-theme');
+                var sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            var theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            var html = document.querySelector('html');
+            html.classList.remove('light')
+            html.classList.add(theme);
+            var body = document.querySelector('body');
+            body.classList.remove('no-js')
+            body.classList.add('js');
+        </script>
+
+        <input type="checkbox" id="sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            var body = document.querySelector('body');
+            var sidebar = null;
+            var sidebar_toggle = document.getElementById("sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+            }
+            sidebar_toggle.checked = sidebar === 'visible';
+            body.classList.remove('sidebar-visible');
+            body.classList.add("sidebar-" + sidebar);
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <div class="sidebar-scrollbox">
+                <ol class="chapter"><li class="chapter-item expanded affix "><a href="introduction.html">Introduction</a></li><li class="chapter-item expanded affix "><li class="part-title">Getting Started</li><li class="chapter-item expanded "><a href="getting-started/overview.html"><strong aria-hidden="true">1.</strong> Overview</a></li><li class="chapter-item expanded "><a href="getting-started/requirements.html"><strong aria-hidden="true">2.</strong> Requirements</a></li><li class="chapter-item expanded "><a href="getting-started/local-development.html"><strong aria-hidden="true">3.</strong> Local Development</a></li><li class="chapter-item expanded "><a href="getting-started/configuration.html"><strong aria-hidden="true">4.</strong> Configuration</a></li><li class="chapter-item expanded "><a href="getting-started/database-reset.html"><strong aria-hidden="true">5.</strong> Database Reset</a></li><li class="chapter-item expanded affix "><li class="part-title">Architecture</li><li class="chapter-item expanded "><a href="architecture/overview.html"><strong aria-hidden="true">6.</strong> Overview</a></li><li class="chapter-item expanded "><a href="architecture/system-architecture.html"><strong aria-hidden="true">7.</strong> System Architecture</a></li><li class="chapter-item expanded "><a href="architecture/database-architecture.html"><strong aria-hidden="true">8.</strong> Database Architecture</a></li><li class="chapter-item expanded "><a href="architecture/security-model.html"><strong aria-hidden="true">9.</strong> Security Model</a></li><li class="chapter-item expanded "><a href="architecture/data-flow.html"><strong aria-hidden="true">10.</strong> Data Flow</a></li><li class="chapter-item expanded affix "><li class="part-title">Database</li><li class="chapter-item expanded "><a href="database/overview.html"><strong aria-hidden="true">11.</strong> Overview</a></li><li class="chapter-item expanded "><a href="database/schema.html"><strong aria-hidden="true">12.</strong> Schema</a></li><li class="chapter-item expanded "><a href="database/extensions.html"><strong aria-hidden="true">13.</strong> Extensions</a></li><li class="chapter-item expanded "><a href="database/conventions.html"><strong aria-hidden="true">14.</strong> Conventions</a></li><li class="chapter-item expanded "><a href="database/domains/releases.html"><strong aria-hidden="true">15.</strong> Releases</a></li><li class="chapter-item expanded "><a href="database/domains/identity.html"><strong aria-hidden="true">16.</strong> Identity</a></li><li class="chapter-item expanded "><a href="database/domains/content.html"><strong aria-hidden="true">17.</strong> Content</a></li><li class="chapter-item expanded "><a href="database/domains/storage.html"><strong aria-hidden="true">18.</strong> Storage</a></li><li class="chapter-item expanded "><a href="database/tables/profiles.html"><strong aria-hidden="true">19.</strong> Profiles</a></li><li class="chapter-item expanded "><a href="database/tables/teams.html"><strong aria-hidden="true">20.</strong> Teams</a></li><li class="chapter-item expanded "><a href="database/tables/projects.html"><strong aria-hidden="true">21.</strong> Projects</a></li><li class="chapter-item expanded "><a href="database/tables/releases.html"><strong aria-hidden="true">22.</strong> Releases</a></li><li class="chapter-item expanded "><a href="database/tables/discussions.html"><strong aria-hidden="true">23.</strong> Discussions</a></li><li class="chapter-item expanded "><a href="database/tables/polls.html"><strong aria-hidden="true">24.</strong> Polls</a></li><li class="chapter-item expanded "><a href="database/tables/news.html"><strong aria-hidden="true">25.</strong> News</a></li><li class="chapter-item expanded "><a href="database/tables/requests.html"><strong aria-hidden="true">26.</strong> Requests</a></li><li class="chapter-item expanded "><a href="database/functions/overview.html"><strong aria-hidden="true">27.</strong> Overview</a></li><li class="chapter-item expanded "><a href="database/functions/identity.html"><strong aria-hidden="true">28.</strong> Identity</a></li><li class="chapter-item expanded "><a href="database/functions/releases.html"><strong aria-hidden="true">29.</strong> Releases</a></li><li class="chapter-item expanded "><a href="database/functions/content.html"><strong aria-hidden="true">30.</strong> Content</a></li><li class="chapter-item expanded "><a href="database/triggers.html"><strong aria-hidden="true">31.</strong> Triggers</a></li><li class="chapter-item expanded affix "><li class="part-title">Security</li><li class="chapter-item expanded "><a href="security/overview.html"><strong aria-hidden="true">32.</strong> Overview</a></li><li class="chapter-item expanded "><a href="security/authentication.html"><strong aria-hidden="true">33.</strong> Authentication</a></li><li class="chapter-item expanded "><a href="security/authorization.html"><strong aria-hidden="true">34.</strong> Authorization</a></li><li class="chapter-item expanded "><a href="security/rls.html"><strong aria-hidden="true">35.</strong> Row Level Security</a></li><li class="chapter-item expanded "><a href="security/policies.html"><strong aria-hidden="true">36.</strong> Policies</a></li><li class="chapter-item expanded "><a href="security/storage-security.html"><strong aria-hidden="true">37.</strong> Storage Security</a></li><li class="chapter-item expanded affix "><li class="part-title">API</li><li class="chapter-item expanded "><a href="api/overview.html"><strong aria-hidden="true">38.</strong> Overview</a></li><li class="chapter-item expanded "><a href="api/authentication.html"><strong aria-hidden="true">39.</strong> Authentication</a></li><li class="chapter-item expanded "><a href="api/conventions.html"><strong aria-hidden="true">40.</strong> Conventions</a></li><li class="chapter-item expanded "><a href="api/errors.html"><strong aria-hidden="true">41.</strong> Errors</a></li><li class="chapter-item expanded "><a href="api/resources/profiles.html"><strong aria-hidden="true">42.</strong> Profiles</a></li><li class="chapter-item expanded "><a href="api/resources/teams.html"><strong aria-hidden="true">43.</strong> Teams</a></li><li class="chapter-item expanded "><a href="api/resources/projects.html"><strong aria-hidden="true">44.</strong> Projects</a></li><li class="chapter-item expanded "><a href="api/resources/releases.html"><strong aria-hidden="true">45.</strong> Releases</a></li><li class="chapter-item expanded "><a href="api/resources/discussions.html"><strong aria-hidden="true">46.</strong> Discussions</a></li><li class="chapter-item expanded "><a href="api/resources/polls.html"><strong aria-hidden="true">47.</strong> Polls</a></li><li class="chapter-item expanded "><a href="api/resources/news.html"><strong aria-hidden="true">48.</strong> News</a></li><li class="chapter-item expanded "><a href="api/resources/requests.html"><strong aria-hidden="true">49.</strong> Requests</a></li><li class="chapter-item expanded affix "><li class="part-title">OpenAPI</li><li class="chapter-item expanded "><a href="openapi/overview.html"><strong aria-hidden="true">50.</strong> Overview</a></li><li class="chapter-item expanded "><a href="openapi/specification.html"><strong aria-hidden="true">51.</strong> Specification</a></li><li class="chapter-item expanded "><a href="openapi/paths.html"><strong aria-hidden="true">52.</strong> Paths</a></li><li class="chapter-item expanded "><a href="openapi/schemas.html"><strong aria-hidden="true">53.</strong> Schemas</a></li><li class="chapter-item expanded affix "><li class="part-title">Development</li><li class="chapter-item expanded "><a href="development/workflow.html"><strong aria-hidden="true">54.</strong> Workflow</a></li><li class="chapter-item expanded "><a href="development/migrations.html"><strong aria-hidden="true">55.</strong> Migrations</a></li><li class="chapter-item expanded "><a href="development/writing-migrations.html"><strong aria-hidden="true">56.</strong> Writing Migrations</a></li><li class="chapter-item expanded "><a href="development/database-testing.html"><strong aria-hidden="true">57.</strong> Database Testing</a></li><li class="chapter-item expanded "><a href="development/pgtap.html"><strong aria-hidden="true">58.</strong> pgTAP</a></li><li class="chapter-item expanded "><a href="development/rls-testing.html"><strong aria-hidden="true">59.</strong> RLS Testing</a></li><li class="chapter-item expanded "><a href="development/edge-functions.html"><strong aria-hidden="true">60.</strong> Edge Functions</a></li><li class="chapter-item expanded affix "><li class="part-title">Operations</li><li class="chapter-item expanded "><a href="operations/deployment.html"><strong aria-hidden="true">61.</strong> Deployment</a></li><li class="chapter-item expanded "><a href="operations/environments.html"><strong aria-hidden="true">62.</strong> Environments</a></li><li class="chapter-item expanded "><a href="operations/database-backup.html"><strong aria-hidden="true">63.</strong> Database Backup</a></li><li class="chapter-item expanded "><a href="operations/database-restore.html"><strong aria-hidden="true">64.</strong> Database Restore</a></li><li class="chapter-item expanded "><a href="operations/monitoring.html"><strong aria-hidden="true">65.</strong> Monitoring</a></li><li class="chapter-item expanded "><a href="operations/troubleshooting.html"><strong aria-hidden="true">66.</strong> Troubleshooting</a></li><li class="chapter-item expanded affix "><li class="part-title">Reference</li><li class="chapter-item expanded "><a href="reference/cli-commands.html"><strong aria-hidden="true">67.</strong> CLI Commands</a></li><li class="chapter-item expanded "><a href="reference/environment-variables.html"><strong aria-hidden="true">68.</strong> Environment Variables</a></li><li class="chapter-item expanded "><a href="reference/database-conventions.html"><strong aria-hidden="true">69.</strong> Database Conventions</a></li><li class="chapter-item expanded "><a href="reference/error-codes.html"><strong aria-hidden="true">70.</strong> Error Codes</a></li><li class="chapter-item expanded "><a href="reference/glossary.html"><strong aria-hidden="true">71.</strong> Glossary</a></li><li class="chapter-item expanded affix "><li class="part-title">Contributing</li><li class="chapter-item expanded "><a href="contributing/overview.html"><strong aria-hidden="true">72.</strong> Overview</a></li><li class="chapter-item expanded "><a href="contributing/code-style.html"><strong aria-hidden="true">73.</strong> Code Style</a></li><li class="chapter-item expanded "><a href="contributing/sql-style.html"><strong aria-hidden="true">74.</strong> SQL Style</a></li><li class="chapter-item expanded "><a href="contributing/testing.html"><strong aria-hidden="true">75.</strong> Testing</a></li><li class="chapter-item expanded "><a href="contributing/migration-rules.html"><strong aria-hidden="true">76.</strong> Migration Rules</a></li><li class="chapter-item expanded "><a href="contributing/pull-requests.html"><strong aria-hidden="true">77.</strong> Pull Requests</a></li></ol>
+            </div>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <!-- Track and set sidebar scroll position -->
+        <script>
+            var sidebarScrollbox = document.querySelector('#sidebar .sidebar-scrollbox');
+            sidebarScrollbox.addEventListener('click', function(e) {
+                if (e.target.tagName === 'A') {
+                    sessionStorage.setItem('sidebar-scroll', sidebarScrollbox.scrollTop);
+                }
+            }, { passive: true });
+            var sidebarScrollTop = sessionStorage.getItem('sidebar-scroll');
+            sessionStorage.removeItem('sidebar-scroll');
+            if (sidebarScrollTop) {
+                // preserve sidebar scroll position when navigating via links within sidebar
+                sidebarScrollbox.scrollTop = sidebarScrollTop;
+            } else {
+                // scroll sidebar to current active section when navigating via "next/previous chapter" buttons
+                var activeSection = document.querySelector('#sidebar .active');
+                if (activeSection) {
+                    activeSection.scrollIntoView({ block: 'center' });
+                }
+            }
+        </script>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                                <div id="menu-bar-hover-placeholder"></div>
+                <div id="menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="sidebar-toggle" class="icon-button" for="sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                            <i class="fa fa-bars"></i>
+                        </label>
+                        <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                            <i class="fa fa-paint-brush"></i>
+                        </button>
+                        <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                        </ul>
+                        <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S" aria-controls="searchbar">
+                            <i class="fa fa-search"></i>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">Coreverse DB Documentation</h1>
+
+                    <div class="right-buttons">
+                        <a href="print.html" title="Print this book" aria-label="Print this book">
+                            <i id="print-button" class="fa fa-print"></i>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <h1 id="introduction"><a class="header" href="#introduction">Introduction</a></h1>
+<p><strong>Coreverse DB</strong> is the centralized data-access and backend layer for the Coreverse ecosystem. It combines a Supabase/PostgreSQL database, a domain-oriented Supabase Edge Function API, a contract-first OpenAPI 3.1 specification, and a generated TypeScript client (<code>@coreverse/db-client</code>) into a single versioned backend repository.</p>
+<h2 id="why-this-repository-exists"><a class="header" href="#why-this-repository-exists">Why this repository exists</a></h2>
+<p>Coreverse has more than one client application — the <strong>Coreverse Launcher</strong> (a Tauri/Rust desktop app) and the <strong>Coreverse Website</strong> (Next.js) — that both need the same data: engine releases, user profiles and teams, project archives, news, polls, discussions, and documentation search. Rather than letting each client talk to Postgres/Supabase directly and duplicate authorization logic, Coreverse DB centralizes that access:</p>
+<ul>
+<li><strong>One schema, one set of RLS policies, one set of PostgreSQL functions</strong> define what is allowed.</li>
+<li><strong>One OpenAPI contract</strong> defines the HTTP surface every client calls.</li>
+<li><strong>One generated TypeScript client</strong> gives type-safe access to that surface without hand-written fetch code.</li>
+</ul>
+<p>No other Coreverse repository is permitted to query Postgres or Supabase services directly — everything goes through the Edge Function API defined here.</p>
+<h2 id="whats-in-this-book"><a class="header" href="#whats-in-this-book">What's in this book</a></h2>
+<p>This documentation is organized around the same domains as the codebase:</p>
+<ul>
+<li><strong>Getting Started</strong> — installing the toolchain and running the stack locally.</li>
+<li><strong>Architecture</strong> — how requests flow from a client, through Edge Functions, to Postgres.</li>
+<li><strong>Database</strong> — the <code>releases</code>, <code>identity</code>, <code>content</code>, and <code>docs</code> schemas: tables, functions, and triggers.</li>
+<li><strong>Security</strong> — authentication, authorization, RLS, and Storage security.</li>
+<li><strong>API</strong> — the HTTP surface, resource by resource.</li>
+<li><strong>OpenAPI</strong> — how the contract is structured and how the client is generated from it.</li>
+<li><strong>Development</strong> and <strong>Operations</strong> — day-to-day workflows and running the system in production.</li>
+<li><strong>Reference</strong> and <strong>Contributing</strong> — quick lookups and the rules for changing this repository.</li>
+</ul>
+<p>For a fast top-level overview, see the repository <a href="https://github.com/KING-MASTER2012/Coreverse-DB"><code>README.md</code></a> as well — this book goes into more depth on each part.</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="overview"><a class="header" href="#overview">Overview</a></h1>
+<p>Getting a local Coreverse DB environment running touches three separate toolchains, because the repository has three separate jobs:</p>
+<ol>
+<li><strong>Supabase / PostgreSQL</strong> — the database, migrations, RLS, and pgTAP tests.</li>
+<li><strong>Deno</strong> — the Edge Functions and their Zod request-schema unit tests.</li>
+<li><strong>Node.js + pnpm</strong> — the <code>@coreverse/db-client</code> TypeScript package (Orval codegen, type-checking, bundling).</li>
+</ol>
+<p>You don't need all three to make every kind of change (a docs-only or SQL-only change doesn't need Node, for instance), but a full local setup installs all three so <code>pnpm verify</code>, <code>deno task test</code>, and <code>supabase test db</code> all pass before you open a pull request.</p>
+<p>The pages in this section walk through:</p>
+<ul>
+<li><a href="getting-started/requirements.html">Requirements</a> — exact tool versions.</li>
+<li><a href="getting-started/local-development.html">Local Development</a> — first-time setup and the day-to-day loop.</li>
+<li><a href="getting-started/configuration.html">Configuration</a> — environment variables and <code>.env</code> files.</li>
+<li><a href="getting-started/database-reset.html">Database Reset</a> — rebuilding the local database from scratch.</li>
+</ul>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="requirements"><a class="header" href="#requirements">Requirements</a></h1>
+<p>A complete local development environment requires:</p>
+<div class="table-wrapper"><table><thead><tr><th>Tool</th><th>Version</th><th>Used for</th></tr></thead><tbody>
+<tr><td><strong>Node.js</strong></td><td>22+</td><td>TypeScript client tooling (<code>pnpm</code>, Orval, <code>tsup</code>)</td></tr>
+<tr><td><strong>pnpm</strong></td><td>9.12.0</td><td>Package management for the <code>@coreverse/db-client</code> package</td></tr>
+<tr><td><strong>Deno</strong></td><td>2.x</td><td>Edge Function development, formatting, linting, and unit tests</td></tr>
+<tr><td><strong>Supabase CLI</strong></td><td>latest</td><td>Running the local Supabase stack, migrations, and pgTAP tests</td></tr>
+<tr><td><strong>Docker</strong></td><td>latest</td><td>Backing runtime for the local Supabase/PostgreSQL stack</td></tr>
+<tr><td><strong>Git</strong></td><td>any recent</td><td>Version control</td></tr>
+</tbody></table>
+</div>
+<p>Optional but recommended:</p>
+<ul>
+<li><strong>mdBook</strong> — to build and preview this documentation locally (<code>docs/</code>).</li>
+<li><strong>SQLFluff</strong> — to lint PostgreSQL migrations the same way CI does.</li>
+<li><strong>Semgrep</strong> — to run the same static-analysis pass CI runs.</li>
+</ul>
+<p>Windows users can bootstrap most of this automatically with the PowerShell devkit script under <a href="https://github.com/KING-MASTER2012/Coreverse-DB/tree/main/scripts/devkit/powershell"><code>scripts/devkit/powershell/</code></a>; a Bash equivalent lives under <code>scripts/devkit/shell/</code>. See <a href="getting-started/../reference/cli-commands.html">CLI Commands</a> for the day-to-day commands once the toolchain is installed.</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="local-development"><a class="header" href="#local-development">Local Development</a></h1>
+<h2 id="1-install-javascript-dependencies"><a class="header" href="#1-install-javascript-dependencies">1. Install JavaScript dependencies</a></h2>
+<pre><code class="language-bash">pnpm install
+</code></pre>
+<h2 id="2-start-the-local-supabase-stack"><a class="header" href="#2-start-the-local-supabase-stack">2. Start the local Supabase stack</a></h2>
+<pre><code class="language-bash">supabase start
+</code></pre>
+<p>This launches Postgres, Auth (GoTrue), Storage, and the Edge Functions runtime locally via Docker, and applies every migration in <a href="getting-started/../database/schema.html"><code>supabase/migrations/</code></a> in order.</p>
+<h2 id="3-generate-the-typescript-client"><a class="header" href="#3-generate-the-typescript-client">3. Generate the TypeScript client</a></h2>
+<pre><code class="language-bash">pnpm generate
+</code></pre>
+<p>This runs Orval against <a href="getting-started/../openapi/specification.html"><code>openapi/openapi.yaml</code></a> and writes the fetch client, Zod schemas, and (for the <code>react</code> entry point) TanStack Query hooks into <code>src/generated/</code>.</p>
+<h2 id="4-run-the-test-suites"><a class="header" href="#4-run-the-test-suites">4. Run the test suites</a></h2>
+<pre><code class="language-bash"># Edge Function request-schema unit tests (no database required)
+deno task test
+
+# Database and RLS behavior (pgTAP, requires the local stack from step 2)
+supabase test db
+</code></pre>
+<h2 id="5-verify-before-opening-a-pr"><a class="header" href="#5-verify-before-opening-a-pr">5. Verify before opening a PR</a></h2>
+<pre><code class="language-bash">pnpm verify
+</code></pre>
+<p><code>pnpm verify</code> regenerates the client, fails if the regenerated output differs from what's committed (drift check), and then type-checks the package. This is the same check CI runs, so a clean local <code>pnpm verify</code> is a strong signal your change is ready for review.</p>
+<h2 id="day-to-day-loop"><a class="header" href="#day-to-day-loop">Day-to-day loop</a></h2>
+<ul>
+<li>Changing the <strong>database</strong>: write a new migration, <code>supabase db reset</code> to rebuild from scratch, add/adjust pgTAP tests, run <code>supabase test db</code>.</li>
+<li>Changing the <strong>HTTP contract</strong>: edit <code>openapi/paths/</code> or <code>openapi/schemas/</code>, then <code>pnpm generate</code> to regenerate the client and commit the result.</li>
+<li>Changing an <strong>Edge Function</strong>: edit <code>supabase/functions/&lt;name&gt;/index.ts</code> and its <code>schemas.ts</code>, run <code>deno task test</code>, restart the local stack to pick up the change (<code>supabase functions serve</code> reloads automatically in dev).</li>
+</ul>
+<p>See <a href="getting-started/../development/workflow.html">Development › Workflow</a> for the fuller version of this loop.</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="configuration"><a class="header" href="#configuration">Configuration</a></h1>
+<p>Local configuration is driven by environment variables. <a href="https://github.com/KING-MASTER2012/Coreverse-DB/blob/main/.env.example"><code>.env.example</code></a> is the baseline — copy it to <code>.env.local</code> and fill in real values for your local Supabase instance (<code>supabase start</code> prints them).</p>
+<div class="table-wrapper"><table><thead><tr><th>Variable</th><th>Purpose</th></tr></thead><tbody>
+<tr><td><code>PUBLIC_SUPABASE_URL</code></td><td>Client-side Supabase project URL</td></tr>
+<tr><td><code>PUBLIC_SUPABASE_ANON_KEY</code></td><td>Client-side Supabase anonymous key</td></tr>
+<tr><td><code>DATABASE_PASSWORD</code></td><td>Database password for local development/administration workflows</td></tr>
+<tr><td><code>SUPABASE_SECRET_KEY</code></td><td>Server-side Supabase secret key (service role)</td></tr>
+<tr><td><code>DATABASE_URL</code></td><td>Direct PostgreSQL connection string, used by tooling like DataGrip</td></tr>
+</tbody></table>
+</div>
+<blockquote>
+<p><strong>Never commit real credentials.</strong> Supabase secret keys, database passwords, and the <code>docs/reindex</code> shared token must never be committed to the repository, even in example form beyond the placeholders already in <code>.env.example</code>.</p>
+</blockquote>
+<h2 id="supabase-project-configuration"><a class="header" href="#supabase-project-configuration">Supabase project configuration</a></h2>
+<p>Project-level Supabase configuration (API port, Auth settings, Storage limits, etc.) lives in <a href="https://github.com/KING-MASTER2012/Coreverse-DB/blob/main/supabase/config.toml"><code>supabase/config.toml</code></a> and is version-controlled, unlike secrets.</p>
+<h2 id="ide-configuration"><a class="header" href="#ide-configuration">IDE configuration</a></h2>
+<p>The team uses <strong>WebStorm</strong> for TypeScript/Deno/API work and <strong>DataGrip</strong> for PostgreSQL/RLS/migration work; a <code>DATABASE_URL</code> in <code>.env.local</code> is what DataGrip needs to connect to the local instance.</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="database-reset"><a class="header" href="#database-reset">Database Reset</a></h1>
+<pre><code class="language-bash">supabase db reset
+</code></pre>
+<p>This rebuilds the local database from scratch: it drops the local database, replays every migration in <a href="getting-started/../database/schema.html"><code>supabase/migrations/</code></a> in filename order, and then loads <a href="https://github.com/KING-MASTER2012/Coreverse-DB/blob/main/supabase/seed.sql"><code>supabase/seed.sql</code></a> for local development seed data.</p>
+<h2 id="when-to-reset"><a class="header" href="#when-to-reset">When to reset</a></h2>
+<ul>
+<li>After pulling changes that add a new migration.</li>
+<li>After writing a new migration yourself, to confirm it applies cleanly from a blank database (not just on top of your already-migrated local state).</li>
+<li>Whenever local data has drifted into a state that's confusing to debug against.</li>
+</ul>
+<h2 id="what-it-does-not-do"><a class="header" href="#what-it-does-not-do">What it does <em>not</em> do</a></h2>
+<ul>
+<li>It does not touch anything in the hosted/production Supabase project — this only operates on the local Docker-backed stack started by <code>supabase start</code>.</li>
+<li>It does not regenerate the TypeScript client — run <code>pnpm generate</code> separately if the schema change also affects the OpenAPI contract.</li>
+</ul>
+<p>After a reset, re-run <code>supabase test db</code> to confirm the pgTAP suite still passes against the freshly rebuilt database.</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="overview-1"><a class="header" href="#overview-1">Overview</a></h1>
+<p>Coreverse DB has three layers, each with a single, narrow responsibility:</p>
+<pre><code class="language-text">Coreverse Launcher / Coreverse Website / other clients
+                    │  HTTPS / JSON
+                    ▼
+        Supabase Edge Functions (Deno)
+                    │  user-scoped or service-role Supabase client
+                    ▼
+              PostgreSQL 17
+   (releases · identity · content · docs schemas)
+                    │
+                    ├──► Supabase Auth
+                    └──► Supabase Storage
+</code></pre>
+<ul>
+<li><strong>Clients</strong> never see a database connection string or a service-role key. They only know the Edge Function base URL and, once signed in, a Supabase Auth JWT.</li>
+<li><strong>Edge Functions</strong> are the only thing between a client and the database. Each function validates its request with Zod, then executes it against Postgres using a Supabase client scoped to the caller's JWT (so RLS applies) — except for the small number of operations that must run with elevated privilege (the <code>docs/reindex</code> secret-authenticated endpoint, and the project-download signed-URL flow), which explicitly construct a service-role client for just that operation.</li>
+<li><strong>PostgreSQL</strong> is where authorization actually lives. Row Level Security policies, <code>SECURITY DEFINER</code> functions, constraints, and triggers decide what a given request is allowed to do — not application code in the Edge Functions.</li>
+</ul>
+<p>See <a href="architecture/system-architecture.html">System Architecture</a> for the full component diagram, <a href="architecture/database-architecture.html">Database Architecture</a> for how the four schemas are organized, <a href="architecture/security-model.html">Security Model</a> for the authorization layering, and <a href="architecture/data-flow.html">Data Flow</a> for a request walked through end to end.</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="system-architecture"><a class="header" href="#system-architecture">System Architecture</a></h1>
+<pre><code class="language-text">┌───────────────────────────────────────────────────────────────┐
+│                        Coreverse Ecosystem                    │
+│   Coreverse Launcher     Coreverse Website     Other Clients  │
+└───────────────────────────────┬───────────────────────────────┘
+                                 │ HTTPS / JSON
+                                 ▼
+┌───────────────────────────────────────────────────────────────┐
+│                    Supabase Edge Functions                    │
+│  releases  teams  requests  profiles  projects  news          │
+│  polls     discussions  docs                                  │
+│  ┌─────────────────────────────────────────────────────────┐  │
+│  │ Shared HTTP / Supabase / service-role infrastructure     │  │
+│  │ (supabase/functions/_shared/)                            │  │
+│  └─────────────────────────────────────────────────────────┘  │
+└───────────────────────────────┬───────────────────────────────┘
+                                 │ user-scoped Supabase client
+                                 ▼
+┌───────────────────────────────────────────────────────────────┐
+│                         PostgreSQL 17                         │
+│   releases   identity   content   docs   private helpers      │
+│   RLS + SECURITY DEFINER + constraints + triggers + RPCs      │
+└───────────────────────────────┬───────────────────────────────┘
+                                 ├──────────────► Supabase Auth
+                                 └──────────────► Supabase Storage
+</code></pre>
+<h2 id="edge-functions"><a class="header" href="#edge-functions">Edge Functions</a></h2>
+<p>Each of the nine Edge Functions under <code>supabase/functions/</code> maps to one OpenAPI tag and owns one or more resources:</p>
+<div class="table-wrapper"><table><thead><tr><th>Function</th><th>Resources</th></tr></thead><tbody>
+<tr><td><code>releases</code></td><td><code>/releases</code>, <code>/releases/latest</code>, <code>/releases/{version}</code></td></tr>
+<tr><td><code>teams</code></td><td><code>/teams/*</code> (create, rename, delete, members, join requests, invites, ownership transfer, leave)</td></tr>
+<tr><td><code>requests</code></td><td>`/requests/{requestId}/accept</td></tr>
+<tr><td><code>profiles</code></td><td><code>/profiles/me</code></td></tr>
+<tr><td><code>projects</code></td><td><code>/projects</code>, <code>/projects/{id}</code>, <code>/projects/{id}/download</code></td></tr>
+<tr><td><code>news</code></td><td><code>/news</code>, <code>/news/{id}</code></td></tr>
+<tr><td><code>polls</code></td><td><code>/polls</code>, <code>/polls/{id}/vote</code>, <code>/polls/{id}/results</code></td></tr>
+<tr><td><code>discussions</code></td><td><code>/discussions</code>, <code>/discussions/{id}</code>, <code>/discussions/{id}/replies</code>, <code>/replies/{id}</code></td></tr>
+<tr><td><code>docs</code></td><td><code>/docs/sources</code>, <code>/docs/search</code>, <code>/docs/reindex</code></td></tr>
+</tbody></table>
+</div>
+<p>Every function follows the same internal shape: parse and validate the request with a Zod schema from its <code>schemas.ts</code>, obtain a Supabase client via <code>_shared/supabase-client.ts</code> (user-scoped, forwarding the caller's <code>Authorization</code> header) or <code>_shared/service-client.ts</code> (service-role, only where required), call the corresponding PostgreSQL function or table, and return a response built with <code>_shared/http.ts</code>'s <code>jsonResponse</code> / <code>errorResponse</code> helpers.</p>
+<h2 id="shared-infrastructure-_shared"><a class="header" href="#shared-infrastructure-_shared">Shared infrastructure (<code>_shared/</code>)</a></h2>
+<ul>
+<li><strong><code>http.ts</code></strong> — <code>jsonResponse</code>, <code>errorResponse</code>, and <code>statusForPgError</code>, which maps the <code>42501</code> Postgres error code (the convention this codebase uses inside <code>SECURITY DEFINER</code> functions for "not authorized to do that") to an HTTP 403, and everything else to 400.</li>
+<li><strong><code>supabase-client.ts</code></strong> — builds a Supabase client scoped to the caller, forwarding their JWT so RLS applies exactly as it would for a direct (hypothetical) database connection.</li>
+<li><strong><code>service-client.ts</code></strong> — builds a service-role client that bypasses RLS entirely. Used only where a function has already performed its own authorization check and needs privileged access afterward (e.g. minting a signed Storage URL, or the <code>docs/reindex</code> endpoint's shared-secret auth).</li>
+</ul>
+<h2 id="database"><a class="header" href="#database">Database</a></h2>
+<p>See <a href="architecture/database-architecture.html">Database Architecture</a> for the four-schema layout and <a href="architecture/security-model.html">Security Model</a> for how authorization is layered across Edge Functions and Postgres.</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="database-architecture"><a class="header" href="#database-architecture">Database Architecture</a></h1>
+<p>The database is organized into domain-oriented PostgreSQL schemas rather than one flat <code>public</code> schema:</p>
+<div class="table-wrapper"><table><thead><tr><th>Schema</th><th>Purpose</th></tr></thead><tbody>
+<tr><td><code>releases</code></td><td>Coreverse Engine release metadata and per-platform artifacts</td></tr>
+<tr><td><code>identity</code></td><td>Profiles, teams, team membership, membership requests, projects, platform roles</td></tr>
+<tr><td><code>content</code></td><td>News, polls, poll options/votes, discussions, discussion replies</td></tr>
+<tr><td><code>docs</code></td><td>Documentation source catalog and full-text search index</td></tr>
+<tr><td><code>private</code></td><td>Internal <code>SECURITY DEFINER</code> helper functions used by RLS policies (never exposed to clients)</td></tr>
+</tbody></table>
+</div>
+<p>This mirrors the API's tag structure: each schema is the backing store for one or more Edge Functions, and (with the exception of <code>identity</code>, which both <code>identity</code> and <code>content</code> domains write into for <code>platform_roles</code>) a migration that adds a domain is self-contained.</p>
+<h2 id="design-principles"><a class="header" href="#design-principles">Design principles</a></h2>
+<ul>
+<li><strong>Read paths are usually plain tables + RLS.</strong> A <code>select</code> from a client, scoped by their JWT, is filtered directly by row-level security policies — no function call needed for reads.</li>
+<li><strong>Non-trivial writes are <code>SECURITY DEFINER</code> functions, not raw table grants.</strong> Anything with more than one invariant to check (team capacity, single-owner-per-team, only-the-initiator-can-cancel, vote-belongs-to-poll, etc.) is a PL/pgSQL function that performs every check and the write together, atomically. Direct <code>INSERT</code>/<code>UPDATE</code>/<code>DELETE</code> grants to <code>anon</code>/<code>authenticated</code> are deliberately withheld on those tables; only <code>service_role</code> (which bypasses RLS) or the SECURITY DEFINER functions can write.</li>
+<li><strong>RLS helper functions live in <code>private</code>, not the domain schema</strong>, and are <code>SECURITY DEFINER</code> with <code>set row_security = off</code>. This is required to avoid infinite recursion: a policy on <code>identity.teams</code> that itself queried <code>identity.team_members</code> (RLS-protected) would re-trigger RLS evaluation. The helper functions in <code>private</code> read the underlying table directly, bypassing that recursion.</li>
+<li><strong>Static predicates go directly in RLS policies; multi-step authorization goes in functions.</strong> <code>content</code>'s authorization (e.g. "is this the author, or a moderator?") is simple enough to express directly as a <code>using</code> clause. <code>identity</code>'s team lifecycle (invite → accept → member; owner → transfer → new owner) is a state machine, so it's expressed as functions instead.</li>
+</ul>
+<p>See <a href="architecture/../database/overview.html">Database › Overview</a> for the full schema reference, and <a href="architecture/security-model.html">Security Model</a> for how this connects to Auth and the Edge Function layer above it.</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="security-model"><a class="header" href="#security-model">Security Model</a></h1>
+<p>Security is enforced in layers, and each layer only does the part it's positioned to do well:</p>
+<pre><code class="language-text">Supabase Auth JWT
+       │
+       ▼
+Edge Function
+       │
+       ├── Request validation (Zod)
+       ▼
+User-scoped Supabase client
+       │
+       ▼
+Row Level Security (RLS)
+       │
+       ├── PostgreSQL functions / RPCs
+       ├── Constraints
+       └── Triggers
+</code></pre>
+<ul>
+<li><strong>Authentication</strong> is entirely Supabase Auth's responsibility — Coreverse DB never stores or handles a password. See <a href="architecture/../security/authentication.html">Security › Authentication</a>.</li>
+<li><strong>Request shape</strong> validation (types, required fields, enum values) happens in the Edge Function with Zod, before anything touches the database.</li>
+<li><strong>Authorization</strong> — who can see or change which row — is enforced by PostgreSQL itself via RLS, not by application code, so it holds even if an Edge Function has a bug. See <a href="architecture/../security/rls.html">Row Level Security</a> and <a href="architecture/../security/policies.html">Policies</a>.</li>
+<li><strong>Multi-step invariants</strong> (team capacity, single owner, vote-belongs-to-poll, etc.) are enforced by <code>SECURITY DEFINER</code> functions and triggers, which run the check and the write in the same transaction. See <a href="architecture/../database/functions/overview.html">Database › Functions</a> and <a href="architecture/../database/triggers.html">Database › Triggers</a>.</li>
+</ul>
+<p>For the small number of operations that require privileged (service-role) access:</p>
+<pre><code class="language-text">Authenticated / secret-authorized request
+                │
+                ▼
+        Access validation
+                │
+                ▼
+        Service-role operation
+</code></pre>
+<p>Two concrete cases:</p>
+<ul>
+<li><strong><code>/docs/reindex</code></strong> authenticates via a shared <code>X-Reindex-Token</code> secret instead of a user JWT, because the caller is CI in another repository (the engine or a tutorial repo), not a signed-in user.</li>
+<li><strong><code>/projects/{id}/download</code></strong> first checks the caller's access to the project using their own user-scoped client (so <code>identity.projects</code> RLS applies normally), and only <em>after</em> that check passes does it construct a service-role client to mint a short-lived (5 minute) signed Storage URL.</li>
+</ul>
+<p>See <a href="architecture/../security/storage-security.html">Storage Security</a> for how avatar and project-archive access is controlled.</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="data-flow"><a class="header" href="#data-flow">Data Flow</a></h1>
+<p>Walking a single request end to end: <strong>a signed-in user casts a poll vote.</strong></p>
+<ol>
+<li><strong>Client</strong> sends <code>POST /polls/{pollId}/vote</code> with <code>Authorization: Bearer &lt;JWT&gt;</code> and a JSON body <code>{ "option_id": "..." }</code>.</li>
+<li><strong><code>polls</code> Edge Function</strong> parses and validates the body against its Zod schema (<code>castVoteBody</code>). If it fails validation, the function returns a 400 immediately — Postgres is never reached.</li>
+<li>The function builds a <strong>user-scoped Supabase client</strong>, forwarding the caller's JWT.</li>
+<li>It issues an <code>insert</code> into <code>content.poll_votes</code> using that client.</li>
+<li><strong>RLS</strong> on <code>content.poll_votes</code> allows the insert only for the calling user (<code>user_id = auth.uid()</code>, enforced via <code>with check</code>).</li>
+<li>A <strong><code>before insert</code> trigger</strong> (<code>content.enforce_vote_option_matches_poll</code>) checks that <code>option_id</code> actually belongs to <code>poll_id</code> — a data-integrity rule that can't be expressed as a plain foreign key — and raises an exception (<code>42501</code>/<code>check_violation</code>) if not.</li>
+<li>A <strong>primary key</strong> on <code>(poll_id, user_id)</code> prevents a second vote from the same user on the same poll at the database level.</li>
+<li>If Postgres returns an error, the function maps it to an HTTP status with <code>statusForPgError</code> (a <code>42501</code>-coded error becomes 403; anything else becomes 400) and returns it via <code>errorResponse</code>.</li>
+<li>On success, the function returns <code>201</code> with the created vote's shape (<code>castVote201</code>).</li>
+</ol>
+<p>Reading aggregated results (<code>GET /polls/{pollId}/results</code>) is simpler: it's a public read that calls <code>content.poll_results()</code>, a <code>stable</code> SQL function that returns anonymous vote counts per option — never individual <code>poll_votes</code> rows, so a caller can never see who voted for what, even though the function itself has to read across every user's votes to produce the aggregate.</p>
+<p>This same shape — Zod validation → user-scoped client (or service-role, where explicitly justified) → RLS/functions/triggers → mapped error response — is how every write in the API works. See <a href="architecture/system-architecture.html">System Architecture</a> for the component view and <a href="architecture/security-model.html">Security Model</a> for why authorization lives at the database layer.</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="overview-2"><a class="header" href="#overview-2">Overview</a></h1>
+<p>The database is PostgreSQL 17, managed entirely through versioned migrations in <a href="https://github.com/KING-MASTER2012/Coreverse-DB/tree/main/supabase/migrations"><code>supabase/migrations/</code></a>. There are four domain schemas plus one internal helper schema:</p>
+<div class="table-wrapper"><table><thead><tr><th>Schema</th><th>Migration</th><th>Contents</th></tr></thead><tbody>
+<tr><td><code>releases</code></td><td><code>20260828090000_create_releases_domain.sql</code></td><td>Engine release metadata + per-platform artifacts</td></tr>
+<tr><td><code>identity</code></td><td><code>20260829162935_create_identity_domain.sql</code></td><td>Profiles, teams, membership, projects</td></tr>
+<tr><td><code>content</code></td><td><code>20260830151432_create_content_domain.sql</code></td><td>News, polls, discussions, platform roles</td></tr>
+<tr><td><code>docs</code></td><td><code>20260831093008_create_docs_domain.sql</code></td><td>Documentation catalog + full-text search</td></tr>
+<tr><td><code>private</code></td><td>(created inside the identity migration)</td><td>RLS helper functions only — never exposed to clients</td></tr>
+</tbody></table>
+</div>
+<p>A separate migration, <code>20260828144407_enable_pgtap.sql</code>, enables the <code>pgtap</code> extension used by the test suite. <code>20260830143509_create_storage_buckets.sql</code> provisions the two Supabase Storage buckets (<code>avatars</code>, <code>project-archives</code>) and their <code>storage.objects</code> policies.</p>
+<p>See <a href="database/schema.html">Schema</a> for how migrations map to schema objects, <a href="database/extensions.html">Extensions</a> for what's enabled and why, and <a href="database/conventions.html">Conventions</a> for the naming and structure rules every migration follows. The <a href="database/domains/releases.html">Domains</a> pages describe each schema's purpose and design rationale; the <a href="database/tables/profiles.html">Tables</a> pages document individual tables; and <a href="database/functions/overview.html">Functions</a> and <a href="database/triggers.html">Triggers</a> document the PostgreSQL-side business logic.</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="schema"><a class="header" href="#schema">Schema</a></h1>
+<p>Migrations are applied in filename (timestamp) order and are the single source of truth for the database schema — nothing is changed by hand against a running database.</p>
+<div class="table-wrapper"><table><thead><tr><th>Migration file</th><th>Adds</th></tr></thead><tbody>
+<tr><td><code>20260828090000_create_releases_domain.sql</code></td><td><code>releases</code> schema: <code>engine_releases</code>, <code>engine_artifacts</code>, read functions</td></tr>
+<tr><td><code>20260828144407_enable_pgtap.sql</code></td><td>The <code>pgtap</code> extension (test infrastructure only)</td></tr>
+<tr><td><code>20260829162935_create_identity_domain.sql</code></td><td><code>identity</code> schema: <code>profiles</code>, <code>teams</code>, <code>team_members</code>, <code>team_membership_requests</code>, <code>projects</code>; <code>private</code> schema helpers; team lifecycle functions</td></tr>
+<tr><td><code>20260830143509_create_storage_buckets.sql</code></td><td><code>avatars</code> and <code>project-archives</code> Storage buckets and their <code>storage.objects</code> RLS policies</td></tr>
+<tr><td><code>20260830151432_create_content_domain.sql</code></td><td><code>identity.platform_roles</code>; <code>content</code> schema: <code>news</code>, <code>polls</code>, <code>poll_options</code>, <code>poll_votes</code>, <code>discussions</code>, <code>discussion_replies</code></td></tr>
+<tr><td><code>20260831093008_create_docs_domain.sql</code></td><td><code>docs</code> schema: <code>sources</code>, <code>pages</code>, full-text search function</td></tr>
+</tbody></table>
+</div>
+<p>Each migration is self-contained: it creates its schema (<code>create schema if not exists ...</code>), its tables, its triggers, its RLS policies, its functions, and its grants, in that order. See <a href="database/../development/writing-migrations.html">Writing Migrations</a> for the rules new migrations must follow, and <a href="database/../development/migrations.html">Migrations</a> for the general workflow.</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="extensions"><a class="header" href="#extensions">Extensions</a></h1>
+<div class="table-wrapper"><table><thead><tr><th>Extension</th><th>Enabled by</th><th>Purpose</th></tr></thead><tbody>
+<tr><td><code>pgtap</code></td><td><code>20260828144407_enable_pgtap.sql</code></td><td>Unit-testing framework for PostgreSQL, used by every file under <a href="https://github.com/KING-MASTER2012/Coreverse-DB/tree/main/supabase/tests"><code>supabase/tests/</code></a> (both database-function tests and RLS tests)</td></tr>
+<tr><td><code>pgcrypto</code> (via <code>gen_random_uuid()</code>)</td><td>Supabase default stack</td><td>Generates UUID primary keys across every table in the schema</td></tr>
+<tr><td>PostgreSQL full-text search (<code>tsvector</code>/<code>tsquery</code>, built in)</td><td><code>docs</code> domain</td><td>Powers <code>docs.pages.search_vector</code> and <code>docs.search()</code>, using the <code>'simple'</code> (language-agnostic) text-search configuration rather than <code>'english'</code>, since documentation content spans multiple languages and English stemming would misparse non-English text</td></tr>
+</tbody></table>
+</div>
+<p>No other third-party PostgreSQL extensions are currently in use. If a future domain needs one (e.g. <code>pg_cron</code> for scheduled cleanup, referenced in project history for membership-request expiry), it should be enabled in its own migration with a comment explaining why, following the same pattern as <code>pgtap</code>.</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="conventions"><a class="header" href="#conventions">Conventions</a></h1>
+<p>These conventions are enforced by review, and partly by <a href="database/../contributing/sql-style.html">SQLFluff</a> in CI:</p>
+<ul>
+<li><strong>One schema per domain.</strong> New application data goes into an existing domain schema, or a new one if it's a genuinely new bounded context — never into <code>public</code>.</li>
+<li><strong><code>gen_random_uuid()</code> primary keys.</strong> Every table uses a <code>uuid primary key default gen_random_uuid()</code>.</li>
+<li><strong><code>created_at</code> / <code>updated_at</code> timestamptz columns</strong>, with a <code>before update</code> trigger (<code>&lt;schema&gt;.set_updated_at()</code>) maintaining <code>updated_at</code> automatically. Each domain defines its own copy of this trigger function rather than sharing one across schemas.</li>
+<li><strong><code>check</code> constraints for closed enumerations</strong> (<code>status</code>, <code>role</code>, <code>type</code>, <code>os</code>, <code>architecture</code>, etc.) instead of a separate lookup table, since these value sets are small and effectively fixed at the application layer.</li>
+<li><strong>RLS is enabled on every table</strong> that clients can reach, even ones that end up with no client-facing write policies at all (writes-via-service-role-only tables like <code>releases.engine_releases</code> still enable RLS and grant only <code>select</code>).</li>
+<li><strong>RLS helper functions live in <code>private</code></strong>, are <code>security definer</code>, and set <code>search_path = ''</code> and <code>row_security = off</code> to avoid both search-path hijacking and RLS recursion. See <a href="database/../security/rls.html">Row Level Security</a>.</li>
+<li><strong>Non-trivial writes are <code>SECURITY DEFINER</code> functions</strong>, not raw grants — see <a href="database/functions/overview.html">Functions › Overview</a> for when a function is used instead of a plain policy.</li>
+<li><strong>Comments matter.</strong> Every non-obvious table and function has a <code>comment on table</code>/<code>comment on function</code> explaining <em>why</em>, not just what — migrations are read far more often than they're written, and the rationale (e.g. why <code>teams</code> has no <code>owner_id</code> column) isn't otherwise recoverable from the schema alone.</li>
+<li><strong>Grants are explicit and minimal.</strong> <code>anon</code>/<code>authenticated</code> get exactly the <code>select</code>/<code>execute</code> grants a domain's public surface requires; write access is either a <code>SECURITY DEFINER</code> function's <code>execute</code> grant or withheld entirely (service-role only).</li>
+</ul>
+<p>See <a href="database/../reference/database-conventions.html">Reference › Database Conventions</a> for a condensed checklist version of this page.</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="releases"><a class="header" href="#releases">Releases</a></h1>
+<p>The <code>releases</code> schema stores Coreverse Engine release metadata and per-platform downloadable artifacts. It never stores a binary itself — only enough metadata for the Launcher to discover, download, and verify one.</p>
+<h2 id="tables"><a class="header" href="#tables">Tables</a></h2>
+<ul>
+<li><strong><code>engine_releases</code></strong> — one row per version: semantic-version parts, release date, status (<code>stable</code>/<code>beta</code>/<code>rc</code>/<code>deprecated</code>), and a release-notes summary.</li>
+<li><strong><code>engine_artifacts</code></strong> — one row per <code>(release, os, architecture)</code>: a <code>download_url</code>, a <code>sha256</code> checksum, <code>size_bytes</code>, <code>min_requirements</code> (jsonb), and <code>compiler</code> info (jsonb). A release has zero or more artifacts.</li>
+</ul>
+<p>See <a href="database/domains/../tables/releases.html">Tables › Releases</a> for full column definitions.</p>
+<h2 id="why-download_url-is-in-the-database"><a class="header" href="#why-download_url-is-in-the-database">Why <code>download_url</code> is in the database</a></h2>
+<p>The artifact's <code>download_url</code> is stored per-row rather than the Launcher assuming a fixed GitHub-releases URL pattern. This means the distribution source (GitHub Releases today, a CDN or object storage later) can change without any Launcher update — the Launcher always asks Coreverse DB where to download from.</p>
+<h2 id="why-sha256-exists"><a class="header" href="#why-sha256-exists">Why <code>sha256</code> exists</a></h2>
+<p>The Launcher verifies the downloaded artifact's SHA-256 against <code>engine_artifacts.sha256</code> before running it, specifically so that a compromised distribution source (e.g. GitHub) can't silently serve a tampered binary — the checksum is defined independently, by Coreverse DB, not by whatever served the file.</p>
+<h2 id="access"><a class="header" href="#access">Access</a></h2>
+<p>Read access (<code>select</code>) is granted to both <code>anon</code> and <code>authenticated</code>, because the Launcher checks for updates before a user is signed in. There are no <code>insert</code>/<code>update</code>/<code>delete</code> policies for <code>anon</code> or <code>authenticated</code> at all — every write goes through <code>service_role</code> (the release/CI pipeline), which bypasses RLS.</p>
+<p>See <a href="database/domains/../functions/releases.html">Functions › Releases</a> for the three read functions (<code>get_by_version</code>, <code>get_latest</code>, <code>list_releases</code>) and <a href="database/domains/../../api/resources/releases.html">API › Releases</a> for the HTTP surface built on top of them.</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="identity"><a class="header" href="#identity">Identity</a></h1>
+<p>The <code>identity</code> schema owns everything about who a user is and what they belong to: profiles, teams, team membership, membership requests, and project archives.</p>
+<h2 id="tables-1"><a class="header" href="#tables-1">Tables</a></h2>
+<ul>
+<li><strong><code>profiles</code></strong> — one row per <code>auth.users</code> row, created automatically on signup (see <a href="database/domains/../triggers.html">Triggers</a>). Never stores a password — that's entirely Supabase Auth's responsibility.</li>
+<li><strong><code>teams</code></strong> — deliberately has <strong>no <code>owner_id</code> column</strong>. The current owner is derived from <code>team_members.role = 'owner'</code> instead, so ownership transfer is just a role change on an existing row rather than a separate migration of a foreign key.</li>
+<li><strong><code>team_members</code></strong> — the <code>(team_id, user_id)</code> membership rows, with a <code>role</code> of <code>owner</code>, <code>admin</code>, or <code>member</code>. A unique partial index enforces <strong>at most one owner per team</strong>.</li>
+<li><strong><code>team_membership_requests</code></strong> — a single table backing three different bidirectional flows (see below), disambiguated by <code>type</code>.</li>
+<li><strong><code>projects</code></strong> — user-uploaded project archive metadata; the archive file itself lives in Supabase Storage (see <a href="database/domains/../../security/storage-security.html">Storage Security</a>).</li>
+<li><strong><code>platform_roles</code></strong> (introduced by the content-domain migration, but scoped to <code>identity</code>) — platform-wide <code>admin</code>/<code>moderator</code> roles, unrelated to team roles, gating who can write <code>content.news</code> and moderate <code>content.discussions</code>/<code>content.polls</code>.</li>
+</ul>
+<p>See <a href="database/domains/../tables/profiles.html">Tables › Profiles</a>, <a href="database/domains/../tables/teams.html">Tables › Teams</a>, and <a href="database/domains/../tables/projects.html">Tables › Projects</a> for column-level detail.</p>
+<h2 id="the-membership-request-state-machine"><a class="header" href="#the-membership-request-state-machine">The membership-request state machine</a></h2>
+<p><code>team_membership_requests.type</code> covers three distinct flows through one table:</p>
+<div class="table-wrapper"><table><thead><tr><th>Type</th><th>Initiated by</th><th>Decided by</th></tr></thead><tbody>
+<tr><td><code>join_request</code></td><td>The user wanting to join</td><td>A team owner/admin</td></tr>
+<tr><td><code>invite</code></td><td>A team owner/admin</td><td>The invited user</td></tr>
+<tr><td><code>ownership_transfer</code></td><td>The current owner</td><td>The target user (member or not)</td></tr>
+</tbody></table>
+</div>
+<p>A unique partial index allows <strong>at most one pending request per <code>(team, user)</code></strong>, regardless of type, and the initiator can always cancel their own request while it's still <code>pending</code>. See <a href="database/domains/../functions/identity.html">Functions › Identity</a> for the full set of state-transition functions (<code>request_to_join</code>, <code>invite_to_team</code>, <code>offer_ownership</code>, <code>cancel_request</code>, <code>respond_to_join_request</code>, <code>respond_to_invite</code>, <code>respond_to_ownership_transfer</code>) and the team-management functions (<code>promote_to_admin</code>, <code>demote_to_member</code>, <code>remove_member</code>, <code>leave_team</code>).</p>
+<h2 id="the-30-member-cap"><a class="header" href="#the-30-member-cap">The 30-member cap</a></h2>
+<p>A <code>before insert</code> trigger on <code>team_members</code> (<code>identity.enforce_team_capacity</code>) rejects a new member once a team already has 30, raising a <code>check_violation</code>. This is enforced at the database layer specifically so it can't be bypassed by any future write path that isn't the Edge Function.</p>
+<h2 id="why-membership-logic-is-functions-not-policies"><a class="header" href="#why-membership-logic-is-functions-not-policies">Why membership logic is functions, not policies</a></h2>
+<p>Unlike <code>content</code>'s mostly-static authorization, <code>identity</code>'s team lifecycle is a genuine state machine — accepting an invite has to check the request's status, the target identity, team capacity, and perform the membership insert atomically. That's expressed as <code>SECURITY DEFINER</code> PL/pgSQL functions rather than RLS policies; RLS on these tables is read-oriented, and direct client writes to <code>teams</code>, <code>team_members</code>, and <code>team_membership_requests</code> are not granted at all.</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="content"><a class="header" href="#content">Content</a></h1>
+<p>The <code>content</code> schema holds the website's user-facing content: news, polls, and discussions.</p>
+<h2 id="tables-2"><a class="header" href="#tables-2">Tables</a></h2>
+<ul>
+<li><strong><code>news</code></strong> — <code>draft</code>/<code>published</code> articles, gated for writes by <code>identity.is_platform_moderator()</code>.</li>
+<li><strong><code>polls</code></strong> and <strong><code>poll_options</code></strong> — a poll's question and its options.</li>
+<li><strong><code>poll_votes</code></strong> — one row per <code>(poll, user)</code>, enforced by a composite primary key so a user can only vote once per poll.</li>
+<li><strong><code>discussions</code></strong> and <strong><code>discussion_replies</code></strong> — community threads. Replies use <strong>soft delete</strong> (<code>deleted_at</code>) instead of a hard delete, so moderation doesn't break a thread's structure — the application layer renders a tombstoned reply as "[deleted]" rather than removing it, preserving the reply chain.</li>
+</ul>
+<p>See <a href="database/domains/../tables/discussions.html">Tables › Discussions</a>, <a href="database/domains/../tables/polls.html">Tables › Polls</a>, and <a href="database/domains/../tables/news.html">Tables › News</a>.</p>
+<h2 id="why-this-domain-is-mostly-rls-not-functions"><a class="header" href="#why-this-domain-is-mostly-rls-not-functions">Why this domain is mostly RLS, not functions</a></h2>
+<p>Most of <code>content</code>'s authorization is a simple, static predicate — "is this user a moderator?", "is this their own row?" — rather than a multi-step transition, so it's expressed directly in RLS policies rather than <code>SECURITY DEFINER</code> functions. The two real functions in this domain exist for different reasons:</p>
+<ul>
+<li><strong><code>identity.is_platform_moderator()</code></strong> — a small, reusable RLS-policy helper (not a write path).</li>
+<li><strong><code>content.poll_results()</code></strong> — has to aggregate across <em>every</em> user's votes despite <code>poll_votes</code> being effectively self-read-only; it exists to expose an anonymous aggregate without ever exposing individual vote rows.</li>
+</ul>
+<h2 id="vote-integrity"><a class="header" href="#vote-integrity">Vote integrity</a></h2>
+<p>A poll option must belong to the poll it's being voted on — not expressible as a plain foreign key, since <code>poll_votes</code> references <code>poll_id</code> and <code>option_id</code> independently. This is enforced by a <code>before insert</code> trigger, <code>content.enforce_vote_option_matches_poll()</code>, deliberately implemented as a trigger rather than a function: it's a data-integrity rule, not an authorization rule, so it belongs at the constraint layer regardless of who's writing.</p>
+<h2 id="the-moderatoradmin-exception-for-news"><a class="header" href="#the-moderatoradmin-exception-for-news">The moderator/admin exception for <code>news</code></a></h2>
+<p>Anonymous users must never trigger <code>identity.is_platform_moderator()</code>, because that function reads <code>identity.platform_roles</code>, and <code>anon</code> has no <code>select</code> grant on that table — the RLS policies on <code>content.news</code> are written so the moderator check only ever runs for <code>authenticated</code> callers.</p>
+<p>See <a href="database/domains/../functions/content.html">Functions › Content</a> and <a href="database/domains/../../reference/glossary.html">Reference › Glossary</a> for platform vs. team roles.</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="storage"><a class="header" href="#storage">Storage</a></h1>
+<p>Supabase Storage is a platform service, not a PostgreSQL application schema — but it's provisioned by a migration (<code>20260830143509_create_storage_buckets.sql</code>) and secured with the same RLS mechanism as any table (<code>storage.objects</code>), so it's documented here alongside the database domains.</p>
+<h2 id="buckets"><a class="header" href="#buckets">Buckets</a></h2>
+<div class="table-wrapper"><table><thead><tr><th>Bucket</th><th>Visibility</th><th>Naming</th><th>Limits</th></tr></thead><tbody>
+<tr><td><code>avatars</code></td><td>Public</td><td>Flat: <code>{user_id}.png</code></td><td>2 MB, <code>image/png</code> only</td></tr>
+<tr><td><code>project-archives</code></td><td>Private</td><td><code>{owner_id}/{project_id}.tar.zst</code></td><td>No bucket-level size limit (falls back to the project plan's global upload cap)</td></tr>
+</tbody></table>
+</div>
+<h2 id="avatars"><a class="header" href="#avatars"><code>avatars</code></a></h2>
+<p>Public read, self-only write. Because the object name is always exactly <code>{user_id}.png</code>, uploading a new avatar overwrites the previous one in place — there's no orphaned-old-avatar cleanup to do, by construction.</p>
+<h2 id="project-archives"><a class="header" href="#project-archives"><code>project-archives</code></a></h2>
+<p>Private bucket, owner-only <em>direct</em> Storage access (the <code>storage.objects</code> RLS policies check that the first path segment matches <code>auth.uid()</code>). <strong>Team-member reads do not go through Storage RLS at all</strong> — they go through the <code>projects</code> Edge Function's <code>/projects/{id}/download</code> endpoint, which:</p>
+<ol>
+<li>Checks the caller's access to the project using their own user-scoped Supabase client, so <code>identity.projects</code> RLS applies (project owner, or a member of the project's team).</li>
+<li>Only after that check passes, constructs a <strong>service-role</strong> client and mints a short-lived (5 minute) signed URL.</li>
+</ol>
+<p>This keeps cross-member access control in exactly one place — the <code>identity.projects</code> RLS policy — instead of duplicating team-membership logic inside Storage's own policies.</p>
+<p>See <a href="database/domains/../../security/storage-security.html">Storage Security</a> for the security-focused version of this page, and <a href="database/domains/../../api/resources/projects.html">API › Projects</a> for the download endpoint.</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="identityprofiles"><a class="header" href="#identityprofiles"><code>identity.profiles</code></a></h1>
+<p>One row per <code>auth.users</code> row, created automatically by the <code>identity.handle_new_auth_user()</code> trigger on signup (see <a href="database/tables/../triggers.html">Triggers</a>). Password is never stored here — Supabase Auth owns it entirely.</p>
+<div class="table-wrapper"><table><thead><tr><th>Column</th><th>Type</th><th>Notes</th></tr></thead><tbody>
+<tr><td><code>id</code></td><td><code>uuid</code>, PK</td><td>References <code>auth.users(id)</code>, <code>on delete cascade</code></td></tr>
+<tr><td><code>full_name</code></td><td><code>text</code></td><td>Defaults to <code>''</code>, populated from <code>auth.users.raw_user_meta_data-&gt;&gt;'full_name'</code> at signup if present</td></tr>
+<tr><td><code>avatar_path</code></td><td><code>text</code>, nullable</td><td>Storage path in the <code>avatars</code> bucket; PNG-only, enforced at bucket policy + Edge Function level</td></tr>
+<tr><td><code>created_at</code></td><td><code>timestamptz</code></td><td></td></tr>
+<tr><td><code>updated_at</code></td><td><code>timestamptz</code></td><td>Maintained by <code>identity.set_updated_at()</code> trigger</td></tr>
+</tbody></table>
+</div>
+<p><strong>RLS:</strong> public read (<code>anon</code>, <code>authenticated</code>); a user may <code>update</code> only their own row (<code>id = auth.uid()</code>).</p>
+<p><strong>API:</strong> <a href="database/tables/../../api/resources/profiles.html"><code>GET/PATCH /profiles/me</code></a>.</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="identityteams-team_members-team_membership_requests"><a class="header" href="#identityteams-team_members-team_membership_requests"><code>identity.teams</code>, <code>team_members</code>, <code>team_membership_requests</code></a></h1>
+<h2 id="identityteams"><a class="header" href="#identityteams"><code>identity.teams</code></a></h2>
+<div class="table-wrapper"><table><thead><tr><th>Column</th><th>Type</th><th>Notes</th></tr></thead><tbody>
+<tr><td><code>id</code></td><td><code>uuid</code>, PK</td><td></td></tr>
+<tr><td><code>name</code></td><td><code>text</code></td><td></td></tr>
+<tr><td><code>created_by</code></td><td><code>uuid</code></td><td>References <code>identity.profiles(id)</code></td></tr>
+<tr><td><code>created_at</code> / <code>updated_at</code></td><td><code>timestamptz</code></td><td></td></tr>
+</tbody></table>
+</div>
+<p><strong>No <code>owner_id</code> column by design</strong> — the current owner is read from <code>team_members.role = 'owner'</code>. <strong>RLS:</strong> only current members may <code>select</code> a team (<code>private.is_team_member(id)</code>).</p>
+<h2 id="identityteam_members"><a class="header" href="#identityteam_members"><code>identity.team_members</code></a></h2>
+<div class="table-wrapper"><table><thead><tr><th>Column</th><th>Type</th><th>Notes</th></tr></thead><tbody>
+<tr><td><code>team_id</code></td><td><code>uuid</code></td><td>Part of composite PK; references <code>teams(id)</code>, <code>on delete cascade</code></td></tr>
+<tr><td><code>user_id</code></td><td><code>uuid</code></td><td>Part of composite PK; references <code>profiles(id)</code>, <code>on delete cascade</code></td></tr>
+<tr><td><code>role</code></td><td><code>text</code></td><td><code>owner</code> | <code>admin</code> | <code>member</code></td></tr>
+<tr><td><code>joined_at</code></td><td><code>timestamptz</code></td><td></td></tr>
+</tbody></table>
+</div>
+<p>A unique partial index (<code>role = 'owner'</code>) enforces at most one owner per team. A <code>before insert</code> trigger enforces the 30-member cap. <strong>RLS:</strong> only members of the team may <code>select</code> its membership rows.</p>
+<h2 id="identityteam_membership_requests"><a class="header" href="#identityteam_membership_requests"><code>identity.team_membership_requests</code></a></h2>
+<div class="table-wrapper"><table><thead><tr><th>Column</th><th>Type</th><th>Notes</th></tr></thead><tbody>
+<tr><td><code>id</code></td><td><code>uuid</code>, PK</td><td></td></tr>
+<tr><td><code>team_id</code></td><td><code>uuid</code></td><td>References <code>teams(id)</code>, cascade</td></tr>
+<tr><td><code>user_id</code></td><td><code>uuid</code></td><td>The target of the request</td></tr>
+<tr><td><code>type</code></td><td><code>text</code></td><td><code>join_request</code> | <code>invite</code> | <code>ownership_transfer</code></td></tr>
+<tr><td><code>initiated_by</code></td><td><code>uuid</code></td><td>Who created the request</td></tr>
+<tr><td><code>status</code></td><td><code>text</code></td><td><code>pending</code> (default) | <code>accepted</code> | <code>rejected</code> | <code>cancelled</code></td></tr>
+<tr><td><code>requested_at</code> / <code>decided_at</code></td><td><code>timestamptz</code></td><td></td></tr>
+<tr><td><code>decided_by</code></td><td><code>uuid</code>, nullable</td><td>Who accepted/rejected it</td></tr>
+</tbody></table>
+</div>
+<p>A unique partial index (<code>status = 'pending'</code>) allows at most one pending request per <code>(team, user)</code> regardless of type. <strong>RLS:</strong> visible to the target user, the initiator, or a team owner/admin.</p>
+<p>See <a href="database/tables/../domains/identity.html">Domains › Identity</a> for the state machine this table implements, <a href="database/tables/../functions/identity.html">Functions › Identity</a> for the functions that write to these three tables, and <a href="database/tables/../../api/resources/teams.html">API › Teams</a> / <a href="database/tables/../../api/resources/requests.html">API › Requests</a> for the HTTP surface.</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="identityprojects"><a class="header" href="#identityprojects"><code>identity.projects</code></a></h1>
+<p>User-uploaded project archive metadata. The archive file itself lives in Supabase Storage (bucket <code>project-archives</code>, <code>.tar.zst</code>); this row is metadata plus an integrity checksum.</p>
+<div class="table-wrapper"><table><thead><tr><th>Column</th><th>Type</th><th>Notes</th></tr></thead><tbody>
+<tr><td><code>id</code></td><td><code>uuid</code>, PK</td><td></td></tr>
+<tr><td><code>owner_id</code></td><td><code>uuid</code></td><td>References <code>profiles(id)</code></td></tr>
+<tr><td><code>team_id</code></td><td><code>uuid</code>, nullable</td><td>References <code>teams(id)</code>, <code>on delete set null</code></td></tr>
+<tr><td><code>name</code></td><td><code>text</code></td><td></td></tr>
+<tr><td><code>description</code></td><td><code>text</code>, nullable</td><td></td></tr>
+<tr><td><code>archive_path</code></td><td><code>text</code></td><td>Storage object path</td></tr>
+<tr><td><code>archive_size_bytes</code></td><td><code>bigint</code></td><td><code>&gt; 0</code></td></tr>
+<tr><td><code>archive_sha256</code></td><td><code>text</code></td><td>Must match <code>^[a-f0-9]{64}$</code></td></tr>
+<tr><td><code>created_at</code> / <code>updated_at</code></td><td><code>timestamptz</code></td><td></td></tr>
+</tbody></table>
+</div>
+<p>A team may own any number of projects — it's not a 1:1 relationship. <strong>RLS:</strong> the owner can always read/write their project; team members can read (but not write) a team-owned project.</p>
+<p>See <a href="database/tables/../domains/storage.html">Domains › Storage</a> for how the archive file itself is protected, and <a href="database/tables/../../api/resources/projects.html">API › Projects</a> for the <code>/projects/{id}/download</code> signed-URL flow.</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="releasesengine_releases-engine_artifacts"><a class="header" href="#releasesengine_releases-engine_artifacts"><code>releases.engine_releases</code>, <code>engine_artifacts</code></a></h1>
+<h2 id="releasesengine_releases"><a class="header" href="#releasesengine_releases"><code>releases.engine_releases</code></a></h2>
+<div class="table-wrapper"><table><thead><tr><th>Column</th><th>Type</th><th>Notes</th></tr></thead><tbody>
+<tr><td><code>id</code></td><td><code>uuid</code>, PK</td><td></td></tr>
+<tr><td><code>version</code></td><td><code>text</code>, unique</td><td>e.g. <code>1.4.2</code></td></tr>
+<tr><td><code>version_major</code> / <code>version_minor</code> / <code>version_patch</code></td><td><code>int</code></td><td>Used for sort/comparison</td></tr>
+<tr><td><code>release_date</code></td><td><code>date</code></td><td></td></tr>
+<tr><td><code>release_notes_summary</code></td><td><code>text</code>, nullable</td><td></td></tr>
+<tr><td><code>status</code></td><td><code>text</code></td><td><code>stable</code> (default) | <code>beta</code> | <code>rc</code> | <code>deprecated</code></td></tr>
+<tr><td><code>created_at</code> / <code>updated_at</code></td><td><code>timestamptz</code></td><td></td></tr>
+</tbody></table>
+</div>
+<h2 id="releasesengine_artifacts"><a class="header" href="#releasesengine_artifacts"><code>releases.engine_artifacts</code></a></h2>
+<div class="table-wrapper"><table><thead><tr><th>Column</th><th>Type</th><th>Notes</th></tr></thead><tbody>
+<tr><td><code>id</code></td><td><code>uuid</code>, PK</td><td></td></tr>
+<tr><td><code>release_id</code></td><td><code>uuid</code></td><td>References <code>engine_releases(id)</code>, <code>on delete cascade</code></td></tr>
+<tr><td><code>os</code></td><td><code>text</code></td><td><code>windows</code> | <code>linux</code> | <code>macos</code></td></tr>
+<tr><td><code>architecture</code></td><td><code>text</code></td><td><code>x86_64</code> | <code>arm64</code></td></tr>
+<tr><td><code>download_url</code></td><td><code>text</code></td><td>See <a href="database/tables/../domains/releases.html">Domains › Releases</a> for why this is stored rather than assumed</td></tr>
+<tr><td><code>sha256</code></td><td><code>text</code></td><td>Must match <code>^[a-f0-9]{64}$</code></td></tr>
+<tr><td><code>size_bytes</code></td><td><code>bigint</code></td><td><code>&gt; 0</code></td></tr>
+<tr><td><code>min_requirements</code></td><td><code>jsonb</code></td><td></td></tr>
+<tr><td><code>compiler</code></td><td><code>jsonb</code></td><td></td></tr>
+<tr><td><code>created_at</code></td><td><code>timestamptz</code></td><td></td></tr>
+</tbody></table>
+</div>
+<p>Unique on <code>(release_id, os, architecture)</code> — at most one artifact per platform per release. <strong>RLS:</strong> public read on both tables; no <code>anon</code>/<code>authenticated</code> write policies at all.</p>
+<p>See <a href="database/tables/../functions/releases.html">Functions › Releases</a> and <a href="database/tables/../../api/resources/releases.html">API › Releases</a>.</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="contentdiscussions-discussion_replies"><a class="header" href="#contentdiscussions-discussion_replies"><code>content.discussions</code>, <code>discussion_replies</code></a></h1>
+<h2 id="contentdiscussions"><a class="header" href="#contentdiscussions"><code>content.discussions</code></a></h2>
+<div class="table-wrapper"><table><thead><tr><th>Column</th><th>Type</th><th>Notes</th></tr></thead><tbody>
+<tr><td><code>id</code></td><td><code>uuid</code>, PK</td><td></td></tr>
+<tr><td><code>title</code> / <code>body</code></td><td><code>text</code></td><td></td></tr>
+<tr><td><code>author_id</code></td><td><code>uuid</code></td><td>References <code>identity.profiles(id)</code></td></tr>
+<tr><td><code>category</code></td><td><code>text</code>, nullable</td><td>Indexed</td></tr>
+<tr><td><code>is_locked</code></td><td><code>boolean</code></td><td>Default <code>false</code>; locked discussions reject new replies</td></tr>
+<tr><td><code>created_at</code> / <code>updated_at</code></td><td><code>timestamptz</code></td><td></td></tr>
+</tbody></table>
+</div>
+<h2 id="contentdiscussion_replies"><a class="header" href="#contentdiscussion_replies"><code>content.discussion_replies</code></a></h2>
+<div class="table-wrapper"><table><thead><tr><th>Column</th><th>Type</th><th>Notes</th></tr></thead><tbody>
+<tr><td><code>id</code></td><td><code>uuid</code>, PK</td><td></td></tr>
+<tr><td><code>discussion_id</code></td><td><code>uuid</code></td><td>References <code>discussions(id)</code>, <code>on delete cascade</code></td></tr>
+<tr><td><code>author_id</code></td><td><code>uuid</code></td><td></td></tr>
+<tr><td><code>body</code></td><td><code>text</code></td><td></td></tr>
+<tr><td><code>deleted_at</code></td><td><code>timestamptz</code>, nullable</td><td>Soft delete — see below</td></tr>
+<tr><td><code>created_at</code> / <code>updated_at</code></td><td><code>timestamptz</code></td><td></td></tr>
+</tbody></table>
+</div>
+<p>Replies use <strong>soft delete</strong> rather than a hard <code>delete</code>, so removing a reply doesn't break the thread's structure; a tombstoned row is rendered as "[deleted]" by the client/Edge Function rather than being filtered out entirely.</p>
+<p>See <a href="database/tables/../../api/resources/discussions.html">API › Discussions</a>.</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="contentpolls-poll_options-poll_votes"><a class="header" href="#contentpolls-poll_options-poll_votes"><code>content.polls</code>, <code>poll_options</code>, <code>poll_votes</code></a></h1>
+<h2 id="contentpolls"><a class="header" href="#contentpolls"><code>content.polls</code></a></h2>
+<div class="table-wrapper"><table><thead><tr><th>Column</th><th>Type</th><th>Notes</th></tr></thead><tbody>
+<tr><td><code>id</code></td><td><code>uuid</code>, PK</td><td></td></tr>
+<tr><td><code>question</code></td><td><code>text</code></td><td></td></tr>
+<tr><td><code>created_by</code></td><td><code>uuid</code></td><td></td></tr>
+<tr><td><code>closes_at</code></td><td><code>timestamptz</code>, nullable</td><td></td></tr>
+<tr><td><code>created_at</code></td><td><code>timestamptz</code></td><td></td></tr>
+</tbody></table>
+</div>
+<h2 id="contentpoll_options"><a class="header" href="#contentpoll_options"><code>content.poll_options</code></a></h2>
+<div class="table-wrapper"><table><thead><tr><th>Column</th><th>Type</th><th>Notes</th></tr></thead><tbody>
+<tr><td><code>id</code></td><td><code>uuid</code>, PK</td><td></td></tr>
+<tr><td><code>poll_id</code></td><td><code>uuid</code></td><td>References <code>polls(id)</code>, cascade</td></tr>
+<tr><td><code>label</code></td><td><code>text</code></td><td></td></tr>
+<tr><td><code>display_order</code></td><td><code>int</code></td><td>Default <code>0</code></td></tr>
+</tbody></table>
+</div>
+<h2 id="contentpoll_votes"><a class="header" href="#contentpoll_votes"><code>content.poll_votes</code></a></h2>
+<div class="table-wrapper"><table><thead><tr><th>Column</th><th>Type</th><th>Notes</th></tr></thead><tbody>
+<tr><td><code>poll_id</code></td><td><code>uuid</code></td><td>Part of composite PK</td></tr>
+<tr><td><code>option_id</code></td><td><code>uuid</code></td><td>References <code>poll_options(id)</code>, cascade</td></tr>
+<tr><td><code>user_id</code></td><td><code>uuid</code></td><td>Part of composite PK — one vote per user per poll</td></tr>
+<tr><td><code>voted_at</code></td><td><code>timestamptz</code></td><td></td></tr>
+</tbody></table>
+</div>
+<p>A <code>before insert</code> trigger (<code>content.enforce_vote_option_matches_poll</code>) rejects a vote whose <code>option_id</code> doesn't belong to <code>poll_id</code>. Individual votes are never exposed publicly — only the aggregate from <code>content.poll_results()</code> (see <a href="database/tables/../functions/content.html">Functions › Content</a>) is. Polls (with their options nested) and results are created atomically via <code>content.create_poll_with_options()</code>.</p>
+<p>See <a href="database/tables/../../api/resources/polls.html">API › Polls</a>.</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="contentnews"><a class="header" href="#contentnews"><code>content.news</code></a></h1>
+<div class="table-wrapper"><table><thead><tr><th>Column</th><th>Type</th><th>Notes</th></tr></thead><tbody>
+<tr><td><code>id</code></td><td><code>uuid</code>, PK</td><td></td></tr>
+<tr><td><code>title</code></td><td><code>text</code></td><td></td></tr>
+<tr><td><code>slug</code></td><td><code>text</code>, unique</td><td></td></tr>
+<tr><td><code>body</code></td><td><code>text</code></td><td></td></tr>
+<tr><td><code>author_id</code></td><td><code>uuid</code></td><td>References <code>identity.profiles(id)</code></td></tr>
+<tr><td><code>status</code></td><td><code>text</code></td><td><code>draft</code> (default) | <code>published</code></td></tr>
+<tr><td><code>published_at</code></td><td><code>timestamptz</code>, nullable</td><td></td></tr>
+<tr><td><code>created_at</code> / <code>updated_at</code></td><td><code>timestamptz</code></td><td></td></tr>
+</tbody></table>
+</div>
+<p>Indexed on <code>status</code> and <code>published_at desc</code> for the common "latest published articles" query. Writes are gated by <code>identity.is_platform_moderator()</code> — see <a href="database/tables/../domains/content.html">Domains › Content</a> for why anonymous callers must never trigger that check, and <a href="database/tables/../../api/resources/news.html">API › News</a> for the HTTP surface.</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="requests-identityteam_membership_requests"><a class="header" href="#requests-identityteam_membership_requests">Requests (<code>identity.team_membership_requests</code>)</a></h1>
+<p>There is no separate <code>requests</code> table — "requests" refers to the same <code>identity.team_membership_requests</code> table described on the <a href="database/tables/teams.html">Teams</a> page, viewed from the perspective of the party <em>responding</em> to one rather than the team managing it.</p>
+<p>The <code>/requests/{requestId}/accept|reject|cancel</code> API resource (see <a href="database/tables/../../api/resources/requests.html">API › Requests</a>) operates on rows in this table by <code>id</code>, calling <code>identity.respond_to_join_request()</code>, <code>identity.respond_to_invite()</code>, <code>identity.respond_to_ownership_transfer()</code>, or <code>identity.cancel_request()</code> depending on the request's <code>type</code> and who's calling — see <a href="database/tables/../functions/identity.html">Functions › Identity</a> for the full list.</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="overview-3"><a class="header" href="#overview-3">Overview</a></h1>
+<p>Coreverse DB pushes as much business logic as possible into PostgreSQL functions, for one reason: <strong>authorization and invariants enforced in the database hold no matter what calls them</strong> — a future Edge Function, a script, or a different client entirely. Two different kinds of function appear in the schema, and it matters which one a given piece of logic is:</p>
+<h2 id="security-definer-state-transition-functions"><a class="header" href="#security-definer-state-transition-functions"><code>SECURITY DEFINER</code> state-transition functions</a></h2>
+<p>Used when a write involves more than one check, or changes more than one row atomically — team creation, invite/accept flows, ownership transfer, promotion/demotion, poll creation with options. These run as the function's owner (not the caller), so they can perform the write even though the underlying tables have no direct <code>INSERT</code>/<code>UPDATE</code>/<code>DELETE</code> grant for <code>anon</code>/<code>authenticated</code>. All such functions:</p>
+<ul>
+<li>Explicitly check the caller's authorization inside the function body (they don't rely on RLS for this, since RLS is either absent or read-only on these tables).</li>
+<li>Raise a Postgres exception (conventionally with <code>errcode = 42501</code> for "not authorized", mapped by the Edge Function's <code>statusForPgError</code> to HTTP 403) rather than silently no-op'ing on failure.</li>
+<li>Are the <em>only</em> way to perform these writes — see <a href="database/functions/identity.html">Identity</a> for the full list.</li>
+</ul>
+<h2 id="stableplain-sql-read-and-helper-functions"><a class="header" href="#stableplain-sql-read-and-helper-functions"><code>stable</code>/plain SQL read and helper functions</a></h2>
+<p>Used for reads that are either public aggregates (<code>content.poll_results</code>), multi-table joins that would be awkward to express as an RLS-filtered <code>select</code> (<code>releases.get_by_version</code>, <code>docs.search</code>), or small reusable RLS predicates (<code>private.is_team_member</code>, <code>identity.is_platform_moderator</code>). These don't need <code>SECURITY DEFINER</code> unless they must read past the caller's own RLS visibility (the <code>private</code> helpers do, specifically to avoid RLS recursion — see <a href="database/functions/../../security/rls.html">Row Level Security</a>).</p>
+<p>See <a href="database/functions/identity.html">Identity</a>, <a href="database/functions/releases.html">Releases</a>, and <a href="database/functions/content.html">Content</a> for the function inventory per domain, and <a href="database/functions/../triggers.html">Triggers</a> for logic that runs automatically on row changes rather than being called directly.</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="identity-functions"><a class="header" href="#identity-functions">Identity Functions</a></h1>
+<p>All of these are <code>SECURITY DEFINER</code> PL/pgSQL functions in the <code>identity</code> schema. Each performs its own authorization check and raises an exception (mapped to HTTP 403/400 by the Edge Function) rather than relying on RLS, since the underlying tables (<code>teams</code>, <code>team_members</code>, <code>team_membership_requests</code>) grant no direct write access to <code>anon</code>/<code>authenticated</code>.</p>
+<h2 id="team-lifecycle"><a class="header" href="#team-lifecycle">Team lifecycle</a></h2>
+<div class="table-wrapper"><table><thead><tr><th>Function</th><th>Signature</th><th>Does</th></tr></thead><tbody>
+<tr><td><code>create_team</code></td><td><code>(p_name text) → uuid</code></td><td>Creates a team and inserts the caller as <code>owner</code></td></tr>
+<tr><td><code>rename_team</code></td><td><code>(p_team_id uuid, p_name text)</code></td><td>Renames a team; caller must be owner/admin</td></tr>
+<tr><td><code>delete_team</code></td><td><code>(p_team_id uuid)</code></td><td>Deletes a team; caller must be owner</td></tr>
+<tr><td><code>leave_team</code></td><td><code>(p_team_id uuid)</code></td><td>Removes the caller from a team; the owner cannot leave without transferring ownership first</td></tr>
+</tbody></table>
+</div>
+<h2 id="membership-requests-create-side"><a class="header" href="#membership-requests-create-side">Membership requests (create side)</a></h2>
+<div class="table-wrapper"><table><thead><tr><th>Function</th><th>Signature</th><th>Does</th></tr></thead><tbody>
+<tr><td><code>request_to_join</code></td><td><code>(p_team_id uuid) → uuid</code></td><td>Creates a <code>join_request</code> from the caller</td></tr>
+<tr><td><code>invite_to_team</code></td><td><code>(p_team_id uuid, p_user_id uuid) → uuid</code></td><td>Owner/admin creates an <code>invite</code> for a user</td></tr>
+<tr><td><code>offer_ownership</code></td><td><code>(p_team_id uuid, p_user_id uuid) → uuid</code></td><td>Owner creates an <code>ownership_transfer</code> targeting any user (member or not)</td></tr>
+<tr><td><code>cancel_request</code></td><td><code>(p_request_id uuid)</code></td><td>The original initiator withdraws their own pending request</td></tr>
+</tbody></table>
+</div>
+<h2 id="membership-requests-respond-side"><a class="header" href="#membership-requests-respond-side">Membership requests (respond side)</a></h2>
+<div class="table-wrapper"><table><thead><tr><th>Function</th><th>Signature</th><th>Does</th></tr></thead><tbody>
+<tr><td><code>respond_to_join_request</code></td><td><code>(p_request_id uuid, p_decision text)</code></td><td>Owner/admin accepts or rejects a join request</td></tr>
+<tr><td><code>respond_to_invite</code></td><td><code>(p_request_id uuid, p_decision text)</code></td><td>Invited user accepts or rejects</td></tr>
+<tr><td><code>respond_to_ownership_transfer</code></td><td><code>(p_request_id uuid, p_decision text)</code></td><td>Target accepts or rejects; on accept, if the target wasn't already a member and the team is at its 30-cap, the previous owner is evicted to make room — if the target was already a member, it's a pure role swap with no eviction</td></tr>
+</tbody></table>
+</div>
+<h2 id="team-management-owneradmin-actions-on-existing-members"><a class="header" href="#team-management-owneradmin-actions-on-existing-members">Team management (owner/admin actions on existing members)</a></h2>
+<div class="table-wrapper"><table><thead><tr><th>Function</th><th>Signature</th><th>Does</th></tr></thead><tbody>
+<tr><td><code>promote_to_admin</code></td><td><code>(p_team_id uuid, p_target uuid)</code></td><td>Owner promotes a member to admin</td></tr>
+<tr><td><code>demote_to_member</code></td><td><code>(p_team_id uuid, p_target uuid)</code></td><td>Owner demotes an admin to member</td></tr>
+<tr><td><code>remove_member</code></td><td><code>(p_team_id uuid, p_target uuid)</code></td><td>Owner can remove any member/admin; an admin can remove members only — not other admins or the owner</td></tr>
+</tbody></table>
+</div>
+<h2 id="rules-encoded-across-these-functions"><a class="header" href="#rules-encoded-across-these-functions">Rules encoded across these functions</a></h2>
+<ul>
+<li>At most one <strong>pending</strong> request per <code>(team, user)</code> — enforced by a unique partial index, so a conflicting create raises a constraint violation rather than a silent duplicate.</li>
+<li>An <strong>owner cannot self-demote or leave</strong> without transferring ownership to someone else first (<code>leave_team</code> rejects the owner; ownership must move via <code>offer_ownership</code> → <code>respond_to_ownership_transfer</code>).</li>
+<li><strong>Requests idle for 3 days are auto-deleted</strong> (a scheduled cleanup, not one of these request-response functions themselves).</li>
+<li>The 30-member cap is enforced by a trigger, not by these functions — see <a href="database/functions/../triggers.html">Triggers</a>.</li>
+</ul>
+<p>See <a href="database/functions/../domains/identity.html">Domains › Identity</a> for the design rationale and <a href="database/functions/../../api/resources/teams.html">API › Teams</a> / <a href="database/functions/../../api/resources/requests.html">API › Requests</a> for how these are exposed over HTTP.</p>
+<h2 id="helper-functions-private-schema"><a class="header" href="#helper-functions-private-schema">Helper functions (<code>private</code> schema)</a></h2>
+<p><code>private.is_team_member(_team_id)</code> and <code>private.is_team_admin(_team_id)</code> are <code>SECURITY DEFINER</code>, <code>set row_security = off</code> predicates used inside RLS policies on <code>teams</code>, <code>team_members</code>, and <code>team_membership_requests</code>. See <a href="database/functions/../../security/rls.html">Row Level Security</a> for why they must live outside the normal RLS path.</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="releases-functions"><a class="header" href="#releases-functions">Releases Functions</a></h1>
+<p>All three functions in <code>releases</code> are <code>stable</code> SQL functions, granted to <code>anon</code> and <code>authenticated</code>, returning the same row shape (a release row with <code>artifacts</code> nested as a <code>jsonb</code> array) so the API's <code>Release</code>/<code>Artifact</code> schema maps onto them 1:1.</p>
+<div class="table-wrapper"><table><thead><tr><th>Function</th><th>Signature</th><th>Does</th></tr></thead><tbody>
+<tr><td><code>get_by_version</code></td><td><code>(p_version text) → table(...)</code></td><td>One release by exact version string</td></tr>
+<tr><td><code>get_latest</code></td><td><code>(p_status text default 'stable') → table(...)</code></td><td>The highest-versioned release with the given status, ordered by <code>(version_major, version_minor, version_patch) desc</code></td></tr>
+<tr><td><code>list_releases</code></td><td><code>(p_status text default null, p_limit int default 20, p_offset int default 0) → table(...)</code></td><td>Paginated list, optionally filtered by status</td></tr>
+</tbody></table>
+</div>
+<p>Each aggregates <code>engine_artifacts</code> per release with <code>jsonb_agg(jsonb_build_object(...)) filter (where a.id is not null)</code>, coalescing to <code>'[]'::jsonb</code> for a release with no artifacts yet, so the API never has to special-case a <code>null</code> artifacts array.</p>
+<p>See <a href="database/functions/../domains/releases.html">Domains › Releases</a>, <a href="database/functions/../tables/releases.html">Tables › Releases</a>, and <a href="database/functions/../../api/resources/releases.html">API › Releases</a>.</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="content-functions"><a class="header" href="#content-functions">Content Functions</a></h1>
+<div class="table-wrapper"><table><thead><tr><th>Function</th><th>Signature</th><th>Does</th></tr></thead><tbody>
+<tr><td><code>identity.is_platform_moderator</code></td><td><code>() → boolean</code></td><td><code>stable</code>; checks <code>identity.platform_roles</code> for the calling user having <code>admin</code> or <code>moderator</code> — used as an RLS-policy predicate on <code>content.news</code>/moderation actions</td></tr>
+<tr><td><code>content.poll_results</code></td><td><code>(...) → table(...)</code></td><td><code>stable</code>; returns per-option vote counts as an anonymous aggregate. Exists specifically because <code>poll_votes</code> itself must never be exposed row-by-row (that would reveal who voted for what), yet the public still needs to see results</td></tr>
+<tr><td><code>content.create_poll_with_options</code></td><td><code>(...) → uuid</code></td><td>Atomically inserts a poll and its options in one call, so a client never observes a poll that exists without any options</td></tr>
+</tbody></table>
+</div>
+<p>See <a href="database/functions/../domains/content.html">Domains › Content</a> for why most of this domain's authorization lives in RLS rather than functions, and <a href="database/functions/../triggers.html">Triggers</a> for <code>content.enforce_vote_option_matches_poll</code>, the vote-integrity check that runs alongside these functions.</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="triggers"><a class="header" href="#triggers">Triggers</a></h1>
+<div class="table-wrapper"><table><thead><tr><th>Trigger</th><th>Table</th><th>Function</th><th>Does</th></tr></thead><tbody>
+<tr><td><code>trg_engine_releases_updated_at</code></td><td><code>releases.engine_releases</code></td><td><code>releases.set_updated_at()</code></td><td>Maintains <code>updated_at</code> on every update</td></tr>
+<tr><td><code>trg_profiles_updated_at</code></td><td><code>identity.profiles</code></td><td><code>identity.set_updated_at()</code></td><td>Same, for profiles</td></tr>
+<tr><td><code>trg_teams_updated_at</code></td><td><code>identity.teams</code></td><td><code>identity.set_updated_at()</code></td><td>Same, for teams</td></tr>
+<tr><td><code>trg_projects_updated_at</code></td><td><code>identity.projects</code></td><td><code>identity.set_updated_at()</code></td><td>Same, for projects</td></tr>
+<tr><td><code>trg_handle_new_auth_user</code></td><td><code>auth.users</code> (<code>after insert</code>)</td><td><code>identity.handle_new_auth_user()</code></td><td>Auto-creates the matching <code>identity.profiles</code> row on signup, seeding <code>full_name</code> from <code>raw_user_meta_data</code> if present</td></tr>
+<tr><td><code>trg_team_members_capacity</code></td><td><code>identity.team_members</code> (<code>before insert</code>)</td><td><code>identity.enforce_team_capacity()</code></td><td>Rejects a new member once a team already has 30</td></tr>
+<tr><td><code>trg_news_updated_at</code> / <code>trg_discussions_updated_at</code> / <code>trg_discussion_replies_updated_at</code></td><td><code>content.*</code></td><td><code>content.set_updated_at()</code></td><td>Maintains <code>updated_at</code></td></tr>
+<tr><td><code>trg_poll_votes_option_matches_poll</code></td><td><code>content.poll_votes</code> (<code>before insert</code>)</td><td><code>content.enforce_vote_option_matches_poll()</code></td><td>Rejects a vote whose option doesn't belong to the poll being voted on</td></tr>
+<tr><td><code>trg_docs_sources_updated_at</code> / <code>trg_docs_pages_updated_at</code></td><td><code>docs.*</code></td><td><code>docs.set_updated_at()</code></td><td>Maintains <code>updated_at</code></td></tr>
+</tbody></table>
+</div>
+<p>Every domain defines its own <code>set_updated_at()</code> function rather than sharing one across schemas, keeping each domain's migration fully self-contained. <code>trg_handle_new_auth_user</code> and <code>trg_team_members_capacity</code> are the two triggers doing genuine business-rule enforcement rather than bookkeeping; both are <code>SECURITY DEFINER</code>, owned by <code>postgres</code>, with execute revoked from <code>public</code>, since they must run regardless of who's inserting the triggering row.</p>
+<p>See <a href="database/conventions.html">Database › Conventions</a> for the <code>updated_at</code> pattern in general, and <a href="database/functions/identity.html">Functions › Identity</a> / <a href="database/functions/content.html">Functions › Content</a> for the write paths these triggers guard.</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="overview-4"><a class="header" href="#overview-4">Overview</a></h1>
+<p>Security in Coreverse DB is layered rather than centralized in one place:</p>
+<ol>
+<li><strong>Authentication</strong> — Supabase Auth issues and verifies JWTs; Coreverse DB never handles a password. See <a href="security/authentication.html">Authentication</a>.</li>
+<li><strong>Request validation</strong> — every Edge Function validates its input with Zod before touching the database.</li>
+<li><strong>Authorization</strong> — Row Level Security, <code>SECURITY DEFINER</code> functions, and triggers decide what a given caller can see or change, enforced by PostgreSQL itself rather than application code. See <a href="security/authorization.html">Authorization</a>, <a href="security/rls.html">Row Level Security</a>, and <a href="security/policies.html">Policies</a>.</li>
+<li><strong>Storage</strong> — avatars and project archives have their own <code>storage.objects</code> policies, plus a signed-URL flow for team-shared downloads. See <a href="security/storage-security.html">Storage Security</a>.</li>
+</ol>
+<p>This layering means a bug in an Edge Function's own logic — forgetting a check, say — still can't grant access RLS wouldn't otherwise allow, because the database connection an Edge Function uses (outside of the few explicit service-role cases) is scoped to the caller's own JWT, not a privileged one.</p>
+<p>See <a href="security/../architecture/security-model.html">Architecture › Security Model</a> for the same material framed around the request flow rather than the mechanism.</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="authentication"><a class="header" href="#authentication">Authentication</a></h1>
+<p>Authentication is entirely delegated to <strong>Supabase Auth</strong> (<code>auth.users</code>). Coreverse DB:</p>
+<ul>
+<li>Never stores a password, hash, or credential of any kind.</li>
+<li>Reads the caller's identity from the JWT Supabase Auth issues, via <code>auth.uid()</code> inside PostgreSQL and via the <code>Authorization: Bearer &lt;JWT&gt;</code> header at the Edge Function layer.</li>
+<li>Auto-provisions an <code>identity.profiles</code> row the moment a new <code>auth.users</code> row appears (<code>identity.handle_new_auth_user()</code>, an <code>after insert</code> trigger on <code>auth.users</code>) — so "signed up" and "has a Coreverse profile" are the same moment.</li>
+</ul>
+<h2 id="in-edge-functions"><a class="header" href="#in-edge-functions">In Edge Functions</a></h2>
+<p>Each function builds a Supabase client scoped to the caller by forwarding their <code>Authorization</code> header (<code>_shared/supabase-client.ts</code>). There is no separate application-level session or token — the same JWT that authenticates against Supabase Auth is what RLS policies evaluate via <code>auth.uid()</code>.</p>
+<h2 id="public-vs-authenticated-operations"><a class="header" href="#public-vs-authenticated-operations">Public vs. authenticated operations</a></h2>
+<p>Most <code>GET</code> endpoints (releases, published news, poll results, docs search) work without a JWT at all — RLS policies grant <code>select</code> to <code>anon</code> as well as <code>authenticated</code> where the data isn't sensitive. Anything that identifies or acts on behalf of a specific user (profile update, team actions, project uploads, voting, posting) requires a valid JWT.</p>
+<h2 id="the-two-exceptions"><a class="header" href="#the-two-exceptions">The two exceptions</a></h2>
+<p>Two operations don't use a user JWT at all:</p>
+<ul>
+<li><strong><code>/docs/reindex</code></strong> — authenticated by a shared <code>X-Reindex-Token</code> secret, because the caller is CI in another repository, not a signed-in person. See <a href="security/authorization.html">Authorization</a>.</li>
+<li><strong><code>/projects/{id}/download</code></strong> — the <em>initial</em> access check still uses the caller's own JWT; only the signed-URL minting step afterward uses a service-role client.</li>
+</ul>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="authorization"><a class="header" href="#authorization">Authorization</a></h1>
+<p>Authorization answers "given who you are, what can you do?" — and in this codebase, that answer lives in PostgreSQL, not in the Edge Functions.</p>
+<h2 id="three-mechanisms-by-kind-of-rule"><a class="header" href="#three-mechanisms-by-kind-of-rule">Three mechanisms, by kind of rule</a></h2>
+<div class="table-wrapper"><table><thead><tr><th>Rule kind</th><th>Mechanism</th><th>Example</th></tr></thead><tbody>
+<tr><td>"Can this caller see this row?"</td><td>RLS <code>select</code> policy</td><td><code>teams_member_read</code>: only current members can see a team</td></tr>
+<tr><td>"Can this caller change this row?"</td><td>RLS <code>update</code>/<code>insert</code>/<code>delete</code> policy, where one exists</td><td><code>profiles_self_update</code>: a user can only update their own profile</td></tr>
+<tr><td>Multi-step state transition</td><td><code>SECURITY DEFINER</code> function with an explicit check</td><td><code>identity.remove_member</code>: an admin may remove members but not other admins or the owner</td></tr>
+<tr><td>Data-integrity rule independent of who's writing</td><td>Trigger / constraint</td><td><code>content.enforce_vote_option_matches_poll</code>: an option must belong to its poll, for <em>any</em> writer</td></tr>
+</tbody></table>
+</div>
+<p>The rule of thumb used throughout the schema: <strong>if the check is a single predicate over the row and the caller's identity, it's an RLS policy; if it requires reading other rows and coordinating a write, it's a function.</strong></p>
+<h2 id="the-shared-secret-and-service-role-exceptions"><a class="header" href="#the-shared-secret-and-service-role-exceptions">The shared-secret and service-role exceptions</a></h2>
+<p>A small number of operations are authorized outside the normal "caller's own JWT + RLS" path, each for a specific reason documented in <a href="security/../architecture/security-model.html">Security Model</a>:</p>
+<ul>
+<li><code>/docs/reindex</code> — a shared secret, because the caller isn't a person.</li>
+<li><code>/projects/{id}/download</code> — a normal JWT-scoped access check first, then a service-role client only for minting the signed URL.</li>
+</ul>
+<p>Every other write in the API goes through the caller's own JWT-scoped Supabase client, meaning RLS and the <code>SECURITY DEFINER</code> functions' internal checks are the <em>only</em> authorization boundary — there is no separate application-level permission system layered on top.</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="row-level-security"><a class="header" href="#row-level-security">Row Level Security</a></h1>
+<p>Row Level Security (RLS) is enabled on every application table in the schema, including ones where every write ends up going through <code>service_role</code> (e.g. <code>releases.engine_releases</code> still has RLS enabled with only a <code>select</code> policy) — the intent is that RLS is never <em>accidentally</em> off, only deliberately unrestricted for <code>service_role</code>, which bypasses it by design.</p>
+<h2 id="patterns-used"><a class="header" href="#patterns-used">Patterns used</a></h2>
+<ul>
+<li><strong>Public read, no client write</strong> (<code>releases.*</code>, <code>docs.*</code>) — a <code>for select to anon, authenticated using (true)</code> policy and nothing else; writes are <code>service_role</code>-only.</li>
+<li><strong>Self-only write</strong> (<code>identity.profiles</code>) — <code>using (id = auth.uid())</code> on both the read-scoping and the <code>with check</code> of the update policy.</li>
+<li><strong>Membership-scoped read</strong> (<code>identity.teams</code>, <code>team_members</code>) — <code>using ((select private.is_team_member(id)))</code>.</li>
+<li><strong>Static predicate read/write</strong> (<code>content.*</code>) — combinations of <code>author_id = auth.uid()</code> and <code>identity.is_platform_moderator()</code>.</li>
+<li><strong>No client write at all</strong> (<code>identity.teams</code>, <code>team_members</code>, <code>team_membership_requests</code>) — every write is a <code>SECURITY DEFINER</code> function instead; RLS on these tables is entirely read-oriented.</li>
+</ul>
+<h2 id="avoiding-rls-recursion"><a class="header" href="#avoiding-rls-recursion">Avoiding RLS recursion</a></h2>
+<p>A policy that queries another RLS-protected table can recurse into that table's own RLS evaluation. Coreverse DB avoids this with a specific pattern: <code>private.is_team_member()</code> and <code>private.is_team_admin()</code> are</p>
+<pre><code class="language-sql">security definer
+set search_path = ''
+set row_security = off
+</code></pre>
+<p><code>security definer</code> lets the function read <code>team_members</code> with the function owner's privileges rather than the caller's; <code>row_security = off</code> additionally disables RLS <em>within the function's own execution</em>, so its internal <code>select</code> against <code>team_members</code> doesn't itself trigger <code>team_members</code>' RLS policies again. Without <code>row_security = off</code>, a policy on <code>teams</code> calling a function that reads <code>team_members</code> (also RLS-protected, also potentially checking <code>teams</code>) risks infinite recursion.</p>
+<p>See <a href="security/policies.html">Policies</a> for the full policy inventory and <a href="security/../database/conventions.html">Database › Conventions</a> for the naming/structure rules new policies follow.</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="policies"><a class="header" href="#policies">Policies</a></h1>
+<p>A condensed inventory of RLS policies by table. See <a href="security/rls.html">Row Level Security</a> for the patterns these implement, and the <a href="security/../database/domains/releases.html">Domains</a> pages for the reasoning behind each.</p>
+<div class="table-wrapper"><table><thead><tr><th>Table</th><th>Policy</th><th>Effect</th></tr></thead><tbody>
+<tr><td><code>releases.engine_releases</code> / <code>engine_artifacts</code></td><td><code>*_public_read</code></td><td><code>select</code> for <code>anon</code>, <code>authenticated</code> — no write policies</td></tr>
+<tr><td><code>identity.profiles</code></td><td><code>profiles_public_read</code></td><td><code>select</code> for <code>anon</code>, <code>authenticated</code></td></tr>
+<tr><td><code>identity.profiles</code></td><td><code>profiles_self_update</code></td><td><code>update</code> only where <code>id = auth.uid()</code></td></tr>
+<tr><td><code>identity.teams</code></td><td><code>teams_member_read</code></td><td><code>select</code> only for current members</td></tr>
+<tr><td><code>identity.team_members</code></td><td><code>team_members_member_read</code></td><td><code>select</code> only for current members</td></tr>
+<tr><td><code>identity.team_membership_requests</code></td><td><code>membership_requests_relevant_parties_read</code></td><td><code>select</code> for the target user, the initiator, or a team owner/admin</td></tr>
+<tr><td><code>identity.projects</code></td><td><code>projects_read</code></td><td><code>select</code> for the owner, or a team member if team-owned</td></tr>
+<tr><td><code>identity.platform_roles</code></td><td><code>platform_roles_self_read</code></td><td><code>select</code> only where <code>user_id = auth.uid()</code> — deliberately not publicly listable</td></tr>
+<tr><td><code>content.news</code></td><td>(author/moderator read &amp; write policies)</td><td>Published articles are publicly readable; drafts and writes are author/moderator-gated</td></tr>
+<tr><td><code>content.discussions</code> / <code>discussion_replies</code></td><td>(author/moderator policies)</td><td>Public read; author can edit their own; moderators can lock/soft-delete</td></tr>
+<tr><td><code>content.poll_votes</code></td><td>(self-scoped)</td><td>A user can insert/see only their own vote row — never another user's</td></tr>
+<tr><td><code>docs.sources</code> / <code>docs.pages</code></td><td><code>*_public_read</code></td><td><code>select</code> for <code>anon</code>, <code>authenticated</code> — no client write policies at all</td></tr>
+<tr><td><code>storage.objects</code> (<code>avatars</code>)</td><td><code>avatars_public_read</code> / <code>avatars_self_*</code></td><td>Public read; self-only write, limited to <code>{user_id}.png</code></td></tr>
+<tr><td><code>storage.objects</code> (<code>project-archives</code>)</td><td><code>project_archives_owner_*</code></td><td>Owner-only direct access; team-member access goes through the signed-URL Edge Function endpoint instead</td></tr>
+</tbody></table>
+</div>
+<p>Where a table has no client-facing write policy at all, every write to it happens either via a <code>SECURITY DEFINER</code> function (see <a href="security/../database/functions/overview.html">Database › Functions</a>) or exclusively via <code>service_role</code>.</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="storage-security"><a class="header" href="#storage-security">Storage Security</a></h1>
+<p>See <a href="security/../database/domains/storage.html">Database › Domains › Storage</a> for the bucket layout. This page focuses on the security reasoning.</p>
+<h2 id="avatars-1"><a class="header" href="#avatars-1"><code>avatars</code></a></h2>
+<p>Public bucket, but writes are constrained by policy to exactly the caller's own object name (<code>{user_id}.png</code>), so no user can overwrite another's avatar even though the bucket itself is public for reads. The fixed naming scheme also means there's never an orphaned old avatar to clean up.</p>
+<h2 id="project-archives-1"><a class="header" href="#project-archives-1"><code>project-archives</code></a></h2>
+<p>Private bucket. Two different access paths exist, deliberately kept separate:</p>
+<ol>
+<li><strong>Owner, direct Storage access</strong> — RLS on <code>storage.objects</code> checks that the first path segment of the object name equals <code>auth.uid()</code>. This is enough for the archive's own owner.</li>
+<li><strong>Team member, via the API</strong> — a team member does <strong>not</strong> get a Storage RLS policy granting them direct access. Instead, <code>/projects/{id}/download</code> checks <code>identity.projects</code> RLS with the caller's own client (owner OR team member passes), and only then uses a service-role client to mint a short-lived (5 minute) signed URL.</li>
+</ol>
+<p>This split exists so that "who can access this project" is decided in exactly one place — <code>identity.projects</code> RLS — rather than being re-implemented (and potentially drifting) inside Storage's own policy language, which doesn't have an easy way to express "is a member of the team that owns this project" without duplicating the <code>private.is_team_member</code> logic.</p>
+<h2 id="uploads"><a class="header" href="#uploads">Uploads</a></h2>
+<p>There is no bucket-level size limit on <code>project-archives</code> (unlike the 2 MB cap on <code>avatars</code>); size is instead recorded per-project in <code>identity.projects.archive_size_bytes</code> for informational/integrity purposes and constrained only by the project's overall Supabase plan limits.</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="overview-5"><a class="header" href="#overview-5">Overview</a></h1>
+<p>The HTTP API is defined as an OpenAPI 3.1.0 contract under <a href="https://github.com/KING-MASTER2012/Coreverse-DB/tree/main/openapi"><code>openapi/</code></a>, served by nine Supabase Edge Functions. It's organized into the following resources:</p>
+<div class="table-wrapper"><table><thead><tr><th>Resource</th><th>Base path(s)</th><th>Purpose</th></tr></thead><tbody>
+<tr><td><a href="api/resources/releases.html">Releases</a></td><td><code>/releases*</code></td><td>Engine release metadata and artifacts</td></tr>
+<tr><td><a href="api/resources/teams.html">Teams</a></td><td><code>/teams/*</code></td><td>Teams, roles, members, membership operations</td></tr>
+<tr><td><a href="api/resources/requests.html">Requests</a></td><td><code>/requests/{requestId}/*</code></td><td>Accepting, rejecting, cancelling a pending membership request</td></tr>
+<tr><td><a href="api/resources/profiles.html">Profiles</a></td><td><code>/profiles/me</code></td><td>The caller's own profile</td></tr>
+<tr><td><a href="api/resources/projects.html">Projects</a></td><td><code>/projects*</code></td><td>Project archive metadata and downloads</td></tr>
+<tr><td><a href="api/resources/news.html">News</a></td><td><code>/news*</code></td><td>Platform news</td></tr>
+<tr><td><a href="api/resources/polls.html">Polls</a></td><td><code>/polls*</code></td><td>Polls and anonymous aggregated results</td></tr>
+<tr><td><a href="api/resources/discussions.html">Discussions</a></td><td><code>/discussions*</code>, <code>/replies/{id}</code></td><td>Discussions and replies</td></tr>
+<tr><td>Docs</td><td><code>/docs/*</code></td><td>Documentation catalog, search, and reindexing — see <a href="api/../database/schema.html">Database › Schema</a> for the underlying <code>docs</code> domain and <a href="api/../openapi/paths.html">OpenAPI › Paths</a> for the three operations</td></tr>
+</tbody></table>
+</div>
+<p>The production base URL is the Supabase Functions endpoint configured as a <code>server</code> in <code>openapi/openapi.yaml</code>; local development uses the URL <code>supabase start</code> prints (<code>http://127.0.0.1:54321/functions/v1</code> by default).</p>
+<p>See <a href="api/authentication.html">Authentication</a> for how requests are authenticated, <a href="api/conventions.html">Conventions</a> for request/response shape conventions, and <a href="api/errors.html">Errors</a> for the shared error schema.</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="authentication-1"><a class="header" href="#authentication-1">Authentication</a></h1>
+<p>Authenticated operations accept a Supabase Auth JWT via the standard bearer scheme:</p>
+<pre><code class="language-http">Authorization: Bearer &lt;JWT&gt;
+</code></pre>
+<p>Public read operations (release listing, published news, poll results, docs search and source listing) do not require a token at all — omit the header, or send an anonymous Supabase client's session, and the request is treated as <code>anon</code>.</p>
+<h2 id="per-operation-security-in-the-contract"><a class="header" href="#per-operation-security-in-the-contract">Per-operation security in the contract</a></h2>
+<p>Every operation in <code>openapi/paths/*.yaml</code> declares its own <code>security</code> requirement — public, optional-bearer, or required-bearer — matching what the underlying Edge Function and database RLS actually enforce. This was made explicit (rather than left as one blanket API-wide default) specifically so the generated client and any API consumer can tell, from the spec alone, which calls need a signed-in user.</p>
+<h2 id="the-x-reindex-token-exception"><a class="header" href="#the-x-reindex-token-exception">The <code>X-Reindex-Token</code> exception</a></h2>
+<p><code>POST /docs/reindex</code> does not use bearer auth at all. It's authenticated by a shared secret header, <code>X-Reindex-Token</code>, because the caller is another repository's CI pipeline (after an mdBook build), not a person with a Supabase session. See <a href="api/../security/authentication.html">Security › Authentication</a> for the reasoning.</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="conventions-1"><a class="header" href="#conventions-1">Conventions</a></h1>
+<ul>
+<li><strong>JSON in, JSON out.</strong> Every request body and response body is <code>application/json</code>; there is no XML or form-encoded surface.</li>
+<li><strong>Resource creation returns the full object</strong>, not just an <code>id</code>. (This was a real bug found and fixed during development — some RPC-backed create endpoints originally returned only <code>{ id }</code> while the spec promised the full <code>Team</code>/<code>Poll</code>/etc. object; the fix added explicit refetches after the underlying database function returns.)</li>
+<li><strong>Path parameters, not query strings, identify a specific resource</strong> — <code>/teams/{teamId}</code>, <code>/polls/{pollId}/vote</code>, <code>/replies/{replyId}</code>.</li>
+<li><strong>List endpoints accept pagination/filtering as query parameters</strong> where applicable (e.g. <code>releases</code> status filter, <code>limit</code>/<code>offset</code>).</li>
+<li><strong>Every path-parameterized operation documents a 400</strong> for a malformed identifier, in addition to whatever 401/403/404 responses apply to that specific operation.</li>
+<li><strong>Trivial acknowledgement responses use a shared <code>Ok</code> schema</strong> rather than each endpoint inventing its own <code>{ "success": true }</code> shape.</li>
+<li><strong>Errors use the shared <code>Error</code> schema</strong> everywhere — see <a href="api/errors.html">Errors</a>.</li>
+</ul>
+<p>See <a href="api/../openapi/schemas.html">OpenAPI › Schemas</a> for the schema files these conventions are expressed in.</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="errors"><a class="header" href="#errors">Errors</a></h1>
+<p>Every error response uses the shared <code>Error</code> schema (<code>openapi/schemas/Error.yaml</code>):</p>
+<pre><code class="language-json">{
+  "error": "string, a short machine-readable code",
+  "message": "string, human-readable detail"
+}
+</code></pre>
+<h2 id="status-code-mapping"><a class="header" href="#status-code-mapping">Status code mapping</a></h2>
+<p>Edge Functions build this response with the shared <code>errorResponse(error, message, status)</code> helper (<code>supabase/functions/_shared/http.ts</code>). Errors raised inside a <code>SECURITY DEFINER</code> PostgreSQL function are mapped to an HTTP status by <code>statusForPgError</code>:</p>
+<div class="table-wrapper"><table><thead><tr><th>Postgres error code</th><th>HTTP status</th><th>Meaning</th></tr></thead><tbody>
+<tr><td><code>42501</code></td><td><code>403</code></td><td>The convention this codebase uses inside PL/pgSQL functions for "authenticated, but not authorized to do that"</td></tr>
+<tr><td>anything else</td><td><code>400</code></td><td>Validation failure, constraint violation, or any other database-level rejection</td></tr>
+</tbody></table>
+</div>
+<h2 id="request-validation-errors"><a class="header" href="#request-validation-errors">Request validation errors</a></h2>
+<p>A request that fails its Zod schema validation never reaches the database at all — the Edge Function returns <code>400</code> immediately with a message describing what failed.</p>
+<h2 id="404s"><a class="header" href="#404s">404s</a></h2>
+<p>A <code>404</code> means the referenced resource genuinely doesn't exist (or, in the case of RLS-protected resources, that it exists but the caller can't see it — Coreverse DB does not distinguish "not found" from "not authorized to know it exists" for read paths, to avoid leaking existence information).</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="profiles"><a class="header" href="#profiles">Profiles</a></h1>
+<div class="table-wrapper"><table><thead><tr><th>Method</th><th>Path</th><th>Auth</th><th>Does</th></tr></thead><tbody>
+<tr><td><code>GET</code></td><td><code>/profiles/me</code></td><td>Required</td><td>The caller's own profile, with <code>avatar_path</code> resolved to a public <code>avatar_url</code></td></tr>
+<tr><td><code>PATCH</code></td><td><code>/profiles/me</code></td><td>Required</td><td>Update the caller's own profile</td></tr>
+</tbody></table>
+</div>
+<p>There is no endpoint to fetch or list <em>other</em> users' profiles by ID — <code>identity.profiles</code> is publicly readable at the RLS level (for joins from other domains, e.g. showing an author's name on a news article), but the API deliberately exposes only the "me" shape rather than a general <code>/profiles/{id}</code> lookup.</p>
+<p>Avatar upload itself goes through Supabase Storage directly against the <code>avatars</code> bucket (see <a href="api/resources/../../security/storage-security.html">Security › Storage Security</a>), not through this Edge Function — <code>profiles</code> only ever stores/returns the resulting <code>avatar_path</code>.</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="teams"><a class="header" href="#teams">Teams</a></h1>
+<div class="table-wrapper"><table><thead><tr><th>Method</th><th>Path</th><th>Auth</th><th>Does</th></tr></thead><tbody>
+<tr><td><code>POST</code></td><td><code>/teams</code></td><td>Required</td><td>Create a team; caller becomes owner</td></tr>
+<tr><td><code>PATCH</code></td><td><code>/teams/{teamId}</code></td><td>Required</td><td>Rename a team (owner/admin)</td></tr>
+<tr><td><code>DELETE</code></td><td><code>/teams/{teamId}</code></td><td>Required</td><td>Delete a team (owner only)</td></tr>
+<tr><td><code>GET</code></td><td><code>/teams/{teamId}/members</code></td><td>Required</td><td>List a team's members</td></tr>
+<tr><td><code>PATCH</code></td><td><code>/teams/{teamId}/members/{userId}</code></td><td>Required</td><td>Promote, demote, or remove a member (see role rules below)</td></tr>
+<tr><td><code>POST</code></td><td><code>/teams/{teamId}/join-requests</code></td><td>Required</td><td>Request to join a team</td></tr>
+<tr><td><code>POST</code></td><td><code>/teams/{teamId}/invites</code></td><td>Required</td><td>Invite a specific user (owner/admin only)</td></tr>
+<tr><td><code>POST</code></td><td><code>/teams/{teamId}/ownership-transfer</code></td><td>Required</td><td>Offer ownership to a user (owner only; target's consent required)</td></tr>
+<tr><td><code>POST</code></td><td><code>/teams/{teamId}/leave</code></td><td>Required</td><td>Leave a team (the owner cannot leave without transferring ownership first)</td></tr>
+</tbody></table>
+</div>
+<h2 id="role-rules-for-patch-teamsteamidmembersuserid"><a class="header" href="#role-rules-for-patch-teamsteamidmembersuserid">Role rules for <code>PATCH /teams/{teamId}/members/{userId}</code></a></h2>
+<ul>
+<li><strong>Owner</strong> can promote a member to admin, demote an admin to member, or remove any member/admin.</li>
+<li><strong>Admin</strong> can promote a member to admin, or remove members — but cannot affect other admins or the owner.</li>
+</ul>
+<p>See <a href="api/resources/../../database/functions/identity.html">Database › Functions › Identity</a> for the underlying functions and <a href="api/resources/../../database/domains/identity.html">Database › Domains › Identity</a> for the full membership state machine, including the 30-member cap and the 3-day auto-expiry of unanswered requests/invites.</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="projects"><a class="header" href="#projects">Projects</a></h1>
+<div class="table-wrapper"><table><thead><tr><th>Method</th><th>Path</th><th>Auth</th><th>Does</th></tr></thead><tbody>
+<tr><td><code>GET</code></td><td><code>/projects</code></td><td>Required</td><td>List the caller's own and team-visible projects</td></tr>
+<tr><td><code>PATCH</code></td><td><code>/projects/{projectId}</code></td><td>Required</td><td>Update project metadata (owner only)</td></tr>
+<tr><td><code>DELETE</code></td><td><code>/projects/{projectId}</code></td><td>Required</td><td>Delete a project (owner only)</td></tr>
+<tr><td><code>GET</code></td><td><code>/projects/{projectId}/download</code></td><td>Required</td><td>Mint a short-lived signed download URL</td></tr>
+</tbody></table>
+</div>
+<p><code>GET /projects/{projectId}/download</code> is the one endpoint in this resource that touches Storage directly: it checks the caller's access with their own user-scoped client (owner, or a member of the project's team), and only then constructs a service-role client to generate a 5-minute signed URL. See <a href="api/resources/../../security/storage-security.html">Security › Storage Security</a> for why this two-step design exists instead of a Storage RLS policy for team members.</p>
+<p>Uploading a new archive is a two-step client-side flow: upload the <code>.tar.zst</code> file to the <code>project-archives</code> Storage bucket at <code>{owner_id}/{project_id}.tar.zst</code> directly, then create/update the <code>identity.projects</code> metadata row (path, size, checksum) via this resource.</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="releases-1"><a class="header" href="#releases-1">Releases</a></h1>
+<div class="table-wrapper"><table><thead><tr><th>Method</th><th>Path</th><th>Auth</th><th>Does</th></tr></thead><tbody>
+<tr><td><code>GET</code></td><td><code>/releases</code></td><td>Public</td><td>List releases, optionally filtered by <code>status</code>, paginated</td></tr>
+<tr><td><code>GET</code></td><td><code>/releases/latest</code></td><td>Public</td><td>The latest release for a given <code>status</code> (default <code>stable</code>)</td></tr>
+<tr><td><code>GET</code></td><td><code>/releases/{version}</code></td><td>Public</td><td>One release by exact version string</td></tr>
+</tbody></table>
+</div>
+<p>Every response nests a release's platform artifacts as an <code>artifacts[]</code> array (see <code>Release.yaml</code> / <code>Artifact.yaml</code>), matching <code>releases.get_by_version</code> / <code>get_latest</code> / <code>list_releases</code> 1:1 (see <a href="api/resources/../../database/functions/releases.html">Database › Functions › Releases</a>).</p>
+<p><code>GET /releases/{version}</code> returns <code>404</code> for an unknown version, not <code>400</code> — the version string itself is free-form text, so a malformed version is indistinguishable from "not found" at this layer.</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="discussions"><a class="header" href="#discussions">Discussions</a></h1>
+<div class="table-wrapper"><table><thead><tr><th>Method</th><th>Path</th><th>Auth</th><th>Does</th></tr></thead><tbody>
+<tr><td><code>GET</code></td><td><code>/discussions</code></td><td>Public</td><td>List discussions, filterable by <code>category</code></td></tr>
+<tr><td><code>POST</code></td><td><code>/discussions</code></td><td>Required</td><td>Create a discussion</td></tr>
+<tr><td><code>GET</code></td><td><code>/discussions/{discussionId}</code></td><td>Public</td><td>Fetch one discussion</td></tr>
+<tr><td><code>PATCH</code></td><td><code>/discussions/{discussionId}</code></td><td>Required (author/moderator)</td><td>Edit, lock, or unlock a discussion</td></tr>
+<tr><td><code>GET</code></td><td><code>/discussions/{discussionId}/replies</code></td><td>Public</td><td>List replies to a discussion</td></tr>
+<tr><td><code>POST</code></td><td><code>/discussions/{discussionId}/replies</code></td><td>Required</td><td>Reply to a discussion (rejected if the discussion <code>is_locked</code>)</td></tr>
+<tr><td><code>PATCH</code></td><td><code>/replies/{replyId}</code></td><td>Required (author/moderator)</td><td>Edit or soft-delete a reply</td></tr>
+</tbody></table>
+</div>
+<p>Deleting a reply is a <strong>soft delete</strong> (<code>deleted_at</code> set, row otherwise retained) rather than a hard <code>DELETE</code>, so a thread's structure survives moderation — the client renders a tombstoned reply as "[deleted]". See <a href="api/resources/../../database/domains/content.html">Database › Domains › Content</a> and <a href="api/resources/../../database/tables/discussions.html">Database › Tables › Discussions</a>.</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="polls"><a class="header" href="#polls">Polls</a></h1>
+<div class="table-wrapper"><table><thead><tr><th>Method</th><th>Path</th><th>Auth</th><th>Does</th></tr></thead><tbody>
+<tr><td><code>GET</code></td><td><code>/polls</code></td><td>Public</td><td>List polls (with their options nested)</td></tr>
+<tr><td><code>POST</code></td><td><code>/polls/{pollId}/vote</code></td><td>Required</td><td>Cast (or attempt to change) the caller's vote</td></tr>
+<tr><td><code>GET</code></td><td><code>/polls/{pollId}/results</code></td><td>Public</td><td>Anonymous aggregated vote counts per option</td></tr>
+</tbody></table>
+</div>
+<p>Individual votes are <strong>never</strong> exposed by this API — <code>GET /polls/{pollId}/results</code> calls <code>content.poll_results()</code>, which reads across every user's <code>poll_votes</code> row but returns only per-option counts (see <a href="api/resources/../../database/functions/content.html">Database › Functions › Content</a>). <code>POST /polls/{pollId}/vote</code> will <code>409</code>/<code>400</code> if the caller has already voted (enforced by the <code>(poll_id, user_id)</code> primary key) or if the chosen option doesn't belong to the poll (enforced by a trigger — see <a href="api/resources/../../database/triggers.html">Database › Triggers</a>).</p>
+<p>Poll creation (with its options) is not shown as a separate public endpoint here because it's created atomically via <code>content.create_poll_with_options()</code> through the moderator-facing creation flow, alongside <code>news</code>.</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="news"><a class="header" href="#news">News</a></h1>
+<div class="table-wrapper"><table><thead><tr><th>Method</th><th>Path</th><th>Auth</th><th>Does</th></tr></thead><tbody>
+<tr><td><code>GET</code></td><td><code>/news</code></td><td>Public (published only)</td><td>List news, filterable by <code>status</code> for moderators</td></tr>
+<tr><td><code>GET</code></td><td><code>/news/{newsId}</code></td><td>Public (published) / Required (draft)</td><td>Fetch one article</td></tr>
+<tr><td><code>POST</code></td><td><code>/news</code></td><td>Required (moderator/admin)</td><td>Create an article</td></tr>
+<tr><td><code>PATCH</code></td><td><code>/news/{newsId}</code></td><td>Required (moderator/admin)</td><td>Edit an article, including publishing it</td></tr>
+<tr><td><code>DELETE</code></td><td><code>/news/{newsId}</code></td><td>Required (moderator/admin)</td><td>Delete an article</td></tr>
+</tbody></table>
+</div>
+<p>Write access is gated by <code>identity.is_platform_moderator()</code> — platform-wide <code>admin</code>/<code>moderator</code> roles, unrelated to team roles. See <a href="api/resources/../../database/domains/content.html">Database › Domains › Content</a> for why anonymous callers must never trigger that check (it reads a table <code>anon</code> has no grant on) and how the RLS policies avoid it.</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="requests"><a class="header" href="#requests">Requests</a></h1>
+<div class="table-wrapper"><table><thead><tr><th>Method</th><th>Path</th><th>Auth</th><th>Does</th></tr></thead><tbody>
+<tr><td><code>POST</code></td><td><code>/requests/{requestId}/accept</code></td><td>Required</td><td>Accept a pending request addressed to the caller (join request as owner/admin, or invite/ownership-transfer as the target)</td></tr>
+<tr><td><code>POST</code></td><td><code>/requests/{requestId}/reject</code></td><td>Required</td><td>Reject the same</td></tr>
+<tr><td><code>POST</code></td><td><code>/requests/{requestId}/cancel</code></td><td>Required</td><td>The original initiator withdraws their own pending request</td></tr>
+</tbody></table>
+</div>
+<p>Which underlying function runs (<code>respond_to_join_request</code>, <code>respond_to_invite</code>, <code>respond_to_ownership_transfer</code>, or <code>cancel_request</code>) depends on the target row's <code>type</code> and who's calling — see <a href="api/resources/../../database/functions/identity.html">Database › Functions › Identity</a>. A request that isn't <code>pending</code> anymore, or that the caller isn't a relevant party to, returns <code>403</code>/<code>404</code> rather than silently succeeding.</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="overview-6"><a class="header" href="#overview-6">Overview</a></h1>
+<p><code>openapi/openapi.yaml</code> is the <strong>authoritative</strong> definition of the HTTP API — not the Edge Function code, and not <code>src/generated/</code>. Every path lives in its own file under <code>openapi/paths/</code>, and every reusable schema lives in its own file under <code>openapi/schemas/</code>, referenced by <code>$ref</code> from the root document and from each other.</p>
+<pre><code class="language-text">openapi/openapi.yaml
+        │
+        ▼
+      Orval
+     /     \
+    ▼       ▼
+Fetch SDK   Zod schemas
+</code></pre>
+<p>Orval reads the multi-file spec (resolving <code>$ref</code>s itself via its bundled <code>swagger-parser</code>, so no separate bundling step is needed before codegen) and produces:</p>
+<ul>
+<li>A typed fetch client, split by tag, under <code>src/generated/endpoints/</code>.</li>
+<li>TypeScript models under <code>src/generated/models/</code>.</li>
+<li>Zod runtime validators under <code>src/generated/zod/</code>.</li>
+<li>(For the <code>react</code> package entry point) TanStack Query hooks under <code>src/generated/react/</code>.</li>
+</ul>
+<p>See <a href="openapi/specification.html">Specification</a> for how the document is structured, <a href="openapi/paths.html">Paths</a> for how individual operations are written, and <a href="openapi/schemas.html">Schemas</a> for the shared component schemas.</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="specification"><a class="header" href="#specification">Specification</a></h1>
+<ul>
+<li><strong>Version:</strong> OpenAPI 3.1.0.</li>
+<li><strong><code>info</code></strong> — title, description, version (currently <code>0.1.0</code>), and license (<code>GPL-3.0-only</code>).</li>
+<li><strong><code>servers</code></strong> — production (the Supabase Functions URL) and local (<code>http://127.0.0.1:54321/functions/v1</code>, matching <code>supabase start</code>'s default).</li>
+<li><strong><code>tags</code></strong> — one per Edge Function/resource (<code>releases</code>, <code>teams</code>, <code>requests</code>, <code>profiles</code>, <code>projects</code>, <code>news</code>, <code>polls</code>, <code>discussions</code>, <code>docs</code>), each with a one-line description.</li>
+<li><strong><code>paths</code></strong> — every entry is a <code>$ref</code> into <code>openapi/paths/&lt;resource&gt;.yaml#/&lt;operationKey&gt;</code>, keeping the root document a pure index rather than inlining operations.</li>
+<li><strong><code>components.securitySchemes</code></strong> — a single <code>bearerAuth</code> scheme (Supabase Auth JWT), referenced per-operation rather than applied globally, so the spec itself documents which operations are public, optional-bearer, or required-bearer.</li>
+</ul>
+<p>Linting is done with <strong>Redocly</strong> (<code>redocly.yaml</code>), run both locally (<code>pnpm</code> script, see <a href="openapi/../reference/cli-commands.html">CLI Commands</a>) and in CI (see <a href="openapi/../development/workflow.html">Continuous Integration</a>).</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="paths"><a class="header" href="#paths">Paths</a></h1>
+<p>Each file under <code>openapi/paths/</code> groups the operations for one resource, keyed by a short name referenced from the root <code>openapi.yaml</code> (e.g. <code>./paths/teams.yaml#/create</code>, <code>#/byId</code>, <code>#/members</code>, ...). This keeps the root document's <code>paths:</code> section a readable table of contents even though the full spec spans nine files and dozens of operations.</p>
+<p>Every operation includes:</p>
+<ul>
+<li>A <code>summary</code> (used verbatim in generated client method names by Orval where applicable) and an <code>operationId</code> (the canonical name Orval uses for the generated function).</li>
+<li>A <code>security</code> requirement — see <a href="openapi/../api/authentication.html">API › Authentication</a> — explicit per operation, not inherited from a global default.</li>
+<li>Response schemas for every realistic status code the underlying Edge Function can actually return, including <code>400</code> for malformed path parameters or bodies, and <code>401</code>/<code>403</code> for the specific auth/authorization failures that operation can hit (not a generic catch-all).</li>
+</ul>
+<p>See the <a href="openapi/../api/resources/releases.html">API › Resources</a> pages for the operations grouped by what they do, and <a href="openapi/../reference/error-codes.html">Reference › Error Codes</a> for the response codes across the whole API.</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="schemas"><a class="header" href="#schemas">Schemas</a></h1>
+<p>Reusable component schemas live one-per-file under <code>openapi/schemas/</code>:</p>
+<div class="table-wrapper"><table><thead><tr><th>Schema</th><th>Backs</th></tr></thead><tbody>
+<tr><td><code>Error.yaml</code></td><td>The shared error shape (<code>{ error, message }</code>) — see <a href="openapi/../api/errors.html">API › Errors</a></td></tr>
+<tr><td><code>Ok.yaml</code></td><td>A trivial acknowledgement response, used for actions with no meaningful return payload (e.g. cancelling a request)</td></tr>
+<tr><td><code>Release.yaml</code>, <code>Artifact.yaml</code></td><td><a href="openapi/../api/resources/releases.html">Releases</a></td></tr>
+<tr><td><code>Profile.yaml</code></td><td><a href="openapi/../api/resources/profiles.html">Profiles</a></td></tr>
+<tr><td><code>Team.yaml</code>, <code>TeamMember.yaml</code>, <code>MembershipRequest.yaml</code></td><td><a href="openapi/../api/resources/teams.html">Teams</a>, <a href="openapi/../api/resources/requests.html">Requests</a></td></tr>
+<tr><td><code>Project.yaml</code></td><td><a href="openapi/../api/resources/projects.html">Projects</a></td></tr>
+<tr><td><code>News.yaml</code></td><td><a href="openapi/../api/resources/news.html">News</a></td></tr>
+<tr><td><code>Poll.yaml</code>, <code>PollResult.yaml</code></td><td><a href="openapi/../api/resources/polls.html">Polls</a></td></tr>
+<tr><td><code>Discussion.yaml</code>, <code>DiscussionReply.yaml</code></td><td><a href="openapi/../api/resources/discussions.html">Discussions</a></td></tr>
+<tr><td><code>DocSource.yaml</code>, <code>DocSearchResult.yaml</code></td><td>Docs catalog and search</td></tr>
+</tbody></table>
+</div>
+<p>Each schema is referenced by <code>$ref</code> from the relevant path file(s) rather than inlined, so a shape used in more than one response (e.g. <code>Team</code> in both the create response and the get-by-id response) is defined exactly once.</p>
+<p><code>src/generated/models/</code> is generated 1:1 from these files by Orval — see <a href="openapi/../development/workflow.html">Development › Workflow</a> for the regenerate-and-verify loop, and never edit <code>src/generated/</code> by hand; change the schema here instead.</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="workflow"><a class="header" href="#workflow">Workflow</a></h1>
+<h2 id="changing-the-database"><a class="header" href="#changing-the-database">Changing the database</a></h2>
+<ol>
+<li>Write a new migration under <code>supabase/migrations/</code> (see <a href="development/migrations.html">Migrations</a> and <a href="development/writing-migrations.html">Writing Migrations</a>).</li>
+<li><code>supabase db reset</code> to rebuild from scratch and confirm the migration applies cleanly.</li>
+<li>Add/update pgTAP tests under <code>supabase/tests/</code> (see <a href="development/database-testing.html">Database Testing</a>, <a href="development/pgtap.html">pgTAP</a>, <a href="development/rls-testing.html">RLS Testing</a>).</li>
+<li><code>supabase test db</code>.</li>
+<li>If the change affects externally observable behavior, update the OpenAPI contract in the same change (see below).</li>
+</ol>
+<h2 id="changing-the-http-contract"><a class="header" href="#changing-the-http-contract">Changing the HTTP contract</a></h2>
+<ol>
+<li>Edit <code>openapi/paths/*.yaml</code> and/or <code>openapi/schemas/*.yaml</code>.</li>
+<li>Lint with Redocly.</li>
+<li><code>pnpm generate</code> to regenerate <code>src/generated/</code>.</li>
+<li>Review the regenerated diff — <code>src/generated/</code> is derived output and should never be hand-edited.</li>
+<li><code>pnpm typecheck</code>.</li>
+</ol>
+<h2 id="changing-an-edge-function"><a class="header" href="#changing-an-edge-function">Changing an Edge Function</a></h2>
+<ol>
+<li>Edit <code>supabase/functions/&lt;name&gt;/index.ts</code> and its <code>schemas.ts</code>.</li>
+<li>Update <code>schemas.test.ts</code> for the new/changed Zod schema.</li>
+<li><code>deno task test</code>.</li>
+<li>If the change alters the contract, update OpenAPI too (previous section).</li>
+</ol>
+<h2 id="before-opening-a-pull-request"><a class="header" href="#before-opening-a-pull-request">Before opening a pull request</a></h2>
+<pre><code class="language-bash">pnpm verify        # regenerate + drift check + typecheck
+deno task test      # Edge Function schema unit tests
+supabase test db    # pgTAP database + RLS tests
+</code></pre>
+<p>These three commands are exactly what CI runs (see <a href="development/../operations/deployment.html">Deploy Checklist</a> and the <code>ci.yml</code> workflow) — a clean local run of all three is a strong signal the change is ready for review. See <a href="development/../contributing/pull-requests.html">Contributing › Pull Requests</a> for the review process itself.</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="migrations"><a class="header" href="#migrations">Migrations</a></h1>
+<p>Migrations are the single source of truth for the schema — there is no manual, out-of-band change to a running database, local or hosted.</p>
+<h2 id="creating-one"><a class="header" href="#creating-one">Creating one</a></h2>
+<pre><code class="language-bash">supabase migration new &lt;description&gt;
+</code></pre>
+<p>This creates a new timestamped file under <code>supabase/migrations/</code>. Existing migrations are one-per-domain (see <a href="development/../database/schema.html">Database › Schema</a>), but that's a convention from the project's early history, not a rule — a small follow-up change (like the storage-buckets migration) is fine as its own file rather than being folded into an existing domain's migration.</p>
+<h2 id="applying"><a class="header" href="#applying">Applying</a></h2>
+<pre><code class="language-bash">supabase db reset
+</code></pre>
+<p>rebuilds the local database from every migration in filename order, then loads <code>supabase/seed.sql</code>. See <a href="development/../getting-started/database-reset.html">Database Reset</a>.</p>
+<h2 id="rules"><a class="header" href="#rules">Rules</a></h2>
+<ul>
+<li><strong>Never edit a migration that's already been merged to <code>main</code>.</strong> If a mistake ships, write a follow-up migration that corrects it — the migration history is the audit trail.</li>
+<li><strong>Every migration should be re-runnable from a blank database</strong> — always test with <code>supabase db reset</code>, not just by applying on top of your already-migrated local state.</li>
+<li><strong>Migrations that change API-observable behavior update the OpenAPI contract in the same change</strong> — see <a href="development/workflow.html">Workflow</a>.</li>
+</ul>
+<p>See <a href="development/writing-migrations.html">Writing Migrations</a> for the structural/style rules a migration's contents should follow.</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="writing-migrations"><a class="header" href="#writing-migrations">Writing Migrations</a></h1>
+<p>Follow the structure and conventions in <a href="development/../database/conventions.html">Database › Conventions</a>; this page is the practical checklist for a new migration file.</p>
+<h2 id="structure-top-to-bottom"><a class="header" href="#structure-top-to-bottom">Structure, top to bottom</a></h2>
+<ol>
+<li>A comment block explaining the domain and any non-obvious design decisions — future readers (including you, in six months) will thank you.</li>
+<li><code>create schema if not exists &lt;schema&gt;;</code> if this is a new domain.</li>
+<li>Table definitions, with <code>comment on table</code>/<code>comment on column</code> for anything non-obvious.</li>
+<li>Indexes.</li>
+<li>Trigger functions and their triggers (<code>set_updated_at</code>, any business-rule enforcement).</li>
+<li>RLS: <code>enable row level security</code>, then policies.</li>
+<li><code>SECURITY DEFINER</code> functions, if the domain needs state-transition logic beyond RLS.</li>
+<li>Grants — explicit <code>grant select/execute</code> for exactly what <code>anon</code>/<code>authenticated</code> need; nothing broader.</li>
+</ol>
+<h2 id="checklist"><a class="header" href="#checklist">Checklist</a></h2>
+<ul>
+<li><input disabled="" type="checkbox"/>
+Every table has <code>id uuid primary key default gen_random_uuid()</code> (unless it's a pure join table using a composite key, like <code>team_members</code>).</li>
+<li><input disabled="" type="checkbox"/>
+Every table with mutable rows has <code>created_at</code>/<code>updated_at</code> and a <code>set_updated_at()</code> trigger.</li>
+<li><input disabled="" type="checkbox"/>
+RLS is enabled, even if the only policy is public read or none at all.</li>
+<li><input disabled="" type="checkbox"/>
+Any <code>SECURITY DEFINER</code> function that's a private RLS helper lives in <code>private</code>, sets <code>search_path = ''</code>, and (if it must avoid recursion) <code>row_security = off</code>.</li>
+<li><input disabled="" type="checkbox"/>
+Enumerated columns use a <code>check (... in (...))</code> constraint.</li>
+<li><input disabled="" type="checkbox"/>
+Foreign keys specify the intended <code>on delete</code> behavior explicitly (<code>cascade</code>, <code>set null</code>, or the default <code>restrict</code>) rather than leaving it implicit.</li>
+<li><input disabled="" type="checkbox"/>
+Grants to <code>anon</code>/<code>authenticated</code> are the minimum needed — writes default to withheld unless there's a <code>SECURITY DEFINER</code> function or explicit reason.</li>
+<li><input disabled="" type="checkbox"/>
+pgTAP tests exist for new RLS policies and new functions (see <a href="development/database-testing.html">Database Testing</a>, <a href="development/rls-testing.html">RLS Testing</a>).</li>
+<li><input disabled="" type="checkbox"/>
+SQLFluff passes (see <a href="development/../contributing/sql-style.html">Contributing › SQL Style</a>).</li>
+</ul>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="database-testing"><a class="header" href="#database-testing">Database Testing</a></h1>
+<p>Database behavior is tested with <strong>pgTAP</strong> against the local Supabase stack, split into two categories under <code>supabase/tests/</code>:</p>
+<ul>
+<li><strong><code>database/</code></strong> — tests for PostgreSQL functions: given these inputs and this caller, does the function return/raise what it should? (<code>content_functions.sql</code>, <code>docs_functions.sql</code>, <code>identity_functions.sql</code>, <code>releases_functions.sql</code>)</li>
+<li><strong><code>rls/</code></strong> — tests for Row Level Security policies: as this role/user, can I see or write this row? (<code>content_rls.sql</code>, <code>docs_rls.sql</code>, <code>identity_rls.sql</code>, <code>releases_rls.sql</code>)</li>
+</ul>
+<p>These are kept in separate files intentionally — a function can be logically correct while its RLS policy is wrong (or vice versa), and mixing the two kinds of test in one file makes failures harder to attribute to the right layer.</p>
+<p>Run the full suite:</p>
+<pre><code class="language-bash">supabase test db
+</code></pre>
+<p>CI also runs <code>supabase db lint</code> before the pgTAP suite, catching a class of schema issues pgTAP itself wouldn't (e.g. missing indexes on foreign keys).</p>
+<p>See <a href="development/pgtap.html">pgTAP</a> for how individual test files are structured and <a href="development/rls-testing.html">RLS Testing</a> for the role-switching pattern RLS tests use.</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="pgtap"><a class="header" href="#pgtap">pgTAP</a></h1>
+<p><a href="https://pgtap.org/">pgTAP</a> is a TAP-emitting (Test Anything Protocol) unit-testing framework for PostgreSQL, enabled by the <code>20260828144407_enable_pgtap.sql</code> migration.</p>
+<h2 id="shape-of-a-test-file"><a class="header" href="#shape-of-a-test-file">Shape of a test file</a></h2>
+<p>Each file under <code>supabase/tests/database/</code> and <code>supabase/tests/rls/</code> follows the usual pgTAP pattern:</p>
+<pre><code class="language-sql">begin;
+select plan(&lt;number of assertions&gt;);
+
+-- assertions, e.g.:
+select is(
+  (select count(*) from releases.engine_releases where version = '1.0.0'),
+  1,
+  'seeded release exists'
+);
+
+select * from finish();
+rollback;
+</code></pre>
+<p>Wrapping the whole file in <code>begin; ... rollback;</code> means every test runs against a transaction that's rolled back afterward — tests never leave residue in the local database, and can run in any order without interfering with each other.</p>
+<h2 id="running"><a class="header" href="#running">Running</a></h2>
+<pre><code class="language-bash">supabase test db
+</code></pre>
+<p>runs every <code>.sql</code> file under <code>supabase/tests/</code> and reports pass/fail per assertion. See <a href="development/database-testing.html">Database Testing</a> for the split between <code>database/</code> and <code>rls/</code>, and <a href="development/rls-testing.html">RLS Testing</a> for how RLS tests specifically simulate different callers.</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="rls-testing"><a class="header" href="#rls-testing">RLS Testing</a></h1>
+<p>RLS tests under <code>supabase/tests/rls/</code> follow one additional pattern beyond ordinary pgTAP tests: they need to run <em>as</em> different roles/users to actually exercise a policy, not just as the superuser pgTAP normally runs as.</p>
+<h2 id="the-pattern"><a class="header" href="#the-pattern">The pattern</a></h2>
+<pre><code class="language-sql">begin;
+select plan(&lt;n&gt;);
+
+-- set up fixture rows as an unrestricted role first
+insert into identity.teams (id, name, created_by) values (...);
+
+-- switch to simulate an authenticated, specific user
+set local role authenticated;
+set local request.jwt.claims to '{"sub": "&lt;uuid-of-test-user&gt;"}';
+
+select is(
+  (select count(*) from identity.teams where id = '&lt;team-id&gt;'),
+  1,
+  'team member can see the team'
+);
+
+-- switch to a different, non-member user and confirm they cannot
+set local request.jwt.claims to '{"sub": "&lt;uuid-of-other-user&gt;"}';
+
+select is(
+  (select count(*) from identity.teams where id = '&lt;team-id&gt;'),
+  0,
+  'non-member cannot see the team'
+);
+
+select * from finish();
+rollback;
+</code></pre>
+<p><code>set local role</code> and <code>set local request.jwt.claims</code> are scoped to the current transaction, which is why every test file is wrapped in <code>begin; ... rollback;</code> — the role/claim switch (and any fixture rows inserted) disappear automatically at the end.</p>
+<h2 id="what-gets-tested-per-table"><a class="header" href="#what-gets-tested-per-table">What gets tested, per table</a></h2>
+<p>For every RLS-protected table: at least one case that should be allowed, and at least one that should be denied, for each distinct policy (read, and any write policy that exists). See <a href="development/../security/policies.html">Security › Policies</a> for the policy inventory these tests are exercising.</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="edge-functions-1"><a class="header" href="#edge-functions-1">Edge Functions</a></h1>
+<p>Edge Functions live under <code>supabase/functions/&lt;name&gt;/</code>, one directory per OpenAPI tag, each with:</p>
+<ul>
+<li><strong><code>index.ts</code></strong> — the HTTP handler.</li>
+<li><strong><code>schemas.ts</code></strong> — Zod schemas for the function's request bodies/params.</li>
+<li><strong><code>schemas.test.ts</code></strong> — Deno unit tests for those schemas (no database required).</li>
+</ul>
+<h2 id="shared-infrastructure"><a class="header" href="#shared-infrastructure">Shared infrastructure</a></h2>
+<p>Every function imports from <code>supabase/functions/_shared/</code>:</p>
+<ul>
+<li><strong><code>http.ts</code></strong> — <code>jsonResponse</code>, <code>errorResponse</code>, <code>statusForPgError</code>.</li>
+<li><strong><code>supabase-client.ts</code></strong> — a Supabase client scoped to the caller's forwarded JWT.</li>
+<li><strong><code>service-client.ts</code></strong> — a service-role client, used only where a function has already performed its own access check and needs privileged access afterward.</li>
+</ul>
+<h2 id="writing-a-new-function"><a class="header" href="#writing-a-new-function">Writing a new function</a></h2>
+<ol>
+<li>Add the OpenAPI paths/schemas for it first (contract-first — see <a href="development/workflow.html">Development › Workflow</a>).</li>
+<li>Create <code>supabase/functions/&lt;name&gt;/schemas.ts</code> with a Zod schema per request body/params shape.</li>
+<li>Create <code>schemas.test.ts</code> covering valid and invalid input for each schema.</li>
+<li>Implement <code>index.ts</code>: route on method + path segments, validate with the Zod schema, get the appropriate client (<code>supabase-client.ts</code> unless there's a specific, documented reason for <code>service-client.ts</code>), call the database, map errors with <code>statusForPgError</code>, respond with <code>jsonResponse</code>/<code>errorResponse</code>.</li>
+<li><code>deno task test</code>.</li>
+<li><code>pnpm generate</code> to pick up the new OpenAPI operations into the TypeScript client.</li>
+</ol>
+<h2 id="local-testing-against-the-running-stack"><a class="header" href="#local-testing-against-the-running-stack">Local testing against the running stack</a></h2>
+<pre><code class="language-bash">supabase start
+supabase functions serve
+</code></pre>
+<p><code>supabase functions serve</code> picks up local edits automatically, so you can iterate against <code>curl</code>/Postman/the generated client without redeploying.</p>
+<p>See <a href="development/../architecture/system-architecture.html">Architecture › System Architecture</a> for the function-to-resource mapping and <a href="development/../security/authorization.html">Security › Authorization</a> for the request-handling shape every function follows.</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="deployment"><a class="header" href="#deployment">Deployment</a></h1>
+<p>Two independent things get deployed from this repository: the <strong>Supabase backend</strong> (migrations + Edge Functions) and the <strong><code>@coreverse/db-client</code> npm package</strong>.</p>
+<h2 id="backend-supabase"><a class="header" href="#backend-supabase">Backend (Supabase)</a></h2>
+<pre><code class="language-bash">supabase db push       # apply pending migrations to the linked project
+supabase functions deploy &lt;name&gt;   # deploy one Edge Function
+</code></pre>
+<p>CI's <code>ci.yml</code> workflow validates migrations and functions (lint, pgTAP, Deno tests) on every push/PR, but does <strong>not</strong> itself push to the hosted project — that's a deliberate manual step, matching the project's "no surprise production changes" policy.</p>
+<h2 id="client-package-coreversedb-client"><a class="header" href="#client-package-coreversedb-client">Client package (<code>@coreverse/db-client</code>)</a></h2>
+<p>Publishing is <strong>tag-triggered, not automatic on every merge</strong>:</p>
+<ol>
+<li>A maintainer bumps the version locally: <code>pnpm version &lt;patch|minor|major&gt;</code>.</li>
+<li>They push the resulting git tag.</li>
+<li><code>publish.yml</code> in <code>.github/workflows/</code> runs: verifies the tag matches <code>package.json</code>'s version, builds (<code>pnpm run build</code>), and publishes to GitHub Packages under the <code>@coreverse</code> scope.</li>
+</ol>
+<p>CI's only responsibility in this flow is the tag/version match check and the build+publish step — it never writes a version bump itself. See <a href="operations/environments.html">Environments</a> for where each thing is deployed to, and <a href="operations/troubleshooting.html">Troubleshooting</a> for the first-publish permission issue this pipeline has hit before.</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="environments"><a class="header" href="#environments">Environments</a></h1>
+<div class="table-wrapper"><table><thead><tr><th>Environment</th><th>Backend</th><th>Client package</th></tr></thead><tbody>
+<tr><td><strong>Local</strong></td><td><code>supabase start</code> (Docker-backed Postgres, Auth, Storage, Edge Functions)</td><td>Built from source (<code>pnpm run build</code>), not installed from the registry</td></tr>
+<tr><td><strong>Production</strong></td><td>The hosted Supabase project referenced as the first <code>server</code> entry in <code>openapi/openapi.yaml</code></td><td>Published to GitHub Packages under the <code>@coreverse</code> scope</td></tr>
+</tbody></table>
+</div>
+<p>There is currently no separate staging environment described in the repository — changes go from local development, through CI, to the hosted Supabase project directly (see <a href="operations/deployment.html">Deployment</a>). The Coreverse Launcher and Coreverse Website each configure which base URL (local vs. production) they point at independently of this repository.</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="database-backup"><a class="header" href="#database-backup">Database Backup</a></h1>
+<p>Backups are managed at the Supabase project level (automatic backups on paid plans, plus point-in-time recovery where enabled), not by custom tooling in this repository.</p>
+<p>For a manual/local snapshot during development:</p>
+<pre><code class="language-bash">supabase db dump -f backup.sql
+</code></pre>
+<p>For the hosted project, use the Supabase CLI against the linked project or the dashboard's backup/restore UI — refer to Supabase's own documentation for the exact hosted-backup mechanics, since they're a platform feature rather than something this repository configures.</p>
+<p>See <a href="operations/database-restore.html">Database Restore</a> for restoring from a dump, and <a href="operations/../getting-started/database-reset.html">Database Reset</a> for the everyday local "start over from migrations + seed" operation, which is not the same thing as a backup restore.</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="database-restore"><a class="header" href="#database-restore">Database Restore</a></h1>
+<h2 id="from-a-local-dump"><a class="header" href="#from-a-local-dump">From a local dump</a></h2>
+<pre><code class="language-bash">supabase db reset            # rebuild schema from migrations first
+psql &lt;connection-string&gt; -f backup.sql
+</code></pre>
+<h2 id="hosted-project"><a class="header" href="#hosted-project">Hosted project</a></h2>
+<p>Restoring the hosted Supabase project from a platform backup or point-in-time recovery target is done through the Supabase dashboard or CLI against that project, following Supabase's own restore documentation — this repository doesn't wrap that process in custom scripts.</p>
+<h2 id="after-any-restore"><a class="header" href="#after-any-restore">After any restore</a></h2>
+<p>Run <code>supabase test db</code> to confirm the restored database still satisfies the pgTAP suite, and check that the applied migration history (<code>supabase migration list</code>) matches what's in <code>supabase/migrations/</code> — a restore from an older backup can leave the database behind the current migration history, requiring <code>supabase db push</code> afterward to catch it up.</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="monitoring"><a class="header" href="#monitoring">Monitoring</a></h1>
+<p>Coreverse DB relies on the observability the Supabase platform provides for its managed services:</p>
+<ul>
+<li><strong>Edge Function logs and invocation metrics</strong> — available through the Supabase dashboard for the hosted project.</li>
+<li><strong>Postgres logs and slow-query insight</strong> — available through the Supabase dashboard's database observability tools.</li>
+<li><strong>GitHub Actions run history</strong> — the CI workflows (<code>ci.yml</code>, <code>codeql.yml</code>, <code>sempgrep.yml</code>, <code>sqlfluff.yml</code>, <code>label-sync.yml</code>, <code>publish.yml</code>) provide a build/test health signal for every push and PR.</li>
+</ul>
+<p>There is no separate application-level metrics/alerting system defined in this repository — if one is added in the future (e.g. structured logging from Edge Functions, or a dedicated error-tracking integration), it should be documented on this page.</p>
+<p>See <a href="operations/troubleshooting.html">Troubleshooting</a> for what to check first when something looks wrong.</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="troubleshooting"><a class="header" href="#troubleshooting">Troubleshooting</a></h1>
+<h2 id="pnpm-publish-fails-with-403-forbidden--permission-permission_denied-the-requested-installation-does-not-exist"><a class="header" href="#pnpm-publish-fails-with-403-forbidden--permission-permission_denied-the-requested-installation-does-not-exist"><code>pnpm publish</code> fails with <code>403 Forbidden</code> / <code>Permission permission_denied: The requested installation does not exist</code></a></h2>
+<p>Seen on the very first publish of <code>@coreverse/db-client</code> after the <code>coreverse</code> GitHub org and package scope were set up. The build, typecheck, and <code>pnpm verify</code> steps all succeeded — only the actual <code>pnpm publish --no-git-checks</code> call to GitHub Packages failed, alongside an OIDC warning (<code>ERR_PNPM_ID_TOKEN_GITHUB_WORKFLOW_INCORRECT_PERMISSIONS</code>). This points to the org/repo's GitHub Packages and Actions permissions not yet being fully configured on the GitHub side (repository/organization settings), not a problem with the workflow file or the package itself. Check:</p>
+<ul>
+<li>The repository's Actions → General → Workflow permissions (needs <code>packages: write</code>).</li>
+<li>That the <code>coreverse</code> organization actually allows the publishing repository to write packages under its scope.</li>
+</ul>
+<h2 id="supabase-test-db-fails-after-a-fresh-db-reset"><a class="header" href="#supabase-test-db-fails-after-a-fresh-db-reset"><code>supabase test db</code> fails after a fresh <code>db reset</code></a></h2>
+<p>Usually means either a new migration doesn't match its corresponding pgTAP test's assumptions (fixture data, expected row counts) or a policy was changed without updating the RLS test that exercises it. Re-run <code>supabase db lint</code> first — it often catches a schema issue distinct from a genuine test logic problem.</p>
+<h2 id="pnpm-verify-fails-on-the-drift-check-git-diff---exit-code-srcgenerated"><a class="header" href="#pnpm-verify-fails-on-the-drift-check-git-diff---exit-code-srcgenerated"><code>pnpm verify</code> fails on the drift check (<code>git diff --exit-code src/generated</code>)</a></h2>
+<p>The OpenAPI contract changed but <code>pnpm generate</code> wasn't run and committed afterward. Run <code>pnpm generate</code>, review the diff, and commit <code>src/generated/</code> alongside the contract change — never hand-edit generated files to make the diff go away.</p>
+<h2 id="rls-policy-seems-to-not-apply-during-manual-testing"><a class="header" href="#rls-policy-seems-to-not-apply-during-manual-testing">RLS policy seems to "not apply" during manual testing</a></h2>
+<p>Check whether you're testing as the <code>postgres</code> superuser or another role that bypasses RLS by default (e.g. via <code>psql</code> without <code>set role</code>) — RLS is not evaluated for roles with <code>BYPASSRLS</code>. Use the <a href="operations/../development/rls-testing.html">RLS Testing</a> pattern (<code>set local role authenticated; set local request.jwt.claims ...</code>) to actually exercise policies.</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="cli-commands"><a class="header" href="#cli-commands">CLI Commands</a></h1>
+<h2 id="supabase"><a class="header" href="#supabase">Supabase</a></h2>
+<div class="table-wrapper"><table><thead><tr><th>Command</th><th>Does</th></tr></thead><tbody>
+<tr><td><code>supabase start</code></td><td>Starts the local Docker-backed stack and applies migrations</td></tr>
+<tr><td><code>supabase stop</code></td><td>Stops the local stack</td></tr>
+<tr><td><code>supabase db reset</code></td><td>Rebuilds the local database from migrations + seed</td></tr>
+<tr><td><code>supabase db push</code></td><td>Applies pending migrations to the linked hosted project</td></tr>
+<tr><td><code>supabase db lint</code></td><td>Lints the database schema</td></tr>
+<tr><td><code>supabase test db</code></td><td>Runs the pgTAP suite (<code>supabase/tests/</code>)</td></tr>
+<tr><td><code>supabase migration new &lt;name&gt;</code></td><td>Creates a new timestamped migration file</td></tr>
+<tr><td><code>supabase functions serve</code></td><td>Serves Edge Functions locally with live reload</td></tr>
+<tr><td><code>supabase functions deploy &lt;name&gt;</code></td><td>Deploys one Edge Function to the hosted project</td></tr>
+</tbody></table>
+</div>
+<h2 id="pnpm-typescript-client"><a class="header" href="#pnpm-typescript-client">pnpm (TypeScript client)</a></h2>
+<div class="table-wrapper"><table><thead><tr><th>Command</th><th>Does</th></tr></thead><tbody>
+<tr><td><code>pnpm install</code></td><td>Installs JS dependencies</td></tr>
+<tr><td><code>pnpm generate</code></td><td>Regenerates <code>src/generated/</code> from <code>openapi/openapi.yaml</code> via Orval</td></tr>
+<tr><td><code>pnpm typecheck</code></td><td><code>tsc --noEmit</code></td></tr>
+<tr><td><code>pnpm verify</code></td><td><code>generate</code> + drift check (<code>git diff --exit-code src/generated</code>) + <code>typecheck</code></td></tr>
+<tr><td><code>pnpm run build</code></td><td>Builds the package with <code>tsup</code> (ESM + CJS)</td></tr>
+</tbody></table>
+</div>
+<h2 id="deno-edge-functions"><a class="header" href="#deno-edge-functions">Deno (Edge Functions)</a></h2>
+<div class="table-wrapper"><table><thead><tr><th>Command</th><th>Does</th></tr></thead><tbody>
+<tr><td><code>deno task test</code></td><td>Runs schema unit tests under <code>supabase/functions/</code></td></tr>
+<tr><td><code>deno fmt</code></td><td>Formats Edge Function code per <code>deno.json</code>'s <code>fmt</code> config</td></tr>
+<tr><td><code>deno lint</code></td><td>Lints Edge Function code</td></tr>
+</tbody></table>
+</div><div style="break-before: page; page-break-before: always;"></div><h1 id="environment-variables"><a class="header" href="#environment-variables">Environment Variables</a></h1>
+<div class="table-wrapper"><table><thead><tr><th>Variable</th><th>Purpose</th></tr></thead><tbody>
+<tr><td><code>PUBLIC_SUPABASE_URL</code></td><td>Client-side Supabase project URL</td></tr>
+<tr><td><code>PUBLIC_SUPABASE_ANON_KEY</code></td><td>Client-side Supabase anonymous key</td></tr>
+<tr><td><code>DATABASE_PASSWORD</code></td><td>Database password for development/administration workflows</td></tr>
+<tr><td><code>SUPABASE_SECRET_KEY</code></td><td>Server-side Supabase secret key (service role)</td></tr>
+<tr><td><code>DATABASE_URL</code></td><td>Direct PostgreSQL connection URL</td></tr>
+</tbody></table>
+</div>
+<p>Never commit real values for any of these — use <code>.env.example</code> as the template and keep real values in an untracked <code>.env.local</code>. See <a href="reference/../getting-started/configuration.html">Getting Started › Configuration</a>.</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="database-conventions"><a class="header" href="#database-conventions">Database Conventions</a></h1>
+<p>Condensed checklist version of <a href="reference/../database/conventions.html">Database › Conventions</a>:</p>
+<ul>
+<li>One schema per domain; nothing new in <code>public</code>.</li>
+<li><code>uuid primary key default gen_random_uuid()</code>.</li>
+<li><code>created_at</code>/<code>updated_at</code> + a per-domain <code>set_updated_at()</code> trigger.</li>
+<li><code>check</code> constraints for closed enumerations.</li>
+<li>RLS enabled on every client-reachable table, even write-nothing-for-clients ones.</li>
+<li>RLS helper predicates live in <code>private</code>, <code>security definer</code>, <code>set search_path = ''</code>, <code>set row_security = off</code> where recursion is a risk.</li>
+<li>Multi-step writes are <code>SECURITY DEFINER</code> functions, not raw grants.</li>
+<li>Every non-obvious table/function has a <code>comment on ...</code> explaining why.</li>
+<li>Grants to <code>anon</code>/<code>authenticated</code> are explicit and minimal.</li>
+</ul>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="error-codes"><a class="header" href="#error-codes">Error Codes</a></h1>
+<p>Every error response follows the shared <code>Error</code> schema. See <a href="reference/../api/errors.html">API › Errors</a> for the full explanation; this page is the quick-reference table.</p>
+<div class="table-wrapper"><table><thead><tr><th>HTTP status</th><th>Meaning</th></tr></thead><tbody>
+<tr><td><code>400</code></td><td>Request validation failure (Zod), or a database-level rejection not specifically mapped to another status (includes most constraint violations)</td></tr>
+<tr><td><code>401</code></td><td>No/invalid JWT on an operation that requires one</td></tr>
+<tr><td><code>403</code></td><td>Authenticated, but not authorized for this action — corresponds to Postgres error code <code>42501</code> raised inside a <code>SECURITY DEFINER</code> function, or an RLS policy silently excluding the row</td></tr>
+<tr><td><code>404</code></td><td>Resource doesn't exist, or exists but isn't visible to the caller (the API does not distinguish these for read paths)</td></tr>
+<tr><td><code>409</code></td><td>A conflicting state already exists (e.g. already voted, already a pending request for this team/user)</td></tr>
+</tbody></table>
+</div><div style="break-before: page; page-break-before: always;"></div><h1 id="glossary"><a class="header" href="#glossary">Glossary</a></h1>
+<ul>
+<li><strong>Domain schema</strong> — one of <code>releases</code>, <code>identity</code>, <code>content</code>, <code>docs</code>: a PostgreSQL schema owning one bounded area of the application.</li>
+<li><strong><code>private</code> schema</strong> — internal <code>SECURITY DEFINER</code> helper functions (<code>is_team_member</code>, <code>is_team_admin</code>) used inside RLS policies; never exposed to clients.</li>
+<li><strong>Platform role</strong> — an <code>identity.platform_roles</code> entry (<code>admin</code>/<code>moderator</code>), gating who can write <code>content.news</code> and moderate <code>content.discussions</code>/<code>content.polls</code>. Not the same thing as a <strong>team role</strong>.</li>
+<li><strong>Team role</strong> — a <code>team_members.role</code> value (<code>owner</code>/<code>admin</code>/<code>member</code>), scoped to one specific team, unrelated to platform roles.</li>
+<li><strong>Membership request</strong> — a row in <code>identity.team_membership_requests</code>; one of three <code>type</code>s: <code>join_request</code>, <code>invite</code>, <code>ownership_transfer</code>.</li>
+<li><strong>RLS (Row Level Security)</strong> — PostgreSQL's per-row access-control mechanism; the primary authorization boundary in this codebase.</li>
+<li><strong><code>SECURITY DEFINER</code></strong> — a PostgreSQL function attribute making it run with the privileges of its owner rather than its caller, used for both privileged writes and RLS-recursion-avoiding helpers.</li>
+<li><strong>Edge Function</strong> — a Deno-based serverless HTTP handler deployed via Supabase, one per API resource/tag.</li>
+<li><strong>Contract-first</strong> — the practice of defining <code>openapi/</code> before/alongside implementation and generating the TypeScript client from it, rather than hand-writing client code against whatever the API happens to do.</li>
+<li><strong>Drift (client codegen)</strong> — a mismatch between the committed <code>src/generated/</code> and what <code>pnpm generate</code> would currently produce from <code>openapi/</code>; caught by <code>pnpm verify</code>.</li>
+</ul>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="overview-7"><a class="header" href="#overview-7">Overview</a></h1>
+<p>Contributions should preserve the project's architectural boundaries, security model, and source-of-truth rules — in short: don't add a shortcut that bypasses RLS, don't hand-edit generated files, and don't let the OpenAPI contract drift from what the Edge Functions actually do.</p>
+<p>Before opening a pull request, make sure the checks in <a href="contributing/../development/workflow.html">Development › Workflow</a> pass locally:</p>
+<pre><code class="language-bash">pnpm verify
+deno task test
+supabase test db
+</code></pre>
+<p>See <a href="contributing/code-style.html">Code Style</a> and <a href="contributing/sql-style.html">SQL Style</a> for formatting/lint rules, <a href="contributing/testing.html">Testing</a> for what test coverage is expected of a change, <a href="contributing/migration-rules.html">Migration Rules</a> for database-specific rules, and <a href="contributing/pull-requests.html">Pull Requests</a> for the review process itself.</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="code-style"><a class="header" href="#code-style">Code Style</a></h1>
+<h2 id="typescript--deno-edge-functions-client-package"><a class="header" href="#typescript--deno-edge-functions-client-package">TypeScript / Deno (Edge Functions, client package)</a></h2>
+<ul>
+<li>Formatted with <code>deno fmt</code> for everything under <code>supabase/functions/</code> (config in <code>deno.json</code>'s <code>fmt</code> block: 2-space indent, single quotes, semicolons, trailing commas, 100-char line width).</li>
+<li>The TypeScript client package (<code>src/</code>) is formatted with Prettier and type-checked with <code>tsc --noEmit</code> (<code>pnpm typecheck</code>).</li>
+<li><code>src/generated/</code> is never hand-edited — see <a href="contributing/../openapi/overview.html">OpenAPI › Overview</a>.</li>
+</ul>
+<h2 id="linting-and-static-analysis"><a class="header" href="#linting-and-static-analysis">Linting and static analysis</a></h2>
+<ul>
+<li><code>deno lint</code> for Edge Function code.</li>
+<li><strong>CodeQL</strong> and <strong>Semgrep</strong> run in CI (<code>codeql.yml</code>, <code>sempgrep.yml</code>) as additional static-analysis passes over the TypeScript/JavaScript surface.</li>
+</ul>
+<p>See <a href="contributing/sql-style.html">SQL Style</a> for the PostgreSQL-specific equivalent of this page.</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="sql-style"><a class="header" href="#sql-style">SQL Style</a></h1>
+<p>Migrations are linted with <strong>SQLFluff</strong>, configured for the <code>postgres</code> dialect in the repository's <code>.sqlfluff</code> file at the root.</p>
+<p>Run it locally the same way CI does:</p>
+<pre><code class="language-bash">sqlfluff lint supabase/migrations/
+</code></pre>
+<p>Beyond what SQLFluff enforces mechanically, follow <a href="contributing/../database/conventions.html">Database › Conventions</a> and <a href="contributing/../development/writing-migrations.html">Development › Writing Migrations</a> for structure (schema → tables → indexes → triggers → RLS → functions → grants, with explanatory comments) and naming (<code>trg_&lt;table&gt;_&lt;purpose&gt;</code>, <code>idx_&lt;table&gt;_&lt;column(s)&gt;</code>, <code>&lt;schema&gt;.set_updated_at()</code> per domain).</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="testing"><a class="header" href="#testing">Testing</a></h1>
+<p>A change is expected to come with tests appropriate to what it touches:</p>
+<div class="table-wrapper"><table><thead><tr><th>Change touches...</th><th>Add/update...</th></tr></thead><tbody>
+<tr><td>A new or changed PostgreSQL function</td><td>A pgTAP test under <code>supabase/tests/database/</code> (see <a href="contributing/../development/database-testing.html">Database Testing</a>)</td></tr>
+<tr><td>A new or changed RLS policy</td><td>A pgTAP test under <code>supabase/tests/rls/</code>, covering at least one allowed and one denied case (see <a href="contributing/../development/rls-testing.html">RLS Testing</a>)</td></tr>
+<tr><td>A new or changed Edge Function request shape</td><td>A Zod schema test in that function's <code>schemas.test.ts</code> (see <a href="contributing/../development/edge-functions.html">Edge Functions</a>)</td></tr>
+<tr><td>The OpenAPI contract</td><td>Regenerated and committed <code>src/generated/</code> (<code>pnpm generate</code>), verified with <code>pnpm verify</code></td></tr>
+</tbody></table>
+</div>
+<p>There is no end-to-end/integration test suite spanning "HTTP request in, database row out" in this repository yet — Edge Function tests validate request <em>shapes</em> only (no running database), and database tests validate PostgreSQL behavior directly (no HTTP layer). Keep that boundary in mind when deciding where a new test belongs.</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="migration-rules"><a class="header" href="#migration-rules">Migration Rules</a></h1>
+<ul>
+<li><strong>Never edit a migration already merged to <code>main</code>.</strong> Ship a follow-up migration instead — the file history is the audit trail of how the schema got to its current state.</li>
+<li><strong>Always verify with a full <code>supabase db reset</code></strong>, not just by applying on top of already-migrated local state — a migration that only works incrementally will break anyone doing a fresh clone.</li>
+<li><strong>One logical change per migration</strong> where practical; a migration's own top-of-file comment should explain the "why," not just restate the DDL.</li>
+<li><strong>RLS is part of the migration, not a follow-up.</strong> A new table ships with <code>enable row level security</code> and its policies in the same migration, never added later as an afterthought.</li>
+<li><strong>API-observable schema changes update the OpenAPI contract in the same pull request</strong> (see <a href="contributing/../development/workflow.html">Development › Workflow</a>) — a migration and an out-of-sync contract should never be merged separately.</li>
+</ul>
+<p>See <a href="contributing/../development/writing-migrations.html">Writing Migrations</a> for the structural checklist these rules assume.</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="pull-requests"><a class="header" href="#pull-requests">Pull Requests</a></h1>
+<p>The repository's <code>pull_request_template.md</code> and <code>CODEOWNERS</code> govern review; a few points worth calling out:</p>
+<ul>
+<li><strong><code>ci-required</code></strong> is the single aggregate status check branch protection relies on — it gates on OpenAPI lint, client verification (drift + typecheck), Deno unit tests, the Supabase pgTAP suite, and SQLFluff, so a green <code>ci-required</code> means all of those passed, not just one.</li>
+<li><strong>CodeQL</strong> and <strong>Semgrep</strong> run as separate, non-blocking-by-default security scans — findings there are worth addressing even if they don't gate merge the same way <code>ci-required</code> does.</li>
+<li><strong>Dependabot</strong> (<code>dependabot.yml</code>) opens PRs for npm (root) and GitHub Actions dependency updates; Deno dependencies are not covered (Deno isn't a supported Dependabot ecosystem), so Deno import-map updates are manual.</li>
+<li>Follow the repository's issue templates (<code>bug_report.yml</code>, <code>feature_request.yml</code>) when filing issues that motivate a PR, so the PR description can reference a well-formed issue rather than restating context inline.</li>
+</ul>
+<p>See <a href="contributing/overview.html">Overview</a> for the pre-PR checklist and <a href="contributing/testing.html">Testing</a> for what coverage a PR is expected to include.</p>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+
+            </nav>
+
+        </div>
+
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="elasticlunr.min.js"></script>
+        <script src="mark.min.js"></script>
+        <script src="searcher.js"></script>
+
+        <script src="clipboard.min.js"></script>
+        <script src="highlight.js"></script>
+        <script src="book.js"></script>
+
+        <!-- Custom JS scripts -->
+
+        <script>
+        window.addEventListener('load', function() {
+            window.setTimeout(window.print, 100);
+        });
+        </script>
+
+    </div>
+    </body>
+</html>
