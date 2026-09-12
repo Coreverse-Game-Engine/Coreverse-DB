@@ -1,5 +1,5 @@
 {
-  "name": "@coreverse/db-client",
+  "name": "@Coreverse-Game-Engine/db-client",
   "version": "0.1.0",
   "description": "Typed TypeScript client (+ optional TanStack Query React hooks) for the Coreverse DB API, generated from openapi/openapi.yaml.",
   "type": "module",
