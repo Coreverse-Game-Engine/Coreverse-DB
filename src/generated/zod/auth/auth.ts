@@ -9,11 +9,16 @@
 import * as zod from "zod";
 
 /**
- * Unauthenticated. Sends a Supabase Auth password reset email if the address belongs to an account -- the response is identical either way, so this cannot be used to enumerate accounts. Rate limited per email (3 / 15 min) and per caller IP (10 / hour); either limit being hit returns 429 with a Retry-After header. See 20260912103000_avatar_upload_and_rate_limit.sql for the rate limiting primitive.
+ * Unauthenticated. Sends a Supabase Auth password reset email if the address belongs to an account -- the response is identical either way, so this cannot be used to enumerate accounts. Rate limited per email (3 / 15 min) and per caller IP (10 / hour); either limit being hit returns 429 with a Retry-After header. See 20260912085602_avatar_upload_and_rate_limit.sql for the rate limiting primitive.
  * @summary Request a password reset email
  */
 export const RequestPasswordResetBody = zod.object({
   email: zod.email(),
+  redirectTo: zod
+    .url()
+    .describe(
+      "Where the recovery link should land. Must be an exact `https:\/\/<allowed-website-origin>\/{locale}\/reset-password` URL (no query string or hash) -- the origin is checked against the deploy environment's allowed origins and the path against the known locale list. A redirectTo that doesn't match either is rejected with 400 invalid_redirect rather than silently falling back to Supabase Auth's Site URL.\n",
+    ),
 });
 
 export const RequestPasswordResetResponse = zod
