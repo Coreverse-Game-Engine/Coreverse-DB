@@ -10,7 +10,7 @@
 ┌───────────────────────────────────────────────────────────────┐
 │                    Supabase Edge Functions                    │
 │  releases  teams  requests  profiles  projects  news          │
-│  polls     discussions  docs                                  │
+│  polls     discussions  docs     auth                        │
 │  ┌─────────────────────────────────────────────────────────┐  │
 │  │ Shared HTTP / Supabase / service-role infrastructure     │  │
 │  │ (supabase/functions/_shared/)                            │  │
@@ -41,6 +41,7 @@ Each of the nine Edge Functions under `supabase/functions/` maps to one OpenAPI 
 | `news` | `/news`, `/news/{id}` |
 | `polls` | `/polls`, `/polls/{id}/vote`, `/polls/{id}/results` |
 | `discussions` | `/discussions`, `/discussions/{id}`, `/discussions/{id}/replies`, `/replies/{id}` |
+| `auth` | `/auth/password-reset` (unauthenticated) |
 | `docs` | `/docs/sources`, `/docs/search`, `/docs/reindex` |
 
 Every function follows the same internal shape: parse and validate the request with a Zod schema from its `schemas.ts`, obtain a Supabase client via `_shared/supabase-client.ts` (user-scoped, forwarding the caller's `Authorization` header) or `_shared/service-client.ts` (service-role, only where required), call the corresponding PostgreSQL function or table, and return a response built with `_shared/http.ts`'s `jsonResponse` / `errorResponse` helpers.
@@ -48,8 +49,8 @@ Every function follows the same internal shape: parse and validate the request w
 ## Shared infrastructure (`_shared/`)
 
 - **`http.ts`** — `jsonResponse`, `errorResponse`, and `statusForPgError`, which maps the `42501` Postgres error code (the convention this codebase uses inside `SECURITY DEFINER` functions for "not authorized to do that") to an HTTP 403, and everything else to 400.
-- **`supabase-client.ts`** — builds a Supabase client scoped to the caller, forwarding their JWT so RLS applies exactly as it would for a direct (hypothetical) database connection.
-- **`service-client.ts`** — builds a service-role client that bypasses RLS entirely. Used only where a function has already performed its own authorization check and needs privileged access afterward (e.g. minting a signed Storage URL, or the `docs/reindex` endpoint's shared-secret auth).
+- **`supabase-client.ts`** — builds a Supabase client scoped to the caller, forwarding their JWT so RLS applies exactly as it would for a direct (hypothetical) database connection. Also exports `createAnonClient()`, for the rare case (currently just `POST /auth/password-reset`) where there's no caller JWT to forward at all, as opposed to none being present.
+- **`service-client.ts`** — builds a service-role client that bypasses RLS entirely. Used only where a function has already performed its own authorization check and needs privileged access afterward (e.g. minting a signed Storage URL, uploading an avatar, or checking a rate limit for an unauthenticated route), or for the `docs/reindex` endpoint's shared-secret auth.
 
 ## Database
 

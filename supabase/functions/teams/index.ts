@@ -14,7 +14,7 @@
 
 import { serve, } from '@std/http/server';
 import { createUserClient, } from '../_shared/supabase-client.ts';
-import { errorResponse, jsonResponse, statusForPgError, } from '../_shared/http.ts';
+import { errorResponse, jsonResponse, statusForPgError, withCors, } from '../_shared/http.ts';
 import {
   CreateTeamSchema,
   InviteSchema,
@@ -63,7 +63,7 @@ async function fetchMembershipRequest(
   return data;
 }
 
-serve(async (req,) => {
+serve(withCors(async (req,) => {
   const url = new URL(req.url,);
   const segments = url.pathname
     .replace(/^\/functions\/v1\/teams\/?/, '',)
@@ -218,4 +218,4 @@ serve(async (req,) => {
       500,
     );
   }
-},);
+},),);

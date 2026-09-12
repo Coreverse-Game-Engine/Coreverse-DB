@@ -11,7 +11,7 @@
 //
 // POST /profiles/me/avatar is different: the client no longer writes to
 // the avatars bucket directly (avatars_self_write/update/delete were
-// dropped in 20260912103000_avatar_upload_and_rate_limit.sql). Instead
+// dropped in 20260912085602_avatar_upload_and_rate_limit.sql). Instead
 // this route accepts a multipart upload, validates it server-side, and
 // writes to Storage itself with the service role -- the avatars bucket
 // now only grants clients public *read* access.
@@ -19,7 +19,7 @@
 import { serve, } from '@std/http/server';
 import { createUserClient, } from '../_shared/supabase-client.ts';
 import { createServiceClient, } from '../_shared/service-client.ts';
-import { errorResponse, jsonResponse, } from '../_shared/http.ts';
+import { errorResponse, jsonResponse, withCors, } from '../_shared/http.ts';
 import {
   AVATAR_ALLOWED_TYPES,
   type AvatarAllowedType,
@@ -47,7 +47,7 @@ function avatarStoragePath(userId: string, type: AvatarAllowedType,): string {
   return `${userId}.${AVATAR_ALLOWED_TYPES[type]}`;
 }
 
-serve(async (req,) => {
+serve(withCors(async (req,) => {
   const url = new URL(req.url,);
   const path = url.pathname.replace(/^\/functions\/v1\/profiles\/?/, '',);
 
@@ -166,4 +166,4 @@ serve(async (req,) => {
       500,
     );
   }
-},);
+},),);

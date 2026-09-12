@@ -1,6 +1,6 @@
 # Overview
 
-The database is PostgreSQL 17, managed entirely through versioned migrations in [`supabase/migrations/`](https://github.com/KING-MASTER2012/Coreverse-DB/tree/main/supabase/migrations). There are four domain schemas plus one internal helper schema:
+The database is PostgreSQL 17, managed entirely through versioned migrations in [`supabase/migrations/`](https://github.com/Coreverse-Game-Engine/Coreverse-DB/tree/main/supabase/migrations). There are four domain schemas plus one internal helper schema:
 
 | Schema | Migration | Contents |
 |---|---|---|

@@ -14,9 +14,8 @@ Each function builds a Supabase client scoped to the caller by forwarding their 
 
 Most `GET` endpoints (releases, published news, poll results, docs search) work without a JWT at all — RLS policies grant `select` to `anon` as well as `authenticated` where the data isn't sensitive. Anything that identifies or acts on behalf of a specific user (profile update, team actions, project uploads, voting, posting) requires a valid JWT.
 
-## The two exceptions
-
-Two operations don't use a user JWT at all:
+## Operations that don't use a user JWT
 
 - **`/docs/reindex`** — authenticated by a shared `X-Reindex-Token` secret, because the caller is CI in another repository, not a signed-in person. See [Authorization](authorization.md).
 - **`/projects/{id}/download`** — the *initial* access check still uses the caller's own JWT; only the signed-URL minting step afterward uses a service-role client.
+- **`/auth/password-reset`** — genuinely unauthenticated by design (the caller is signed out, requesting recovery), protected instead by response-shape anti-enumeration and per-email/per-IP rate limiting. See [API › Auth](../api/resources/auth.md).

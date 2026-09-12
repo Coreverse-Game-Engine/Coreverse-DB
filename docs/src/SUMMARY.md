@@ -78,6 +78,7 @@
 - [Polls](api/resources/polls.md)
 - [News](api/resources/news.md)
 - [Requests](api/resources/requests.md)
+- [Auth](api/resources/auth.md)
 
 # OpenAPI
 

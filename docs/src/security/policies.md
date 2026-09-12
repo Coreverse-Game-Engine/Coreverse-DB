@@ -16,7 +16,7 @@ A condensed inventory of RLS policies by table. See [Row Level Security](rls.md)
 | `content.discussions` / `discussion_replies` | (author/moderator policies) | Public read; author can edit their own; moderators can lock/soft-delete |
 | `content.poll_votes` | (self-scoped) | A user can insert/see only their own vote row — never another user's |
 | `docs.sources` / `docs.pages` | `*_public_read` | `select` for `anon`, `authenticated` — no client write policies at all |
-| `storage.objects` (`avatars`) | `avatars_public_read` / `avatars_self_*` | Public read; self-only write, limited to `{user_id}.png` |
+| `storage.objects` (`avatars`) | `avatars_public_read` | Public read only — no client write policy; writes go through `POST /profiles/me/avatar` (service role) |
 | `storage.objects` (`project-archives`) | `project_archives_owner_*` | Owner-only direct access; team-member access goes through the signed-URL Edge Function endpoint instead |
 
 Where a table has no client-facing write policy at all, every write to it happens either via a `SECURITY DEFINER` function (see [Database › Functions](../database/functions/overview.md)) or exclusively via `service_role`.

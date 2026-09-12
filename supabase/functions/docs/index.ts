@@ -14,12 +14,12 @@
 import { serve, } from '@std/http/server';
 import { createUserClient, } from '../_shared/supabase-client.ts';
 import { createServiceClient, } from '../_shared/service-client.ts';
-import { errorResponse, jsonResponse, } from '../_shared/http.ts';
+import { errorResponse, jsonResponse, withCors, } from '../_shared/http.ts';
 import { ReindexBodySchema, SearchQuerySchema, } from './schemas.ts';
 
 const REINDEX_TOKEN = Deno.env.get('DOCS_REINDEX_TOKEN',);
 
-serve(async (req,) => {
+serve(withCors(async (req,) => {
   const url = new URL(req.url,);
   const path = url.pathname.replace(/^\/functions\/v1\/docs\/?/, '',);
 
@@ -124,4 +124,4 @@ serve(async (req,) => {
       500,
     );
   }
-},);
+},),);
