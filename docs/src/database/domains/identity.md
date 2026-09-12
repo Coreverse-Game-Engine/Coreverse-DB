@@ -10,6 +10,7 @@ The `identity` schema owns everything about who a user is and what they belong t
 - **`team_membership_requests`** — a single table backing three different bidirectional flows (see below), disambiguated by `type`.
 - **`projects`** — user-uploaded project archive metadata; the archive file itself lives in Supabase Storage (see [Storage Security](../../security/storage-security.md)).
 - **`platform_roles`** (introduced by the content-domain migration, but scoped to `identity`) — platform-wide `admin`/`moderator` roles, unrelated to team roles, gating who can write `content.news` and moderate `content.discussions`/`content.polls`.
+- **`rate_limit_hits`** — a generic fixed-window rate-limit counter, added by `20260912085602_avatar_upload_and_rate_limit.sql` (see below). No client access at all, not even read; every interaction goes through `identity.hit_rate_limit()`.
 
 See [Tables › Profiles](../tables/profiles.md), [Tables › Teams](../tables/teams.md), and [Tables › Projects](../tables/projects.md) for column-level detail.
 
@@ -32,3 +33,13 @@ A `before insert` trigger on `team_members` (`identity.enforce_team_capacity`) r
 ## Why membership logic is functions, not policies
 
 Unlike `content`'s mostly-static authorization, `identity`'s team lifecycle is a genuine state machine — accepting an invite has to check the request's status, the target identity, team capacity, and perform the membership insert atomically. That's expressed as `SECURITY DEFINER` PL/pgSQL functions rather than RLS policies; RLS on these tables is read-oriented, and direct client writes to `teams`, `team_members`, and `team_membership_requests` are not granted at all.
+
+## Generic rate limiting
+
+`identity.hit_rate_limit(p_key, p_max_hits, p_window_seconds)` is a small, deliberately reusable fixed-window rate limiter: given an arbitrary caller-chosen `key`, it prunes expired hits for that key, counts what's left, and either records a new hit (returning `true`) or refuses (returning `false`) if the window is already at capacity. It's `SECURITY DEFINER` and granted only to `service_role` — the first (and so far only) consumer is the unauthenticated `POST /auth/password-reset` endpoint, which has no user JWT to run it as `authenticated` the way `identity`'s other `SECURITY DEFINER` functions do (see [API › Auth](../../api/resources/auth.md)). Expired hits are pruned both lazily (on every call) and by a daily `pg_cron` job that deletes anything older than a day, well past any window currently in use.
+
+The primitive was added specifically so a *future* public, abuse-prone endpoint can reuse it rather than growing its own bespoke counter table.
+
+## Signup metadata fallback
+
+`identity.handle_new_auth_user()` (see [Triggers](../triggers.md)) reads `full_name` from signup metadata, falling back to a `username` key if `full_name` is absent or empty, and to `''` if neither is present. This fallback is transitional, covering client callers still migrating to the newer signup payload shape.

@@ -10,5 +10,6 @@ Migrations are applied in filename (timestamp) order and are the single source o
 | `20260830143509_create_storage_buckets.sql` | `avatars` and `project-archives` Storage buckets and their `storage.objects` RLS policies |
 | `20260830151432_create_content_domain.sql` | `identity.platform_roles`; `content` schema: `news`, `polls`, `poll_options`, `poll_votes`, `discussions`, `discussion_replies` |
 | `20260831093008_create_docs_domain.sql` | `docs` schema: `sources`, `pages`, full-text search function |
+| `20260912085602_avatar_upload_and_rate_limit.sql` | Widens the `avatars` bucket to PNG/WebP up to 5 MB and drops its client-side write policies; adds `identity.rate_limit_hits` + `identity.hit_rate_limit()`; adds a `username` metadata fallback to `identity.handle_new_auth_user()` |
 
 Each migration is self-contained: it creates its schema (`create schema if not exists ...`), its tables, its triggers, its RLS policies, its functions, and its grants, in that order. See [Writing Migrations](../development/writing-migrations.md) for the rules new migrations must follow, and [Migrations](../development/migrations.md) for the general workflow.

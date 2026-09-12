@@ -4,7 +4,7 @@
 supabase db reset
 ```
 
-This rebuilds the local database from scratch: it drops the local database, replays every migration in [`supabase/migrations/`](../database/schema.md) in filename order, and then loads [`supabase/seed.sql`](https://github.com/KING-MASTER2012/Coreverse-DB/blob/main/supabase/seed.sql) for local development seed data.
+This rebuilds the local database from scratch: it drops the local database, replays every migration in [`supabase/migrations/`](../database/schema.md) in filename order, and then loads [`supabase/seed.sql`](https://github.com/Coreverse-Game-Engine/Coreverse-DB/blob/main/supabase/seed.sql) for local development seed data.
 
 ## When to reset
 
