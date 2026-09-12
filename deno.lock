@@ -962,8 +962,13 @@
     "packageJson": {
       "dependencies": [
         "npm:@redocly/cli@^2.49.1",
+        "npm:@tanstack/react-query@5",
+        "npm:@types/react@^19.2.18",
+        "npm:@typescript/typescript6@^6.0.2",
         "npm:orval@^8.27.0",
         "npm:prettier@^3.9.6",
+        "npm:react@^19.2.8",
+        "npm:tsup@^8.5.1",
         "npm:typescript@^7.0.2",
         "npm:zod@^4.5.4"
       ]
