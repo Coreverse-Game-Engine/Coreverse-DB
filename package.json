@@ -1,14 +1,54 @@
 {
-  "name": "@coreverse/db-client",
+  "name": "@Coreverse-Game-Engine/db-client",
   "version": "0.1.0",
-  "description": "Typed TypeScript client for the Coreverse DB API, generated from openapi/openapi.yaml.",
+  "description": "Typed TypeScript client (+ optional TanStack Query React hooks) for the Coreverse DB API, generated from openapi/openapi.yaml.",
   "type": "module",
   "license": "GPL-3.0-only",
-  "files": [
-    "src"
+  "author": "Coreverse-Game-Engine",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Coreverse-Game-Engine/Coreverse-DB.git"
+  },
+  "homepage": "https://github.com/Coreverse-Game-Engine/Coreverse-DB#readme",
+  "bugs": {
+    "url": "https://github.com/Coreverse-Game-Engine/Coreverse-DB/issues"
+  },
+  "keywords": [
+    "coreverse",
+    "supabase",
+    "openapi",
+    "typescript",
+    "react",
+    "tanstack-query",
+    "sdk",
+    "api-client"
   ],
+  "files": [
+    "dist"
+  ],
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "exports": {
-    ".": "./src/index.ts"
+    ".": {
+      "types": {
+        "import": "./dist/index.d.ts",
+        "require": "./dist/index.d.cts"
+      },
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    },
+    "./react": {
+      "types": {
+        "import": "./dist/react.d.ts",
+        "require": "./dist/react.d.cts"
+      },
+      "import": "./dist/react.js",
+      "require": "./dist/react.cjs"
+    }
+  },
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com"
   },
   "engines": {
     "node": ">=22.18.0"
@@ -16,16 +56,35 @@
   "scripts": {
     "generate": "orval --config orval.config.ts",
     "typecheck": "tsc --noEmit",
-    "verify": "pnpm run generate && git diff --exit-code src/generated && pnpm run typecheck"
+    "verify": "pnpm run generate && git diff --exit-code src/generated && pnpm run typecheck",
+    "build": "tsup",
+    "prepublishOnly": "pnpm run build"
   },
   "dependencies": {
     "zod": "^4.5.4"
   },
+  "peerDependencies": {
+    "@tanstack/react-query": "^5",
+    "react": ">=18"
+  },
+  "peerDependenciesMeta": {
+    "react": {
+      "optional": true
+    },
+    "@tanstack/react-query": {
+      "optional": true
+    }
+  },
   "devDependencies": {
     "@redocly/cli": "^2.49.1",
+    "@tanstack/react-query": "^5",
+    "@types/react": "^19.2.18",
+    "@typescript/native": "npm:typescript@^7.0.2",
     "orval": "^8.27.0",
     "prettier": "^3.9.6",
-    "typescript": "^7.0.2"
+    "react": "^19.2.8",
+    "tsup": "^8.5.1",
+    "typescript": "npm:@typescript/typescript6@^6.0.2"
   },
-  "packageManager": "pnpm@9.12.0"
+  "packageManager": "pnpm@12.4.1+sha512.2e81e399d73fe8390dab25e06aa788ab7a5908248d2f5a370f82b481147a6a7a367bf8048f9a6fdb6460f21a66f0542dedb8b94ca2c8723596741920b1656d4c"
 }

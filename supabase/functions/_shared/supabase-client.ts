@@ -16,3 +16,14 @@ export function createUserClient(req: Request,) {
     auth: { persistSession: false, },
   },);
 }
+
+// For genuinely unauthenticated routes (e.g. POST /auth/password-reset)
+// where there is no caller JWT to forward at all -- as opposed to
+// createUserClient, which forwards whatever Authorization header the
+// request happened to carry. Plain anon-key client, same as what an
+// unauthenticated browser session would use.
+export function createAnonClient() {
+  return createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+    auth: { persistSession: false, },
+  },);
+}

@@ -91,4 +91,42 @@ export default defineConfig({
       formatter: "prettier"
     },
   },
+  // TanStack Query hooks for the "@coreverse/db-client/react" subpath
+  // export (see src/react.ts + package.json `exports`). Reuses the same
+  // coreverseFetch mutator as coreverseDb above -- these hooks are a thin
+  // useQuery/useMutation wrapper around the exact same requests, not a
+  // separate client. Kept in its own output dir (not mixed into
+  // src/generated/endpoints) so the plain fetch client stays free of a
+  // react/@tanstack/react-query import for non-React consumers.
+  coreverseDbReactQuery: {
+    input: {
+      target: "./openapi/openapi.yaml",
+      parserOptions: {
+        externalRefs: {
+          allow: externalRefsAllow,
+        },
+      },
+    },
+    output: {
+      mode: "tags-split",
+      target: "./src/generated/react",
+      client: "react-query",
+      httpClient: "fetch",
+      mock: false,
+      clean: true,
+      formatter: "prettier",
+      override: {
+        mutator: {
+          path: "./src/client/http.ts",
+          name: "coreverseFetch",
+        },
+        query: {
+          // Emit `useXxx()` hooks (not just queryOptions helpers) --
+          // GET operations become useQuery hooks, non-GET become
+          // useMutation hooks.
+          useQuery: true,
+        },
+      },
+    },
+  },
 });
