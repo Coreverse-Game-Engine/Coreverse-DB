@@ -157,13 +157,37 @@ $$;
 -- characters profiles_username_format rejects.
 -- ---------------------------------------------------------------------
 
+-- The naive version of this (a single static statement with
+-- `left join public.profiles legacy on to_regclass(...) is not null and
+-- ...`) fails on any environment that never had the legacy schema at
+-- all (confirmed against a fresh `supabase start`: ERROR relation
+-- "public.profiles" does not exist, 42P01) -- PL/pgSQL prepares a
+-- statement's SQL text as a whole the first time it's reached, so a
+-- table name appearing anywhere in that text must resolve at that
+-- point regardless of a runtime condition on the join. Building the
+-- statement as a string via EXECUTE format(...) instead defers parsing
+-- to when it actually runs, so `public.profiles` is only ever mentioned
+-- in the text that gets executed on an environment where it exists.
 do $$
+  declare
+    legacy_source text;
+    legacy_join text;
   begin
+    if to_regclass('public.profiles') is not null then
+      legacy_source := $frag$nullif(legacy.username, ''),$frag$;
+      legacy_join := 'left join public.profiles legacy on legacy.id = ip.id';
+    else
+      legacy_source := '';
+      legacy_join := '';
+    end if;
+
+    execute format(
+      $q$
     with candidates as (
       select
         ip.id,
         coalesce(
-          nullif(legacy.username, ''),
+          %s
           nullif(u.raw_user_meta_data ->> 'username', ''),
           nullif(u.raw_user_meta_data ->> 'user_name', ''),
           nullif(u.raw_user_meta_data ->> 'preferred_username', ''),
@@ -172,46 +196,49 @@ do $$
         ) as raw_candidate,
         u.created_at
       from identity.profiles ip
-             join auth.users u on u.id = ip.id
-             left join public.profiles legacy
-                       on to_regclass('public.profiles') is not null and legacy.id = ip.id
+      join auth.users u on u.id = ip.id
+      %s
       where ip.username is null
     ),
-         sanitized as (
-           select
-             id,
-             created_at,
-             case
-               when regexp_replace(raw_candidate, '[^a-zA-Z0-9_]', '', 'g') = ''
-                 then 'user' || substr(id::text, 1, 8)
-               when length(regexp_replace(raw_candidate, '[^a-zA-Z0-9_]', '', 'g')) < 3
-                 then left(regexp_replace(raw_candidate, '[^a-zA-Z0-9_]', '', 'g') || substr(id::text, 1, 8), 24)
-               else left(regexp_replace(raw_candidate, '[^a-zA-Z0-9_]', '', 'g'), 24)
-               end as base_username
-           from candidates
-         ),
-         numbered as (
-           select
-             id,
-             base_username,
-             row_number() over (
-               partition by lower(base_username)
-               order by created_at, id
-               ) as dup_rank
-           from sanitized
-         ),
-         final as (
-           select
-             id,
-             case
-               when dup_rank = 1 then base_username
-               else left(base_username, 24 - length(dup_rank::text) - 1) || '_' || dup_rank
-               end as final_username
-           from numbered
-         )
+    sanitized as (
+      select
+        id,
+        created_at,
+        case
+          when regexp_replace(raw_candidate, '[^a-zA-Z0-9_]', '', 'g') = ''
+            then 'user' || substr(id::text, 1, 8)
+          when length(regexp_replace(raw_candidate, '[^a-zA-Z0-9_]', '', 'g')) < 3
+            then left(regexp_replace(raw_candidate, '[^a-zA-Z0-9_]', '', 'g') || substr(id::text, 1, 8), 24)
+          else left(regexp_replace(raw_candidate, '[^a-zA-Z0-9_]', '', 'g'), 24)
+        end as base_username
+      from candidates
+    ),
+    numbered as (
+      select
+        id,
+        base_username,
+        row_number() over (
+          partition by lower(base_username)
+          order by created_at, id
+        ) as dup_rank
+      from sanitized
+    ),
+    final as (
+      select
+        id,
+        case
+          when dup_rank = 1 then base_username
+          else left(base_username, 24 - length(dup_rank::text) - 1) || '_' || dup_rank
+        end as final_username
+      from numbered
+    )
     update identity.profiles ip
     set username = final.final_username
     from final
-    where ip.id = final.id;
+    where ip.id = final.id
+    $q$,
+      legacy_source,
+      legacy_join
+            );
   end
 $$;
