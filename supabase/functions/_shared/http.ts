@@ -25,8 +25,8 @@ const CORS_ALLOWED_METHODS = 'GET, POST, PATCH, DELETE, OPTIONS';
 export function allowedOrigins(): string[] {
   return (Deno.env.get('WEBSITE_ALLOWED_ORIGINS',) ?? '')
     .split(',',)
-    .map((origin,) => origin.trim())
-    .filter((origin,) => origin.length > 0);
+    .map((origin,) => origin.trim(),)
+    .filter((origin,) => origin.length > 0,);
 }
 
 // Headers to attach to every response (including preflight). Only sets
@@ -67,7 +67,7 @@ export function withCors(
 
     const response = await handler(req,);
     const merged = new Headers(response.headers,);
-    cors.forEach((value, key,) => merged.set(key, value,));
+    cors.forEach((value, key,) => merged.set(key, value,),);
     return new Response(response.body, { status: response.status, headers: merged, },);
   };
 }
@@ -97,5 +97,6 @@ export function errorResponse(
 // uses for "not authorized to do that" inside PL/pgSQL functions.
 export function statusForPgError(pgErrorCode: string | undefined,): number {
   if (pgErrorCode === '42501') return 403;
+  if (pgErrorCode === '23505') return 409; // unique_violation, e.g. username already taken
   return 400;
 }
