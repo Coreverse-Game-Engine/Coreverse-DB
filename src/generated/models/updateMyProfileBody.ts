@@ -8,7 +8,7 @@
  */
 
 /**
- * At least one of full_name or avatar_path must be provided.
+ * At least one of full_name, username or avatar_path must be provided.
  */
 export type UpdateMyProfileBody = {
   /**
@@ -16,6 +16,13 @@ export type UpdateMyProfileBody = {
    * @maxLength 100
    */
   full_name?: string;
+  /**
+   * Must be unique (case-insensitive) across all profiles. A taken username returns 409.
+   * @minLength 3
+   * @maxLength 24
+   * @pattern ^[a-zA-Z0-9_]+$
+   */
+  username?: string;
   /**
    * Storage path in the avatars bucket. Set this directly only if you already know a valid path (e.g. clearing the avatar with null); to upload a new image, use POST /profiles/me/avatar instead, which uploads the file and sets this for you.
    * @minLength 1

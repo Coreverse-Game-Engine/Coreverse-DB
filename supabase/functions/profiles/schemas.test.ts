@@ -31,6 +31,24 @@ Deno.test('UpdateProfileSchema rejects an over-length full_name', () => {
   assertFalse(UpdateProfileSchema.safeParse({ full_name: 'x'.repeat(101,), },).success,);
 });
 
+Deno.test('UpdateProfileSchema accepts username only', () => {
+  assert(UpdateProfileSchema.safeParse({ username: 'alice_99', },).success,);
+});
+
+Deno.test('UpdateProfileSchema rejects a too-short username', () => {
+  assertFalse(UpdateProfileSchema.safeParse({ username: 'ab', },).success,);
+});
+
+Deno.test('UpdateProfileSchema rejects a too-long username', () => {
+  assertFalse(UpdateProfileSchema.safeParse({ username: 'x'.repeat(25,), },).success,);
+});
+
+Deno.test('UpdateProfileSchema rejects a username with disallowed characters', () => {
+  assertFalse(UpdateProfileSchema.safeParse({ username: 'alice.99', },).success,);
+  assertFalse(UpdateProfileSchema.safeParse({ username: 'alice 99', },).success,);
+  assertFalse(UpdateProfileSchema.safeParse({ username: 'alice-99', },).success,);
+});
+
 // ---------------------------------------------------------------------
 // validateAvatarFile
 // ---------------------------------------------------------------------

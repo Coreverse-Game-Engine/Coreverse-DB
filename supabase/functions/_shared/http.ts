@@ -97,5 +97,6 @@ export function errorResponse(
 // uses for "not authorized to do that" inside PL/pgSQL functions.
 export function statusForPgError(pgErrorCode: string | undefined,): number {
   if (pgErrorCode === '42501') return 403;
+  if (pgErrorCode === '23505') return 409; // unique_violation, e.g. username already taken
   return 400;
 }

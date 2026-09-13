@@ -127,7 +127,10 @@ export interface Artifact {
 
 export interface Profile {
   id: string;
+  /** Free-text display name, no format or uniqueness constraint. Distinct from username. */
   full_name: string;
+  /** Unique (case-insensitive), alphanumeric/underscore handle, 3-24 characters. Every profile has one in practice (assigned at signup, backfilled for pre-existing users), but it's nullable at the schema level rather than required. */
+  username?: string | null;
   /** Public/signed URL resolved from the stored avatar_path, not the raw path itself. */
   avatar_url?: string | null;
 }
@@ -1021,7 +1024,10 @@ export type CancelMembershipRequest403 = {
 
 export type GetMyProfile200 = {
   id: string;
+  /** Free-text display name, no format or uniqueness constraint. Distinct from username. */
   full_name: string;
+  /** Unique (case-insensitive), alphanumeric/underscore handle, 3-24 characters. Every profile has one in practice (assigned at signup, backfilled for pre-existing users), but it's nullable at the schema level rather than required. */
+  username?: string | null;
   /** Public/signed URL resolved from the stored avatar_path, not the raw path itself. */
   avatar_url?: string | null;
 };
@@ -1041,7 +1047,7 @@ export type GetMyProfile404 = {
 };
 
 /**
- * At least one of full_name or avatar_path must be provided.
+ * At least one of full_name, username or avatar_path must be provided.
  */
 export type UpdateMyProfileBody = {
   /**
@@ -1049,6 +1055,13 @@ export type UpdateMyProfileBody = {
    * @maxLength 100
    */
   full_name?: string;
+  /**
+   * Must be unique (case-insensitive) across all profiles. A taken username returns 409.
+   * @minLength 3
+   * @maxLength 24
+   * @pattern ^[a-zA-Z0-9_]+$
+   */
+  username?: string;
   /**
    * Storage path in the avatars bucket. Set this directly only if you already know a valid path (e.g. clearing the avatar with null); to upload a new image, use POST /profiles/me/avatar instead, which uploads the file and sets this for you.
    * @minLength 1
@@ -1058,7 +1071,10 @@ export type UpdateMyProfileBody = {
 
 export type UpdateMyProfile200 = {
   id: string;
+  /** Free-text display name, no format or uniqueness constraint. Distinct from username. */
   full_name: string;
+  /** Unique (case-insensitive), alphanumeric/underscore handle, 3-24 characters. Every profile has one in practice (assigned at signup, backfilled for pre-existing users), but it's nullable at the schema level rather than required. */
+  username?: string | null;
   /** Public/signed URL resolved from the stored avatar_path, not the raw path itself. */
   avatar_url?: string | null;
 };
@@ -1084,6 +1100,13 @@ export type UpdateMyProfile404 = {
   message: string;
 };
 
+export type UpdateMyProfile409 = {
+  /** Short machine-readable error code, e.g. "invalid_version". */
+  error: string;
+  /** Human-readable explanation. */
+  message: string;
+};
+
 export type UploadMyAvatarBody = {
   /** PNG or WebP image, up to 5 MB. */
   file: Blob;
@@ -1091,7 +1114,10 @@ export type UploadMyAvatarBody = {
 
 export type UploadMyAvatar200 = {
   id: string;
+  /** Free-text display name, no format or uniqueness constraint. Distinct from username. */
   full_name: string;
+  /** Unique (case-insensitive), alphanumeric/underscore handle, 3-24 characters. Every profile has one in practice (assigned at signup, backfilled for pre-existing users), but it's nullable at the schema level rather than required. */
+  username?: string | null;
   /** Public/signed URL resolved from the stored avatar_path, not the raw path itself. */
   avatar_url?: string | null;
 };

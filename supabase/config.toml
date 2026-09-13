@@ -119,9 +119,19 @@ enabled = true
 # in emails.
 site_url = "http://127.0.0.1:3000"
 # A list of *exact* URLs that auth providers are permitted to redirect to post authentication.
+# The /*/reset-password entries are for POST /auth/password-reset's
+# redirectTo (see supabase/functions/auth/index.ts validateRedirectTo) --
+# the `*` glob matches exactly one path segment (the locale), mirroring
+# auth/schemas.ts's RESET_REDIRECT_PATH_PATTERN. Prod/staging need the
+# equivalent entries added for their own Website origin(s) via the
+# Supabase Dashboard (Authentication -> URL Configuration) or
+# `supabase config push` -- not tracked here since those origins aren't
+# in this repo.
 additional_redirect_urls = [
   "https://127.0.0.1:3000",
-  "http://localhost:3000"
+  "http://localhost:3000",
+  "http://127.0.0.1:3000/*/reset-password",
+  "http://localhost:3000/*/reset-password"
 ]
 # How long tokens are valid for, in seconds. Defaults to 3600 (1 hour), maximum 604,800 (1 week).
 jwt_expiry = 3600

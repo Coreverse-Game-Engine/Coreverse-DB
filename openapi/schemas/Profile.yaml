@@ -8,6 +8,15 @@ properties:
     format: uuid
   full_name:
     type: string
+    description: Free-text display name, no format or uniqueness constraint. Distinct from username.
+  username:
+    type: string
+    nullable: true
+    description: >
+      Unique (case-insensitive), alphanumeric/underscore handle, 3-24
+      characters. Every profile has one in practice (assigned at signup,
+      backfilled for pre-existing users), but it's nullable at the
+      schema level rather than required.
   avatar_url:
     type: string
     format: uri
