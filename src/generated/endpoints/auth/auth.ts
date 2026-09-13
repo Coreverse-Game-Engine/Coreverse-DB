@@ -48,7 +48,7 @@ export const getRequestPasswordResetUrl = () => {
 };
 
 /**
- * Unauthenticated. Sends a Supabase Auth password reset email if the address belongs to an account -- the response is identical either way, so this cannot be used to enumerate accounts. Rate limited per email (3 / 15 min) and per caller IP (10 / hour); either limit being hit returns 429 with a Retry-After header. See 20260912103000_avatar_upload_and_rate_limit.sql for the rate limiting primitive.
+ * Unauthenticated. Sends a Supabase Auth password reset email if the address belongs to an account -- the response is identical either way, so this cannot be used to enumerate accounts. Rate limited per email (3 / 15 min) and per caller IP (10 / hour); either limit being hit returns 429 with a Retry-After header. See 20260912085602_avatar_upload_and_rate_limit.sql for the rate limiting primitive.
  * @summary Request a password reset email
  */
 export const requestPasswordReset = async (
