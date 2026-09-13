@@ -14,6 +14,7 @@ import type {
   UpdateMyProfile400,
   UpdateMyProfile401,
   UpdateMyProfile404,
+  UpdateMyProfile409,
   UpdateMyProfileBody,
   UploadMyAvatar200,
   UploadMyAvatar400,
@@ -88,6 +89,11 @@ export type updateMyProfileResponse404 = {
   status: 404;
 };
 
+export type updateMyProfileResponse409 = {
+  data: UpdateMyProfile409;
+  status: 409;
+};
+
 export type updateMyProfileResponseSuccess = updateMyProfileResponse200 & {
   headers: Headers;
 };
@@ -95,6 +101,7 @@ export type updateMyProfileResponseError = (
   | updateMyProfileResponse400
   | updateMyProfileResponse401
   | updateMyProfileResponse404
+  | updateMyProfileResponse409
 ) & {
   headers: Headers;
 };

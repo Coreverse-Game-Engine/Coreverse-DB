@@ -36,12 +36,20 @@ me:
         application/json:
           schema:
             type: object
-            description: At least one of full_name or avatar_path must be provided.
+            description: At least one of full_name, username or avatar_path must be provided.
             properties:
               full_name:
                 type: string
                 minLength: 1
                 maxLength: 100
+              username:
+                type: string
+                minLength: 3
+                maxLength: 24
+                pattern: '^[a-zA-Z0-9_]+$'
+                description: >
+                  Must be unique (case-insensitive) across all profiles.
+                  A taken username returns 409.
               avatar_path:
                 type: string
                 minLength: 1
@@ -73,6 +81,12 @@ me:
               $ref: '../schemas/Error.yaml'
       '404':
         description: No profile found for this user.
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/Error.yaml'
+      '409':
+        description: username is already taken (case-insensitive).
         content:
           application/json:
             schema:

@@ -19,7 +19,7 @@
 import { serve, } from '@std/http/server';
 import { createUserClient, } from '../_shared/supabase-client.ts';
 import { createServiceClient, } from '../_shared/service-client.ts';
-import { errorResponse, jsonResponse, withCors, } from '../_shared/http.ts';
+import { errorResponse, jsonResponse, statusForPgError, withCors, } from '../_shared/http.ts';
 import {
   AVATAR_ALLOWED_TYPES,
   type AvatarAllowedType,
@@ -113,10 +113,10 @@ serve(withCors(async (req,) => {
         .from('profiles',)
         .update({ avatar_path: storagePath, },)
         .eq('id', userId,)
-        .select('id, full_name, avatar_path, created_at, updated_at',)
+        .select('id, full_name, username, avatar_path, created_at, updated_at',)
         .maybeSingle();
 
-      if (error) return errorResponse('query_error', error.message, 500,);
+      if (error) return errorResponse('query_error', error.message, statusForPgError(error.code,),);
       if (!data) return errorResponse('not_found', 'No profile found for this user.', 404,);
 
       if (previousPath && previousPath !== storagePath) {
@@ -131,7 +131,7 @@ serve(withCors(async (req,) => {
       const { data, error, } = await supabase
         .schema('identity',)
         .from('profiles',)
-        .select('id, full_name, avatar_path, created_at, updated_at',)
+        .select('id, full_name, username, avatar_path, created_at, updated_at',)
         .eq('id', userId,)
         .maybeSingle();
 
@@ -150,10 +150,15 @@ serve(withCors(async (req,) => {
         .from('profiles',)
         .update(parsed.data,)
         .eq('id', userId,)
-        .select('id, full_name, avatar_path, created_at, updated_at',)
+        .select('id, full_name, username, avatar_path, created_at, updated_at',)
         .maybeSingle();
 
-      if (error) return errorResponse('query_error', error.message, 500,);
+      // statusForPgError maps 23505 (username already taken, via
+      // idx_profiles_username_lower) to 409 and 42501 (RLS denial) to
+      // 403; anything else -> 400. Not a 500: a rejected update because
+      // the value the caller sent is invalid/taken is a client error,
+      // not a server one.
+      if (error) return errorResponse('query_error', error.message, statusForPgError(error.code,),);
       if (!data) return errorResponse('not_found', 'No profile found for this user.', 404,);
       return jsonResponse(withAvatarUrl(supabase, data,),);
     }
@@ -166,4 +171,4 @@ serve(withCors(async (req,) => {
       500,
     );
   }
-},),);
+}),);

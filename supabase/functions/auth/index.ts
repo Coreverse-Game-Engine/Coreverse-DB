@@ -103,7 +103,7 @@ serve(withCors(async (req,) => {
       500,
     );
   }
-},),);
+}),);
 
 async function hitRateLimit(
   serviceClient: ReturnType<typeof createServiceClient>,
