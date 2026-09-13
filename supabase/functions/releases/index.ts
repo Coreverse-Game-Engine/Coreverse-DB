@@ -10,7 +10,7 @@
 
 import { serve, } from '@std/http/server';
 import { createClient, } from '@supabase/supabase-js';
-import { errorResponse, jsonResponse, } from '../_shared/http.ts';
+import { errorResponse, jsonResponse, withCors, } from '../_shared/http.ts';
 import { LatestQuerySchema, ListQuerySchema, VersionParamSchema, } from './schemas.ts';
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL',)!;
@@ -18,7 +18,7 @@ const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY',)!;
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY,);
 
-serve(async (req,) => {
+serve(withCors(async (req,) => {
   if (req.method !== 'GET') {
     return errorResponse(
       'method_not_allowed',
@@ -117,4 +117,4 @@ serve(async (req,) => {
       500,
     );
   }
-},);
+},),);

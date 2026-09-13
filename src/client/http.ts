@@ -82,7 +82,13 @@ export async function coreverseFetch<T>(url: string, options: RequestInit = {}):
   const { baseUrl, getAuthToken, fetch: fetchOverride } = requireConfig();
 
   const headers = new Headers(options.headers);
-  if (options.body !== undefined && !headers.has("Content-Type")) {
+  // FormData (e.g. uploadMyAvatar) must NOT get an explicit Content-Type --
+  // the browser needs to set its own `multipart/form-data; boundary=...`
+  // when it serializes the body, and a pre-set `application/json` here
+  // both lies about the format and suppresses that boundary, so the
+  // server can't parse the multipart body at all.
+  const isFormData = typeof FormData !== "undefined" && options.body instanceof FormData;
+  if (options.body !== undefined && !isFormData && !headers.has("Content-Type")) {
     headers.set("Content-Type", "application/json");
   }
 

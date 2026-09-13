@@ -11,7 +11,7 @@
 //
 // POST /profiles/me/avatar is different: the client no longer writes to
 // the avatars bucket directly (avatars_self_write/update/delete were
-// dropped in 20260912103000_avatar_upload_and_rate_limit.sql). Instead
+// dropped in 20260912085602_avatar_upload_and_rate_limit.sql). Instead
 // this route accepts a multipart upload, validates it server-side, and
 // writes to Storage itself with the service role -- the avatars bucket
 // now only grants clients public *read* access.
@@ -19,7 +19,7 @@
 import { serve, } from '@std/http/server';
 import { createUserClient, } from '../_shared/supabase-client.ts';
 import { createServiceClient, } from '../_shared/service-client.ts';
-import { errorResponse, jsonResponse, } from '../_shared/http.ts';
+import { errorResponse, jsonResponse, statusForPgError, withCors, } from '../_shared/http.ts';
 import {
   AVATAR_ALLOWED_TYPES,
   type AvatarAllowedType,
@@ -47,7 +47,7 @@ function avatarStoragePath(userId: string, type: AvatarAllowedType,): string {
   return `${userId}.${AVATAR_ALLOWED_TYPES[type]}`;
 }
 
-serve(async (req,) => {
+serve(withCors(async (req,) => {
   const url = new URL(req.url,);
   const path = url.pathname.replace(/^\/functions\/v1\/profiles\/?/, '',);
 
@@ -113,10 +113,10 @@ serve(async (req,) => {
         .from('profiles',)
         .update({ avatar_path: storagePath, },)
         .eq('id', userId,)
-        .select('id, full_name, avatar_path, created_at, updated_at',)
+        .select('id, full_name, username, avatar_path, created_at, updated_at',)
         .maybeSingle();
 
-      if (error) return errorResponse('query_error', error.message, 500,);
+      if (error) return errorResponse('query_error', error.message, statusForPgError(error.code,),);
       if (!data) return errorResponse('not_found', 'No profile found for this user.', 404,);
 
       if (previousPath && previousPath !== storagePath) {
@@ -131,7 +131,7 @@ serve(async (req,) => {
       const { data, error, } = await supabase
         .schema('identity',)
         .from('profiles',)
-        .select('id, full_name, avatar_path, created_at, updated_at',)
+        .select('id, full_name, username, avatar_path, created_at, updated_at',)
         .eq('id', userId,)
         .maybeSingle();
 
@@ -150,10 +150,15 @@ serve(async (req,) => {
         .from('profiles',)
         .update(parsed.data,)
         .eq('id', userId,)
-        .select('id, full_name, avatar_path, created_at, updated_at',)
+        .select('id, full_name, username, avatar_path, created_at, updated_at',)
         .maybeSingle();
 
-      if (error) return errorResponse('query_error', error.message, 500,);
+      // statusForPgError maps 23505 (username already taken, via
+      // idx_profiles_username_lower) to 409 and 42501 (RLS denial) to
+      // 403; anything else -> 400. Not a 500: a rejected update because
+      // the value the caller sent is invalid/taken is a client error,
+      // not a server one.
+      if (error) return errorResponse('query_error', error.message, statusForPgError(error.code,),);
       if (!data) return errorResponse('not_found', 'No profile found for this user.', 404,);
       return jsonResponse(withAvatarUrl(supabase, data,),);
     }
@@ -166,4 +171,4 @@ serve(async (req,) => {
       500,
     );
   }
-},);
+},),);

@@ -8,7 +8,7 @@
 
 import { serve, } from '@std/http/server';
 import { createUserClient, } from '../_shared/supabase-client.ts';
-import { errorResponse, jsonResponse, } from '../_shared/http.ts';
+import { errorResponse, jsonResponse, withCors, } from '../_shared/http.ts';
 import {
   CreateDiscussionSchema,
   CreateReplySchema,
@@ -21,7 +21,7 @@ const DISCUSSION_COLUMNS =
   'id, title, body, author_id, category, is_locked, created_at, updated_at';
 const REPLY_COLUMNS = 'id, discussion_id, author_id, body, deleted_at, created_at, updated_at';
 
-serve(async (req,) => {
+serve(withCors(async (req,) => {
   const url = new URL(req.url,);
   const segments = url.pathname
     .replace(/^\/functions\/v1\/discussions\/?/, '',)
@@ -194,4 +194,4 @@ serve(async (req,) => {
       500,
     );
   }
-},);
+},),);
