@@ -13,7 +13,17 @@ import * as zod from "zod";
  */
 export const GetMyProfileResponse = zod.object({
   id: zod.uuid(),
-  full_name: zod.string(),
+  full_name: zod
+    .string()
+    .describe(
+      "Free-text display name, no format or uniqueness constraint. Distinct from username.",
+    ),
+  username: zod
+    .string()
+    .nullish()
+    .describe(
+      "Unique (case-insensitive), alphanumeric\/underscore handle, 3-24 characters. Every profile has one in practice (assigned at signup, backfilled for pre-existing users), but it's nullable at the schema level rather than required.\n",
+    ),
   avatar_url: zod
     .url()
     .nullish()
@@ -27,6 +37,11 @@ export const GetMyProfileResponse = zod.object({
  */
 export const updateMyProfileBodyFullNameMax = 100;
 
+export const updateMyProfileBodyUsernameMin = 3;
+export const updateMyProfileBodyUsernameMax = 24;
+
+export const updateMyProfileBodyUsernameRegExp = new RegExp("^[a-zA-Z0-9_]+$");
+
 export const UpdateMyProfileBody = zod
   .object({
     full_name: zod
@@ -34,6 +49,15 @@ export const UpdateMyProfileBody = zod
       .min(1)
       .max(updateMyProfileBodyFullNameMax)
       .optional(),
+    username: zod
+      .string()
+      .min(updateMyProfileBodyUsernameMin)
+      .max(updateMyProfileBodyUsernameMax)
+      .regex(updateMyProfileBodyUsernameRegExp)
+      .optional()
+      .describe(
+        "Must be unique (case-insensitive) across all profiles. A taken username returns 409.\n",
+      ),
     avatar_path: zod
       .string()
       .min(1)
@@ -42,11 +66,23 @@ export const UpdateMyProfileBody = zod
         "Storage path in the avatars bucket. Set this directly only if you already know a valid path (e.g. clearing the avatar with null); to upload a new image, use POST \/profiles\/me\/avatar instead, which uploads the file and sets this for you.\n",
       ),
   })
-  .describe("At least one of full_name or avatar_path must be provided.");
+  .describe(
+    "At least one of full_name, username or avatar_path must be provided.",
+  );
 
 export const UpdateMyProfileResponse = zod.object({
   id: zod.uuid(),
-  full_name: zod.string(),
+  full_name: zod
+    .string()
+    .describe(
+      "Free-text display name, no format or uniqueness constraint. Distinct from username.",
+    ),
+  username: zod
+    .string()
+    .nullish()
+    .describe(
+      "Unique (case-insensitive), alphanumeric\/underscore handle, 3-24 characters. Every profile has one in practice (assigned at signup, backfilled for pre-existing users), but it's nullable at the schema level rather than required.\n",
+    ),
   avatar_url: zod
     .url()
     .nullish()
@@ -65,7 +101,17 @@ export const UploadMyAvatarBody = zod.object({
 
 export const UploadMyAvatarResponse = zod.object({
   id: zod.uuid(),
-  full_name: zod.string(),
+  full_name: zod
+    .string()
+    .describe(
+      "Free-text display name, no format or uniqueness constraint. Distinct from username.",
+    ),
+  username: zod
+    .string()
+    .nullish()
+    .describe(
+      "Unique (case-insensitive), alphanumeric\/underscore handle, 3-24 characters. Every profile has one in practice (assigned at signup, backfilled for pre-existing users), but it's nullable at the schema level rather than required.\n",
+    ),
   avatar_url: zod
     .url()
     .nullish()

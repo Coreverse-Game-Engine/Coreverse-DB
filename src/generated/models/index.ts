@@ -218,6 +218,7 @@ export * from "./updateMyProfile200";
 export * from "./updateMyProfile400";
 export * from "./updateMyProfile401";
 export * from "./updateMyProfile404";
+export * from "./updateMyProfile409";
 export * from "./updateMyProfileBody";
 export * from "./updateNews200";
 export * from "./updateNews200Status";
