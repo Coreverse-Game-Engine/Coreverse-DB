@@ -4,7 +4,7 @@ See [Database › Domains › Storage](../database/domains/storage.md) for the b
 
 ## `avatars`
 
-Public bucket for reads only. As of `20260912085602_avatar_upload_and_rate_limit.sql`, there is **no client-facing write policy on this bucket at all** — uploading is exclusively done server-side by the `profiles` Edge Function's `POST /profiles/me/avatar` route, using a service-role client after validating the file (PNG or WebP, up to 5 MB) itself. This is a deliberate move away from the bucket's original self-only-write design: validation now lives entirely in application code that's easy to reason about and extend, rather than being split between Storage's own MIME/size limits and RLS. See [API › Profiles](../api/resources/profiles.md) for the upload flow and [Database › Domains › Storage](../database/domains/storage.md) for the bucket policy history.
+Public bucket for reads (`avatars_public_read`), but as of `20260912085602_avatar_upload_and_rate_limit.sql` there are no client-side write policies at all — `avatars_self_write`/`_update`/`_delete` were dropped. All writes now go through `POST /profiles/me/avatar` (see [API › Profiles](../api/resources/profiles.md)), which validates the upload server-side and writes it to Storage with the **service role**, bypassing RLS entirely. This closed a gap the old self-write policy couldn't cover: format/size were previously only as trustworthy as the client, whereas the Edge Function now checks both itself. Accepts PNG or WebP, up to 5 MB (widened from PNG-only, 2 MB). The Edge Function reads the caller's existing `avatar_path` before writing, so switching between PNG and WebP removes the old object instead of leaving it orphaned.
 
 ## `project-archives`
 

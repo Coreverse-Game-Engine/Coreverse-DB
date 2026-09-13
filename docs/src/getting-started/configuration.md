@@ -1,6 +1,6 @@
 # Configuration
 
-Local configuration is driven by environment variables. [`.env.example`](https://github.com/Coreverse-Game-Engine/Coreverse-DB/blob/main/.env.example) is the baseline — copy it to `.env.local` and fill in real values for your local Supabase instance (`supabase start` prints them).
+Local configuration is driven by environment variables. [`.env.example`](https://github.com/KING-MASTER2012/Coreverse-DB/blob/main/.env.example) is the baseline — copy it to `.env.local` and fill in real values for your local Supabase instance (`supabase start` prints them).
 
 | Variable | Purpose |
 |---|---|
@@ -14,7 +14,7 @@ Local configuration is driven by environment variables. [`.env.example`](https:/
 
 ## Supabase project configuration
 
-Project-level Supabase configuration (API port, Auth settings, Storage limits, etc.) lives in [`supabase/config.toml`](https://github.com/Coreverse-Game-Engine/Coreverse-DB/blob/main/supabase/config.toml) and is version-controlled, unlike secrets.
+Project-level Supabase configuration (API port, Auth settings, Storage limits, etc.) lives in [`supabase/config.toml`](https://github.com/KING-MASTER2012/Coreverse-DB/blob/main/supabase/config.toml) and is version-controlled, unlike secrets.
 
 ## IDE configuration
 
