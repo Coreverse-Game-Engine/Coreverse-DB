@@ -25,7 +25,8 @@ export const UpdateProfileSchema = z.object({
   username: UsernameSchema.optional(),
   avatar_path: z.string().min(1,).nullable().optional(),
 },).refine(
-  (body,) => body.full_name !== undefined || body.username !== undefined || body.avatar_path !== undefined,
+  (body,) =>
+    body.full_name !== undefined || body.username !== undefined || body.avatar_path !== undefined,
   { message: 'at least one of full_name, username or avatar_path must be provided', },
 );
 
