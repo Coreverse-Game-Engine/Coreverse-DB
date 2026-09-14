@@ -14,3 +14,6 @@ tab_space_size = 2
 
 [sqlfluff:rules:references.keywords]
 ignore_words = role,version,path,label,status,type,key,value,name,
+
+[sqlfluff:rules:aliasing.table]
+aliasing = explicit

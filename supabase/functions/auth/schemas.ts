@@ -1,30 +1,12 @@
 import { z, } from 'zod';
-
-// Mirrors the Website's `locales` list (src/i18n/routing.ts) -- kept as
-// a literal copy rather than a shared package because that's a Next.js
-// app-router concern, not something this SDK should depend on. If the
-// Website adds/removes a locale, this list needs updating too.
-export const RESET_REDIRECT_LOCALES = [
-  'en',
-  'tr',
-  'fr',
-  'de',
-  'es',
-  'pt',
-  'cn',
-  'ru',
-  'jp',
-  'kr',
-  'pl',
-  'in',
-  'sa',
-] as const;
+import { WEBSITE_LOCALES, } from '../_shared/locales.ts';
 
 // Exact path shape a password-reset redirectTo must have -- no query
-// string, no hash, no extra segments. Built from RESET_REDIRECT_LOCALES
-// so the two can't drift out of sync with each other.
+// string, no hash, no extra segments. Built from the shared
+// WEBSITE_LOCALES list (also used by send-email's locale extraction) so
+// the two can't drift out of sync with each other.
 export const RESET_REDIRECT_PATH_PATTERN = new RegExp(
-  `^/(${RESET_REDIRECT_LOCALES.join('|',)})/reset-password$`,
+  `^/(${WEBSITE_LOCALES.join('|',)})/reset-password$`,
 );
 
 // redirectTo is required, not optional: there is currently no caller of

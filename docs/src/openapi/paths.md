@@ -1,6 +1,6 @@
 # Paths
 
-Each file under `openapi/paths/` groups the operations for one resource, keyed by a short name referenced from the root `openapi.yaml` (e.g. `./paths/teams.yaml#/create`, `#/byId`, `#/members`, ...). This keeps the root document's `paths:` section a readable table of contents even though the full spec spans nine files and dozens of operations.
+Each file under `openapi/paths/` groups the operations for one resource, keyed by a short name referenced from the root `openapi.yaml` (e.g. `./paths/teams.yaml#/create`, `#/byId`, `#/members`, ...). This keeps the root document's `paths:` section a readable table of contents even though the full spec spans ten files and dozens of operations.
 
 Every operation includes:
 
