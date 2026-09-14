@@ -48,7 +48,3 @@ See [Domains › Identity](../domains/identity.md) for the design rationale and 
 ## Helper functions (`private` schema)
 
 `private.is_team_member(_team_id)` and `private.is_team_admin(_team_id)` are `SECURITY DEFINER`, `set row_security = off` predicates used inside RLS policies on `teams`, `team_members`, and `team_membership_requests`. See [Row Level Security](../../security/rls.md) for why they must live outside the normal RLS path.
-
-## Rate limiting
-
-`identity.hit_rate_limit(p_key text, p_max_hits int, p_window_seconds int) → boolean` is a generic fixed-window rate limiter, `SECURITY DEFINER`, granted to `service_role` only (never `anon`/`authenticated`) — see [Domains › Identity](../domains/identity.md#generic-rate-limiting) for the design rationale and [API › Auth](../../api/resources/auth.md) for its current consumer.
