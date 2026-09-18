@@ -87,7 +87,11 @@ Deno.serve(async (req: Request,): Promise<Response> => {
   }
   const locale = extractLocale(redirectPathname,);
 
-  const { subject, htmlContent, } = emailContentFor(email_data.email_action_type, locale, actionLink,);
+  const { subject, htmlContent, } = emailContentFor(
+    email_data.email_action_type,
+    locale,
+    actionLink,
+  );
 
   const senderEmail = Deno.env.get('BREVO_SENDER_EMAIL',) ?? 'coreverseengine@gmail.com';
   const senderName = Deno.env.get('BREVO_SENDER_NAME',) ?? 'CoreVerse Engine';
@@ -109,7 +113,10 @@ Deno.serve(async (req: Request,): Promise<Response> => {
     },);
 
     if (!brevoResponse.ok) {
-      console.error(`send-email: Brevo responded with ${brevoResponse.status}:`, await brevoResponse.text(),);
+      console.error(
+        `send-email: Brevo responded with ${brevoResponse.status}:`,
+        await brevoResponse.text(),
+      );
       return new Response('email provider error', { status: 500, },);
     }
   } catch (err) {

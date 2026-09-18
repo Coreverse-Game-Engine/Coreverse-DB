@@ -69,10 +69,10 @@ do $$
           ''
         ),
         u.created_at
-      from auth.users u
-             left join public.profiles p on p.id = u.id
+      from auth.users as u
+             left join public.profiles as p on p.id = u.id
       where not exists (
-        select 1 from identity.profiles ip where ip.id = u.id
+        select 1 from identity.profiles as ip where ip.id = u.id
       );
     else
       insert into identity.profiles (id, full_name, created_at)
@@ -88,9 +88,9 @@ do $$
           ''
         ),
         u.created_at
-      from auth.users u
+      from auth.users as u
       where not exists (
-        select 1 from identity.profiles ip where ip.id = u.id
+        select 1 from identity.profiles as ip where ip.id = u.id
       );
     end if;
   end
@@ -114,9 +114,9 @@ $$;
 -- avatar_path a user has already set through the new upload endpoint.
 -- ---------------------------------------------------------------------
 
-update identity.profiles ip
+update identity.profiles as ip
 set avatar_path = legacy.name
-from storage.objects legacy
+from storage.objects as legacy
 where legacy.bucket_id = 'avatars'
   and legacy.name = ip.id::text || '/avatar.webp'
   and ip.avatar_path is null;

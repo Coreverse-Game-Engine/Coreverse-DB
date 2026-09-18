@@ -40,20 +40,28 @@ Deno.test('actionLinkFor carries a non-recovery action_type through untouched', 
 // ---------------------------------------------------------------------
 
 Deno.test('emailContentFor returns the Turkish recovery copy for locale "tr"', () => {
-  const { subject, htmlContent, } = emailContentFor('recovery', 'tr', 'https://coreverse.dev/link',);
+  const { subject, htmlContent, } = emailContentFor(
+    'recovery',
+    'tr',
+    'https://coreverse.dev/link',
+  );
   assertEquals(subject, 'Coreverse Engine parolanızı sıfırlayın',);
   assertStringIncludes(htmlContent, 'Parolayı Sıfırla',);
   assertStringIncludes(htmlContent, 'https://coreverse.dev/link',);
 });
 
 Deno.test('emailContentFor returns the English recovery copy for locale "en"', () => {
-  const { subject, htmlContent, } = emailContentFor('recovery', 'en', 'https://coreverse.dev/link',);
+  const { subject, htmlContent, } = emailContentFor(
+    'recovery',
+    'en',
+    'https://coreverse.dev/link',
+  );
   assertEquals(subject, 'Reset your Coreverse Engine password',);
   assertStringIncludes(htmlContent, 'Reset Password',);
 });
 
 Deno.test('emailContentFor covers every WEBSITE_LOCALES entry for recovery (no missing translation)', async () => {
-  const { WEBSITE_LOCALES, } = await import('../_shared/locales.ts',);
+  const { WEBSITE_LOCALES, } = await import('../_shared/locales.ts');
   for (const locale of WEBSITE_LOCALES) {
     const { subject, } = emailContentFor('recovery', locale, 'https://coreverse.dev/link',);
     assertEquals(typeof subject, 'string',);

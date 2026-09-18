@@ -17,4 +17,4 @@ Optional but recommended:
 - **SQLFluff** — to lint PostgreSQL migrations the same way CI does.
 - **Semgrep** — to run the same static-analysis pass CI runs.
 
-Windows users can bootstrap most of this automatically with the PowerShell devkit script under [`scripts/devkit/powershell/`](https://github.com/Coreverse-Game-Engine/Coreverse-DB/tree/main/scripts/devkit/powershell); a Bash equivalent lives under `scripts/devkit/shell/`. See [CLI Commands](../reference/cli-commands.md) for the day-to-day commands once the toolchain is installed.
+Windows users can bootstrap most of this automatically with the PowerShell devkit script under [`scripts/devkit/powershell/`](https://github.com/KING-MASTER2012/Coreverse-DB/tree/main/scripts/devkit/powershell); a Bash equivalent lives under `scripts/devkit/shell/`. See [CLI Commands](../reference/cli-commands.md) for the day-to-day commands once the toolchain is installed.
