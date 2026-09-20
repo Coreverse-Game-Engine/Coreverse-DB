@@ -4,12 +4,13 @@
  * Coreverse DB API
  * Centralized data-access API for the Coreverse ecosystem. Coreverse DB defines and serves all data operations; Coreverse Launcher and Coreverse Website consume this API and never access Postgres/Supabase directly.
  *
- * OpenAPI spec version: 0.2.0
+ * OpenAPI spec version: 0.4.2
  */
 import type {
   CastVote201,
   CastVote400,
   CastVote401,
+  CastVote404,
   CastVote409,
   CastVoteBody,
   CreatePoll201,
@@ -121,6 +122,11 @@ export type castVoteResponse401 = {
   status: 401;
 };
 
+export type castVoteResponse404 = {
+  data: CastVote404;
+  status: 404;
+};
+
 export type castVoteResponse409 = {
   data: CastVote409;
   status: 409;
@@ -130,7 +136,10 @@ export type castVoteResponseSuccess = castVoteResponse201 & {
   headers: Headers;
 };
 export type castVoteResponseError = (
-  castVoteResponse400 | castVoteResponse401 | castVoteResponse409
+  | castVoteResponse400
+  | castVoteResponse401
+  | castVoteResponse404
+  | castVoteResponse409
 ) & {
   headers: Headers;
 };
