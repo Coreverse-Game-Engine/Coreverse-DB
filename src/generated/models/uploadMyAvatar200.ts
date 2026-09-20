@@ -9,7 +9,10 @@
 
 export type UploadMyAvatar200 = {
   id: string;
+  /** Free-text display name, no format or uniqueness constraint. Distinct from username. */
   full_name: string;
+  /** Unique (case-insensitive), alphanumeric/underscore handle, 3-24 characters. Every profile has one in practice (assigned at signup, backfilled for pre-existing users), but it's nullable at the schema level rather than required. */
+  username?: string | null;
   /** Public/signed URL resolved from the stored avatar_path, not the raw path itself. */
   avatar_url?: string | null;
 };

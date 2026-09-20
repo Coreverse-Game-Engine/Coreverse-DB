@@ -16,17 +16,21 @@ export const UsernameSchema = z
   .max(24,)
   .regex(/^[a-zA-Z0-9_]+$/,);
 
-// avatar_path is still accepted here for internal use (the avatar-upload
-// route sets it itself after a successful Storage write) -- but as of
-// the POST /profiles/me/avatar route, direct client-supplied avatar_path
-// values are no longer how avatars get set day-to-day.
+// avatar_path is intentionally NOT accepted here. It used to be, but
+// nothing on the server side ever actually relied on that: the
+// avatar-upload route (POST /profiles/me/avatar, below) builds its own
+// literal `{ avatar_path: storagePath }` update straight from a
+// server-derived Storage path -- it never went through this schema. So
+// exposing avatar_path here bought no internal convenience, it only let
+// any client PATCH their profile to point at an arbitrary storage
+// object (including another user's avatar file). Avatars are set/unset
+// exclusively via POST/DELETE /profiles/me/avatar now.
 export const UpdateProfileSchema = z.object({
   full_name: z.string().min(1,).max(100,).optional(),
   username: UsernameSchema.optional(),
-  avatar_path: z.string().min(1,).nullable().optional(),
 },).refine(
-  (body,) => body.full_name !== undefined || body.username !== undefined || body.avatar_path !== undefined,
-  { message: 'at least one of full_name, username or avatar_path must be provided', },
+  (body,) => body.full_name !== undefined || body.username !== undefined,
+  { message: 'at least one of full_name or username must be provided', },
 );
 
 // ---------------------------------------------------------------------

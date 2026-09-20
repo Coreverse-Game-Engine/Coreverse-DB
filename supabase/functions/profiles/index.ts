@@ -19,7 +19,13 @@
 import { serve, } from '@std/http/server';
 import { createUserClient, } from '../_shared/supabase-client.ts';
 import { createServiceClient, } from '../_shared/service-client.ts';
-import { errorResponse, jsonResponse, statusForPgError, withCors, } from '../_shared/http.ts';
+import {
+  errorResponse,
+  jsonResponse,
+  safeDbErrorMessage,
+  statusForPgError,
+  withCors,
+} from '../_shared/http.ts';
 import {
   AVATAR_ALLOWED_TYPES,
   type AvatarAllowedType,
@@ -29,11 +35,19 @@ import {
 
 function withAvatarUrl(
   supabase: ReturnType<typeof createUserClient>,
-  row: { avatar_path: string | null; [key: string]: unknown },
+  row: { avatar_path: string | null; updated_at?: string; [key: string]: unknown },
 ) {
   const { avatar_path, ...rest } = row;
+  // The storage path is stable across re-uploads (upsert to the same
+  // `{user_id}.<ext>` object), so the public URL never changes -- which
+  // means browsers and any CDN in front of Storage keep serving the old
+  // image after a new upload. Appending a `v=<updated_at>` query param
+  // busts that cache on every write without renaming the underlying
+  // object or touching the avatars bucket's RLS/policies.
   const avatar_url = avatar_path
-    ? supabase.storage.from('avatars',).getPublicUrl(avatar_path,).data.publicUrl
+    ? `${supabase.storage.from('avatars',).getPublicUrl(avatar_path,).data.publicUrl}${
+      rest.updated_at ? `?v=${encodeURIComponent(rest.updated_at as string,)}` : ''
+    }`
     : null;
   return { ...rest, avatar_url, };
 }
@@ -64,9 +78,48 @@ serve(withCors(async (req,) => {
     }
     const userId = userData.user.id;
 
+    if (path === 'me/avatar' && req.method === 'DELETE') {
+      const serviceClient = createServiceClient();
+
+      const { data: existing, error: existingError, } = await serviceClient
+        .schema('identity',)
+        .from('profiles',)
+        .select('avatar_path',)
+        .eq('id', userId,)
+        .maybeSingle();
+      if (existingError) return errorResponse('query_error', safeDbErrorMessage(500,), 500,);
+      if (!existing) return errorResponse('not_found', 'No profile found for this user.', 404,);
+      if (!existing.avatar_path) {
+        return errorResponse('not_found', 'This profile has no avatar to remove.', 404,);
+      }
+
+      const { data, error, } = await serviceClient
+        .schema('identity',)
+        .from('profiles',)
+        .update({ avatar_path: null, },)
+        .eq('id', userId,)
+        .select('id, full_name, username, avatar_path, created_at, updated_at',)
+        .maybeSingle();
+      if (error) {
+        const status = statusForPgError(error.code,);
+        return errorResponse('query_error', safeDbErrorMessage(status,), status,);
+      }
+      if (!data) return errorResponse('not_found', 'No profile found for this user.', 404,);
+
+      // Best-effort cleanup, same as the switch-extension path in the
+      // upload handler below -- not worth failing the request over.
+      await serviceClient.storage.from('avatars',).remove([existing.avatar_path,],);
+
+      return jsonResponse(withAvatarUrl(supabase, data,),);
+    }
+
     if (path === 'me/avatar') {
       if (req.method !== 'POST') {
-        return errorResponse('method_not_allowed', 'Only POST is supported on this route.', 405,);
+        return errorResponse(
+          'method_not_allowed',
+          'Only POST and DELETE are supported on this route.',
+          405,
+        );
       }
 
       const form = await req.formData().catch(() => null);
@@ -96,7 +149,7 @@ serve(withCors(async (req,) => {
         .select('avatar_path',)
         .eq('id', userId,)
         .maybeSingle();
-      if (existingError) return errorResponse('query_error', existingError.message, 500,);
+      if (existingError) return errorResponse('query_error', safeDbErrorMessage(500,), 500,);
       if (!existing) return errorResponse('not_found', 'No profile found for this user.', 404,);
       const previousPath = existing.avatar_path;
 
@@ -105,7 +158,7 @@ serve(withCors(async (req,) => {
         .upload(storagePath, fileOrNull!, { contentType, upsert: true, },);
 
       if (uploadError) {
-        return errorResponse('storage_error', uploadError.message, 500,);
+        return errorResponse('storage_error', safeDbErrorMessage(500,), 500,);
       }
 
       const { data, error, } = await serviceClient
@@ -116,7 +169,10 @@ serve(withCors(async (req,) => {
         .select('id, full_name, username, avatar_path, created_at, updated_at',)
         .maybeSingle();
 
-      if (error) return errorResponse('query_error', error.message, statusForPgError(error.code,),);
+      if (error) {
+        const status = statusForPgError(error.code,);
+        return errorResponse('query_error', safeDbErrorMessage(status,), status,);
+      }
       if (!data) return errorResponse('not_found', 'No profile found for this user.', 404,);
 
       if (previousPath && previousPath !== storagePath) {
@@ -135,7 +191,7 @@ serve(withCors(async (req,) => {
         .eq('id', userId,)
         .maybeSingle();
 
-      if (error) return errorResponse('query_error', error.message, 500,);
+      if (error) return errorResponse('query_error', safeDbErrorMessage(500,), 500,);
       if (!data) return errorResponse('not_found', 'No profile found for this user.', 404,);
       return jsonResponse(withAvatarUrl(supabase, data,),);
     }
@@ -157,18 +213,21 @@ serve(withCors(async (req,) => {
       // idx_profiles_username_lower) to 409 and 42501 (RLS denial) to
       // 403; anything else -> 400. Not a 500: a rejected update because
       // the value the caller sent is invalid/taken is a client error,
-      // not a server one.
-      if (error) return errorResponse('query_error', error.message, statusForPgError(error.code,),);
+      // not a server one. The 23505 case gets its own `username_taken`
+      // code rather than falling into generic `query_error`, so the
+      // Website can key a specific message off it without having to
+      // sniff `message` text.
+      if (error) {
+        const status = statusForPgError(error.code,);
+        const code = error.code === '23505' ? 'username_taken' : 'query_error';
+        return errorResponse(code, safeDbErrorMessage(status,), status,);
+      }
       if (!data) return errorResponse('not_found', 'No profile found for this user.', 404,);
       return jsonResponse(withAvatarUrl(supabase, data,),);
     }
 
     return errorResponse('method_not_allowed', 'Only GET and PATCH are supported.', 405,);
-  } catch (err) {
-    return errorResponse(
-      'internal_error',
-      err instanceof Error ? err.message : 'Unexpected error.',
-      500,
-    );
+  } catch (_err) {
+    return errorResponse('internal_error', safeDbErrorMessage(500,), 500,);
   }
-}),);
+},),);

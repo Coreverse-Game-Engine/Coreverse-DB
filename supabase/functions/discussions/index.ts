@@ -8,7 +8,7 @@
 
 import { serve, } from '@std/http/server';
 import { createUserClient, } from '../_shared/supabase-client.ts';
-import { errorResponse, jsonResponse, withCors, } from '../_shared/http.ts';
+import { errorResponse, jsonResponse, safeDbErrorMessage, withCors, } from '../_shared/http.ts';
 import {
   CreateDiscussionSchema,
   CreateReplySchema,
@@ -39,7 +39,7 @@ serve(withCors(async (req,) => {
       if (categoryParam) query = query.eq('category', categoryParam,);
 
       const { data, error, } = await query.order('created_at', { ascending: false, },);
-      if (error) return errorResponse('query_error', error.message, 500,);
+      if (error) return errorResponse('query_error', safeDbErrorMessage(500,), 500,);
       return jsonResponse(data,);
     }
 
@@ -61,7 +61,7 @@ serve(withCors(async (req,) => {
         .select(DISCUSSION_COLUMNS,)
         .single();
 
-      if (error) return errorResponse('query_error', error.message, 500,);
+      if (error) return errorResponse('query_error', safeDbErrorMessage(500,), 500,);
       return jsonResponse(data, 201,);
     }
 
@@ -91,7 +91,7 @@ serve(withCors(async (req,) => {
 
       if (error) {
         const status = error.code === '42501' ? 403 : 500;
-        return errorResponse('query_error', error.message, status,);
+        return errorResponse('query_error', safeDbErrorMessage(status,), status,);
       }
       if (!data) {
         return errorResponse('not_found', 'No reply with that id (or not authorized).', 404,);
@@ -121,7 +121,7 @@ serve(withCors(async (req,) => {
 
       if (error) {
         const status = error.code === '42501' ? 403 : 500;
-        return errorResponse('query_error', error.message, status,);
+        return errorResponse('query_error', safeDbErrorMessage(status,), status,);
       }
       if (!data) {
         return errorResponse('not_found', 'No discussion with that id (or not authorized).', 404,);
@@ -137,7 +137,7 @@ serve(withCors(async (req,) => {
         .delete({ count: 'exact', },)
         .eq('id', discussionId,);
 
-      if (error) return errorResponse('query_error', error.message, 500,);
+      if (error) return errorResponse('query_error', safeDbErrorMessage(500,), 500,);
       if (!count) {
         return errorResponse('not_found', 'No discussion with that id (or not authorized).', 404,);
       }
@@ -153,7 +153,7 @@ serve(withCors(async (req,) => {
         .eq('discussion_id', discussionId,)
         .order('created_at', { ascending: true, },);
 
-      if (error) return errorResponse('query_error', error.message, 500,);
+      if (error) return errorResponse('query_error', safeDbErrorMessage(500,), 500,);
       return jsonResponse(data,);
     }
 
@@ -181,17 +181,13 @@ serve(withCors(async (req,) => {
 
       if (error) {
         const status = error.code === '42501' ? 403 : 500;
-        return errorResponse('query_error', error.message, status,);
+        return errorResponse('query_error', safeDbErrorMessage(status,), status,);
       }
       return jsonResponse(data, 201,);
     }
 
     return errorResponse('not_found', 'Unknown discussions route.', 404,);
-  } catch (err) {
-    return errorResponse(
-      'internal_error',
-      err instanceof Error ? err.message : 'Unexpected error.',
-      500,
-    );
+  } catch (_err) {
+    return errorResponse('internal_error', safeDbErrorMessage(500,), 500,);
   }
-}),);
+},),);

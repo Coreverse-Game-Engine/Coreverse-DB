@@ -5,7 +5,19 @@
 // redirectTo path check and send-email's locale extraction need this
 // list updated too.
 export const WEBSITE_LOCALES = [
-  'en', 'tr', 'fr', 'de', 'es', 'pt', 'cn', 'ru', 'jp', 'kr', 'pl', 'in', 'sa',
+  'en',
+  'tr',
+  'fr',
+  'de',
+  'es',
+  'pt',
+  'cn',
+  'ru',
+  'jp',
+  'kr',
+  'pl',
+  'in',
+  'sa',
 ] as const;
 
 export type WebsiteLocale = typeof WEBSITE_LOCALES[number];

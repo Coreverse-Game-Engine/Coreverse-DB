@@ -124,4 +124,4 @@ serve(withCors(async (req,) => {
       500,
     );
   }
-}),);
+},),);
