@@ -4,7 +4,7 @@
  * Coreverse DB API
  * Centralized data-access API for the Coreverse ecosystem. Coreverse DB defines and serves all data operations; Coreverse Launcher and Coreverse Website consume this API and never access Postgres/Supabase directly.
  *
- * OpenAPI spec version: 0.2.0
+ * OpenAPI spec version: 0.4.2
  */
 import { useQuery } from "@tanstack/react-query";
 import type {
@@ -23,6 +23,7 @@ import type {
   CastVote201,
   CastVote400,
   CastVote401,
+  CastVote404,
   CastVote409,
   CastVoteBody,
   CreatePoll201,
@@ -400,6 +401,11 @@ export type castVoteResponse401 = {
   status: 401;
 };
 
+export type castVoteResponse404 = {
+  data: CastVote404;
+  status: 404;
+};
+
 export type castVoteResponse409 = {
   data: CastVote409;
   status: 409;
@@ -409,7 +415,10 @@ export type castVoteResponseSuccess = castVoteResponse201 & {
   headers: Headers;
 };
 export type castVoteResponseError = (
-  castVoteResponse400 | castVoteResponse401 | castVoteResponse409
+  | castVoteResponse400
+  | castVoteResponse401
+  | castVoteResponse404
+  | castVoteResponse409
 ) & {
   headers: Headers;
 };
@@ -456,7 +465,7 @@ export const getCastVoteQueryKey = (
 
 export const getCastVoteQueryOptions = <
   TData = Awaited<ReturnType<typeof castVote>>,
-  TError = CastVote400 | CastVote401 | CastVote409,
+  TError = CastVote400 | CastVote401 | CastVote404 | CastVote409,
 >(
   pollId: string,
   castVoteBody: CastVoteBody,
@@ -489,11 +498,12 @@ export const getCastVoteQueryOptions = <
 export type CastVoteQueryResult = NonNullable<
   Awaited<ReturnType<typeof castVote>>
 >;
-export type CastVoteQueryError = CastVote400 | CastVote401 | CastVote409;
+export type CastVoteQueryError =
+  CastVote400 | CastVote401 | CastVote404 | CastVote409;
 
 export function useCastVote<
   TData = Awaited<ReturnType<typeof castVote>>,
-  TError = CastVote400 | CastVote401 | CastVote409,
+  TError = CastVote400 | CastVote401 | CastVote404 | CastVote409,
 >(
   pollId: string,
   castVoteBody: CastVoteBody,
@@ -517,7 +527,7 @@ export function useCastVote<
 };
 export function useCastVote<
   TData = Awaited<ReturnType<typeof castVote>>,
-  TError = CastVote400 | CastVote401 | CastVote409,
+  TError = CastVote400 | CastVote401 | CastVote404 | CastVote409,
 >(
   pollId: string,
   castVoteBody: CastVoteBody,
@@ -541,7 +551,7 @@ export function useCastVote<
 };
 export function useCastVote<
   TData = Awaited<ReturnType<typeof castVote>>,
-  TError = CastVote400 | CastVote401 | CastVote409,
+  TError = CastVote400 | CastVote401 | CastVote404 | CastVote409,
 >(
   pollId: string,
   castVoteBody: CastVoteBody,
@@ -561,7 +571,7 @@ export function useCastVote<
 
 export function useCastVote<
   TData = Awaited<ReturnType<typeof castVote>>,
-  TError = CastVote400 | CastVote401 | CastVote409,
+  TError = CastVote400 | CastVote401 | CastVote404 | CastVote409,
 >(
   pollId: string,
   castVoteBody: CastVoteBody,

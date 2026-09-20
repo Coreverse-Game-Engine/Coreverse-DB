@@ -100,3 +100,20 @@ export function statusForPgError(pgErrorCode: string | undefined,): number {
   if (pgErrorCode === '23505') return 409; // unique_violation, e.g. username already taken
   return 400;
 }
+
+// A raw Postgres/PostgREST error.message (e.g. "duplicate key value
+// violates unique constraint \"idx_profiles_username_lower\"" or
+// "permission denied for table discussions") describes internal schema
+// details -- constraint names, table names, sometimes column values --
+// that a client has no business seeing and that make the schema easier
+// to map out. Every route that returns a DB error to the caller should
+// use this instead of `error.message`; the HTTP status plus the
+// route's own `error` code already tell the caller everything it can
+// act on.
+export function safeDbErrorMessage(status: number,): string {
+  if (status === 403) return 'You are not allowed to perform this action.';
+  if (status === 404) return 'The requested resource was not found.';
+  if (status === 409) return 'This conflicts with an existing record.';
+  if (status >= 500) return 'Something went wrong processing the request.';
+  return 'The request could not be completed.';
+}

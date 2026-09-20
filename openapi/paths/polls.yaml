@@ -94,8 +94,16 @@ vote:
           application/json:
             schema:
               $ref: '../schemas/Error.yaml'
+      '404':
+        description: No poll with that id (error is "poll_not_found").
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/Error.yaml'
       '409':
-        description: Already voted, or the poll is closed.
+        description: >
+          Already voted (error is "already_voted") or the poll is
+          closed (error is "poll_closed").
         content:
           application/json:
             schema:
