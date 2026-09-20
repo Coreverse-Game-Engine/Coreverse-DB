@@ -4,7 +4,7 @@
  * Coreverse DB API
  * Centralized data-access API for the Coreverse ecosystem. Coreverse DB defines and serves all data operations; Coreverse Launcher and Coreverse Website consume this API and never access Postgres/Supabase directly.
  *
- * OpenAPI spec version: 0.2.0
+ * OpenAPI spec version: 0.4.2
  */
 import type {
   CreateDiscussion201,
@@ -396,7 +396,7 @@ export type updateDiscussionReplyResponse =
   updateDiscussionReplyResponseSuccess | updateDiscussionReplyResponseError;
 
 export const getUpdateDiscussionReplyUrl = (replyId: string) => {
-  return `/replies/${replyId}`;
+  return `/discussions/replies/${replyId}`;
 };
 
 /**
