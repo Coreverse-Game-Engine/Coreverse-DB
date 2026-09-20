@@ -1386,14 +1386,18 @@ export type updateDiscussionReplyResponseError = (
 export type updateDiscussionReplyResponse =
   updateDiscussionReplyResponseSuccess | updateDiscussionReplyResponseError;
 
-export const getUpdateDiscussionReplyUrl = (replyId: string) => {
-  return `/discussions/replies/${replyId}`;
+export const getUpdateDiscussionReplyUrl = (
+  discussionId: string,
+  replyId: string,
+) => {
+  return `/discussions/${discussionId}/replies/${replyId}`;
 };
 
 /**
  * @summary Edit or soft-delete a reply (author or moderator)
  */
 export const updateDiscussionReply = async (
+  discussionId: string,
   replyId: string,
   updateDiscussionReplyBody: UpdateDiscussionReplyBody,
   options?: Parameters<typeof coreverseFetch>[1],
@@ -1407,7 +1411,7 @@ export const updateDiscussionReply = async (
     return h;
   };
   return coreverseFetch<updateDiscussionReplyResponse>(
-    getUpdateDiscussionReplyUrl(replyId),
+    getUpdateDiscussionReplyUrl(discussionId, replyId),
     {
       ...options,
       method: "PATCH",
@@ -1421,12 +1425,13 @@ export const updateDiscussionReply = async (
 };
 
 export const getUpdateDiscussionReplyQueryKey = (
+  discussionId: string,
   replyId: string,
   updateDiscussionReplyBody?: UpdateDiscussionReplyBody,
 ) => {
   return [
     "PATCH",
-    `/discussions/replies/${replyId}`,
+    `/discussions/${discussionId}/replies/${replyId}`,
     updateDiscussionReplyBody,
   ] as const;
 };
@@ -1438,6 +1443,7 @@ export const getUpdateDiscussionReplyQueryOptions = <
     | UpdateDiscussionReply403
     | UpdateDiscussionReply404,
 >(
+  discussionId: string,
   replyId: string,
   updateDiscussionReplyBody: UpdateDiscussionReplyBody,
   options?: {
@@ -1455,12 +1461,16 @@ export const getUpdateDiscussionReplyQueryOptions = <
 
   const queryKey =
     queryOptions?.queryKey ??
-    getUpdateDiscussionReplyQueryKey(replyId, updateDiscussionReplyBody);
+    getUpdateDiscussionReplyQueryKey(
+      discussionId,
+      replyId,
+      updateDiscussionReplyBody,
+    );
 
   const queryFn: QueryFunction<
     Awaited<ReturnType<typeof updateDiscussionReply>>
   > = ({ signal }) =>
-    updateDiscussionReply(replyId, updateDiscussionReplyBody, {
+    updateDiscussionReply(discussionId, replyId, updateDiscussionReplyBody, {
       signal,
       ...requestOptions,
     });
@@ -1468,7 +1478,11 @@ export const getUpdateDiscussionReplyQueryOptions = <
   return {
     queryKey,
     queryFn,
-    enabled: replyId !== null && replyId !== undefined,
+    enabled:
+      discussionId !== null &&
+      discussionId !== undefined &&
+      replyId !== null &&
+      replyId !== undefined,
     ...queryOptions,
   } as UseQueryOptions<
     Awaited<ReturnType<typeof updateDiscussionReply>>,
@@ -1492,6 +1506,7 @@ export function useUpdateDiscussionReply<
     | UpdateDiscussionReply403
     | UpdateDiscussionReply404,
 >(
+  discussionId: string,
   replyId: string,
   updateDiscussionReplyBody: UpdateDiscussionReplyBody,
   options: {
@@ -1523,6 +1538,7 @@ export function useUpdateDiscussionReply<
     | UpdateDiscussionReply403
     | UpdateDiscussionReply404,
 >(
+  discussionId: string,
   replyId: string,
   updateDiscussionReplyBody: UpdateDiscussionReplyBody,
   options?: {
@@ -1554,6 +1570,7 @@ export function useUpdateDiscussionReply<
     | UpdateDiscussionReply403
     | UpdateDiscussionReply404,
 >(
+  discussionId: string,
   replyId: string,
   updateDiscussionReplyBody: UpdateDiscussionReplyBody,
   options?: {
@@ -1581,6 +1598,7 @@ export function useUpdateDiscussionReply<
     | UpdateDiscussionReply403
     | UpdateDiscussionReply404,
 >(
+  discussionId: string,
   replyId: string,
   updateDiscussionReplyBody: UpdateDiscussionReplyBody,
   options?: {
@@ -1598,6 +1616,7 @@ export function useUpdateDiscussionReply<
   queryKey: DataTag<QueryKey, TData, TError>;
 } {
   const queryOptions = getUpdateDiscussionReplyQueryOptions(
+    discussionId,
     replyId,
     updateDiscussionReplyBody,
     options,

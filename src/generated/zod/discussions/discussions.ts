@@ -130,6 +130,7 @@ export const ReplyToDiscussionResponse = zod.object({
  * @summary Edit or soft-delete a reply (author or moderator)
  */
 export const UpdateDiscussionReplyParams = zod.object({
+  discussionId: zod.uuid(),
   replyId: zod.uuid(),
 });
 

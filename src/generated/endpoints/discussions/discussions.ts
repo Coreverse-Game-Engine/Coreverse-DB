@@ -395,14 +395,18 @@ export type updateDiscussionReplyResponseError = (
 export type updateDiscussionReplyResponse =
   updateDiscussionReplyResponseSuccess | updateDiscussionReplyResponseError;
 
-export const getUpdateDiscussionReplyUrl = (replyId: string) => {
-  return `/discussions/replies/${replyId}`;
+export const getUpdateDiscussionReplyUrl = (
+  discussionId: string,
+  replyId: string,
+) => {
+  return `/discussions/${discussionId}/replies/${replyId}`;
 };
 
 /**
  * @summary Edit or soft-delete a reply (author or moderator)
  */
 export const updateDiscussionReply = async (
+  discussionId: string,
   replyId: string,
   updateDiscussionReplyBody: UpdateDiscussionReplyBody,
   options?: Parameters<typeof coreverseFetch>[1],
@@ -416,7 +420,7 @@ export const updateDiscussionReply = async (
     return h;
   };
   return coreverseFetch<updateDiscussionReplyResponse>(
-    getUpdateDiscussionReplyUrl(replyId),
+    getUpdateDiscussionReplyUrl(discussionId, replyId),
     {
       ...options,
       method: "PATCH",
