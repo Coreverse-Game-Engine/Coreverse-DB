@@ -2,13 +2,13 @@
 
 The database is organized into domain-oriented PostgreSQL schemas rather than one flat `public` schema:
 
-| Schema | Purpose |
-|---|---|
-| `releases` | Coreverse Engine release metadata and per-platform artifacts |
-| `identity` | Profiles, teams, team membership, membership requests, projects, platform roles |
-| `content` | News, polls, poll options/votes, discussions, discussion replies |
-| `docs` | Documentation source catalog and full-text search index |
-| `private` | Internal `SECURITY DEFINER` helper functions used by RLS policies (never exposed to clients) |
+| Schema     | Purpose                                                                                      |
+|------------|----------------------------------------------------------------------------------------------|
+| `releases` | Coreverse Engine release metadata and per-platform artifacts                                 |
+| `identity` | Profiles, teams, team membership, membership requests, projects, platform roles              |
+| `content`  | News, polls, poll options/votes, discussions, discussion replies                             |
+| `docs`     | Documentation source catalog and full-text search index                                      |
+| `private`  | Internal `SECURITY DEFINER` helper functions used by RLS policies (never exposed to clients) |
 
 This mirrors the API's tag structure: each schema is the backing store for one or more Edge Functions, and (with the exception of `identity`, which both `identity` and `content` domains write into for `platform_roles`) a migration that adds a domain is self-contained.
 

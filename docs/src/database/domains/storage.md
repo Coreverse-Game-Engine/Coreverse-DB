@@ -4,10 +4,10 @@ Supabase Storage is a platform service, not a PostgreSQL application schema — 
 
 ## Buckets
 
-| Bucket | Visibility | Naming | Limits |
-|---|---|---|---|
-| `avatars` | Public | Flat: `{user_id}.png` | 2 MB, `image/png` only |
-| `project-archives` | Private | `{owner_id}/{project_id}.tar.zst` | No bucket-level size limit (falls back to the project plan's global upload cap) |
+| Bucket             | Visibility | Naming                            | Limits                                                                          |
+|--------------------|------------|-----------------------------------|---------------------------------------------------------------------------------|
+| `avatars`          | Public     | Flat: `{user_id}.png`             | 2 MB, `image/png` only                                                          |
+| `project-archives` | Private    | `{owner_id}/{project_id}.tar.zst` | No bucket-level size limit (falls back to the project plan's global upload cap) |
 
 ## `avatars`
 

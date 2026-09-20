@@ -4,7 +4,7 @@
  * Coreverse DB API
  * Centralized data-access API for the Coreverse ecosystem. Coreverse DB defines and serves all data operations; Coreverse Launcher and Coreverse Website consume this API and never access Postgres/Supabase directly.
  *
- * OpenAPI spec version: 0.2.0
+ * OpenAPI spec version: 0.4.2
  */
 import * as zod from "zod";
 
@@ -58,17 +58,8 @@ export const UpdateMyProfileBody = zod
       .describe(
         "Must be unique (case-insensitive) across all profiles. A taken username returns 409.\n",
       ),
-    avatar_path: zod
-      .string()
-      .min(1)
-      .nullish()
-      .describe(
-        "Storage path in the avatars bucket. Set this directly only if you already know a valid path (e.g. clearing the avatar with null); to upload a new image, use POST \/profiles\/me\/avatar instead, which uploads the file and sets this for you.\n",
-      ),
   })
-  .describe(
-    "At least one of full_name, username or avatar_path must be provided.",
-  );
+  .describe("At least one of full_name or username must be provided.");
 
 export const UpdateMyProfileResponse = zod.object({
   id: zod.uuid(),
@@ -100,6 +91,31 @@ export const UploadMyAvatarBody = zod.object({
 });
 
 export const UploadMyAvatarResponse = zod.object({
+  id: zod.uuid(),
+  full_name: zod
+    .string()
+    .describe(
+      "Free-text display name, no format or uniqueness constraint. Distinct from username.",
+    ),
+  username: zod
+    .string()
+    .nullish()
+    .describe(
+      "Unique (case-insensitive), alphanumeric\/underscore handle, 3-24 characters. Every profile has one in practice (assigned at signup, backfilled for pre-existing users), but it's nullable at the schema level rather than required.\n",
+    ),
+  avatar_url: zod
+    .url()
+    .nullish()
+    .describe(
+      "Public\/signed URL resolved from the stored avatar_path, not the raw path itself.",
+    ),
+});
+
+/**
+ * Clears avatar_path and best-effort removes the underlying object from the avatars bucket. 404 if the profile has no avatar set.
+ * @summary Remove the caller's own avatar
+ */
+export const DeleteMyAvatarResponse = zod.object({
   id: zod.uuid(),
   full_name: zod
     .string()

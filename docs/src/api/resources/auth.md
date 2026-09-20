@@ -1,7 +1,7 @@
 # Auth
 
-| Method | Path | Auth | Does |
-|---|---|---|---|
+| Method | Path                   | Auth                   | Does                                          |
+|--------|------------------------|------------------------|-----------------------------------------------|
 | `POST` | `/auth/password-reset` | None (unauthenticated) | Requests a Supabase Auth password reset email |
 
 Unlike every other resource, `auth` operations never take a bearer token — `POST /auth/password-reset` is called by someone who, by definition, may not be able to sign in.
