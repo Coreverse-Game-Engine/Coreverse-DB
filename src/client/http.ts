@@ -82,7 +82,13 @@ export async function coreverseFetch<T>(url: string, options: RequestInit = {}):
   const { baseUrl, getAuthToken, fetch: fetchOverride } = requireConfig();
 
   const headers = new Headers(options.headers);
-  if (options.body !== undefined && !headers.has("Content-Type")) {
+  // FormData (e.g. uploadMyAvatar) must NOT get an explicit Content-Type --
+  // the browser needs to set its own `multipart/form-data; boundary=...`
+  // when it serializes the body, and a pre-set `application/json` here
+  // both lies about the format and suppresses that boundary, so the
+  // server can't parse the multipart body at all.
+  const isFormData = typeof FormData !== "undefined" && options.body instanceof FormData;
+  if (options.body !== undefined && !isFormData && !headers.has("Content-Type")) {
     headers.set("Content-Type", "application/json");
   }
 
@@ -94,11 +100,21 @@ export async function coreverseFetch<T>(url: string, options: RequestInit = {}):
   const doFetch = fetchOverride ?? fetch;
   const response = await doFetch(`${baseUrl}${url}`, { ...options, headers });
 
+  // Every generated endpoint (fetch client + react-query client) types its
+  // success return as an Orval-style envelope -- e.g. `{ data: GetMyProfile200,
+  // status: 200 } & { headers: Headers }` -- because that's the shape Orval's
+  // own built-in "fetch" client would produce. Since we override that client
+  // with this mutator, WE are responsible for actually producing that shape;
+  // Orval has no way to verify a custom mutator's runtime behavior against
+  // the types it generates for it.
+  //
   // 204 No Content (deleteTeam, leaveTeam, deleteProject, deleteDiscussion,
-  // deleteNews) -- nothing to parse, and `as T` is correct there since
-  // those operations are typed `void` in the generated client.
+  // deleteNews) -- nothing to parse, but it's still typed as an envelope
+  // with `data: void` (e.g. `deleteTeamResponse204 = { data: void; status:
+  // 204 }`), not a bare `void`/`undefined`. So it gets the same envelope
+  // treatment as every other response, just with `data: undefined`.
   if (response.status === 204) {
-    return undefined as T;
+    return { data: undefined, status: 204, headers: response.headers } as T;
   }
 
   const text = await response.text();
@@ -108,5 +124,5 @@ export async function coreverseFetch<T>(url: string, options: RequestInit = {}):
     throw new CoreverseApiError(response.status, parsed as CoreverseErrorBody | undefined);
   }
 
-  return parsed as T;
+  return { data: parsed, status: response.status, headers: response.headers } as T;
 }

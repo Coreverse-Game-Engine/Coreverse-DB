@@ -25,3 +25,4 @@ export * from "./generated/react/news/news";
 export * from "./generated/react/polls/polls";
 export * from "./generated/react/discussions/discussions";
 export * from "./generated/react/docs/docs";
+export * from "./generated/react/auth/auth";

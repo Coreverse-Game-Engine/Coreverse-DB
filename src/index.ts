@@ -18,6 +18,7 @@ export * from "./generated/endpoints/news/news";
 export * from "./generated/endpoints/polls/polls";
 export * from "./generated/endpoints/discussions/discussions";
 export * from "./generated/endpoints/docs/docs";
+export * from "./generated/endpoints/auth/auth";
 
 // Zod schemas, namespaced per tag rather than flattened. Unlike models/
 // and endpoints/ above, schema constant names here are *not* guaranteed
@@ -35,3 +36,4 @@ export * as newsSchemas from "./generated/zod/news/news";
 export * as pollsSchemas from "./generated/zod/polls/polls";
 export * as discussionsSchemas from "./generated/zod/discussions/discussions";
 export * as docsSchemas from "./generated/zod/docs/docs";
+export * as authSchemas from "./generated/zod/auth/auth";

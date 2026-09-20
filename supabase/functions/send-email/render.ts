@@ -129,8 +129,7 @@ export function emailContentFor(
 
   return {
     subject: 'Coreverse Engine',
-    htmlContent:
-      `<p>Please use the link below to continue (action: ${actionType}).</p>` +
+    htmlContent: `<p>Please use the link below to continue (action: ${actionType}).</p>` +
       `<p><a href="${actionLink}">${actionLink}</a></p>`,
   };
 }
