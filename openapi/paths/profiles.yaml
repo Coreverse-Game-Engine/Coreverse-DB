@@ -36,7 +36,7 @@ me:
         application/json:
           schema:
             type: object
-            description: At least one of full_name, username or avatar_path must be provided.
+            description: At least one of full_name or username must be provided.
             properties:
               full_name:
                 type: string
@@ -50,16 +50,6 @@ me:
                 description: >
                   Must be unique (case-insensitive) across all profiles.
                   A taken username returns 409.
-              avatar_path:
-                type: string
-                minLength: 1
-                nullable: true
-                description: >
-                  Storage path in the avatars bucket. Set this directly
-                  only if you already know a valid path (e.g. clearing
-                  the avatar with null); to upload a new image, use
-                  POST /profiles/me/avatar instead, which uploads the
-                  file and sets this for you.
     responses:
       '200':
         description: The updated profile.
@@ -86,7 +76,7 @@ me:
             schema:
               $ref: '../schemas/Error.yaml'
       '409':
-        description: username is already taken (case-insensitive).
+        description: Username is already taken, case-insensitive (error is "username_taken").
         content:
           application/json:
             schema:
@@ -143,6 +133,34 @@ avatar:
               $ref: '../schemas/Error.yaml'
       '413':
         description: File exceeds the 5 MB limit.
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/Error.yaml'
+  delete:
+    summary: Remove the caller's own avatar
+    description: >
+      Clears avatar_path and best-effort removes the underlying object
+      from the avatars bucket. 404 if the profile has no avatar set.
+    operationId: deleteMyAvatar
+    tags: [profiles]
+    security:
+      - bearerAuth: []
+    responses:
+      '200':
+        description: The updated profile, with avatar_url now null.
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/Profile.yaml'
+      '401':
+        description: A valid session is required.
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/Error.yaml'
+      '404':
+        description: No profile found, or the profile has no avatar to remove.
         content:
           application/json:
             schema:
