@@ -935,7 +935,7 @@ set row_security = off
 <ul>
 <li><strong>JSON in, JSON out.</strong> Every request body and response body is <code>application/json</code>; there is no XML or form-encoded surface.</li>
 <li><strong>Resource creation returns the full object</strong>, not just an <code>id</code>. (This was a real bug found and fixed during development — some RPC-backed create endpoints originally returned only <code>{ id }</code> while the spec promised the full <code>Team</code>/<code>Poll</code>/etc. object; the fix added explicit refetches after the underlying database function returns.)</li>
-<li><strong>Path parameters, not query strings, identify a specific resource</strong> — <code>/teams/{teamId}</code>, <code>/polls/{pollId}/vote</code>, <code>/replies/{replyId}</code>.</li>
+<li><strong>Path parameters, not query strings, identify a specific resource</strong> — <code>/teams/{teamId}</code>, <code>/polls/{pollId}/vote</code>, <code>/discussions/replies/{replyId}</code>.</li>
 <li><strong>List endpoints accept pagination/filtering as query parameters</strong> where applicable (e.g. <code>releases</code> status filter, <code>limit</code>/<code>offset</code>).</li>
 <li><strong>Every path-parameterized operation documents a 400</strong> for a malformed identifier, in addition to whatever 401/403/404 responses apply to that specific operation.</li>
 <li><strong>Trivial acknowledgement responses use a shared <code>Ok</code> schema</strong> rather than each endpoint inventing its own <code>{ "success": true }</code> shape.</li>
@@ -958,6 +958,10 @@ set row_security = off
 </div>
 <h2 id="request-validation-errors"><a class="header" href="#request-validation-errors">Request validation errors</a></h2>
 <p>A request that fails its Zod schema validation never reaches the database at all — the Edge Function returns <code>400</code> immediately with a message describing what failed.</p>
+<h2 id="error-is-a-closed-set"><a class="header" href="#error-is-a-closed-set"><code>error</code> is a closed set</a></h2>
+<p><code>openapi/schemas/Error.yaml</code> lists every <code>error</code> value an Edge Function can return as an enum — it's not open-ended free text. Adding a new code means adding it there in the same PR.</p>
+<h2 id="message-never-echoes-raw-database-errors"><a class="header" href="#message-never-echoes-raw-database-errors"><code>message</code> never echoes raw database errors</a></h2>
+<p>Once a request reaches the database, <code>message</code> is built from <code>safeDbErrorMessage()</code> (<code>supabase/functions/_shared/http.ts</code>), not from the raw Postgres/PostgREST <code>error.message</code>. The raw message can contain constraint, column, and table names — schema details a caller has no reason to see and that make the schema easier to map out from the outside. The HTTP status plus the route's own <code>error</code> code already convey everything a client can act on; <code>message</code> is for logs, not for showing verbatim in a UI.</p>
 <h2 id="404s"><a class="header" href="#404s">404s</a></h2>
 <p>A <code>404</code> means the referenced resource genuinely doesn't exist (or, in the case of RLS-protected resources, that it exists but the caller can't see it — Coreverse DB does not distinguish "not found" from "not authorized to know it exists" for read paths, to avoid leaking existence information).</p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="auth"><a class="header" href="#auth">Auth</a></h1>
@@ -981,14 +985,16 @@ set row_security = off
 <p>The actual reset email is sent by Supabase Auth's mailer, not by this endpoint directly. A separate <code>send-email</code> function (a Supabase Auth "Send Email" hook target, not part of this OpenAPI contract) intercepts the send and renders it with the Website's own localized copy via Brevo — see <a href="api/resources/../../development/edge-functions.html">Development › Edge Functions</a>.</p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="profiles"><a class="header" href="#profiles">Profiles</a></h1>
 <div class="table-wrapper"><table><thead><tr><th>Method</th><th>Path</th><th>Auth</th><th>Does</th></tr></thead><tbody>
-<tr><td><code>GET</code></td><td><code>/profiles/me</code></td><td>Required</td><td>The caller's own profile, with <code>avatar_path</code> resolved to a public <code>avatar_url</code></td></tr>
-<tr><td><code>PATCH</code></td><td><code>/profiles/me</code></td><td>Required</td><td>Update the caller's own profile — <code>full_name</code>, <code>username</code>, and/or <code>avatar_path</code> (at least one required; setting <code>avatar_path</code> directly only accepts clearing it with <code>null</code>)</td></tr>
+<tr><td><code>GET</code></td><td><code>/profiles/me</code></td><td>Required</td><td>The caller's own profile, with <code>avatar_path</code> resolved to a public, cache-busted <code>avatar_url</code></td></tr>
+<tr><td><code>PATCH</code></td><td><code>/profiles/me</code></td><td>Required</td><td>Update the caller's own profile — <code>full_name</code> and/or <code>username</code> (at least one required)</td></tr>
 <tr><td><code>POST</code></td><td><code>/profiles/me/avatar</code></td><td>Required</td><td>Upload a new avatar (multipart, PNG or WebP, up to 5 MB)</td></tr>
+<tr><td><code>DELETE</code></td><td><code>/profiles/me/avatar</code></td><td>Required</td><td>Remove the caller's avatar (<code>404</code> if none is set)</td></tr>
 </tbody></table>
 </div>
 <p>There is no endpoint to fetch or list <em>other</em> users' profiles by ID — <code>identity.profiles</code> is publicly readable at the RLS level (for joins from other domains, e.g. showing an author's name on a news article), but the API deliberately exposes only the "me" shape rather than a general <code>/profiles/{id}</code> lookup.</p>
-<p><strong>Username.</strong> A unique (case-insensitive), alphanumeric/underscore handle, 3–24 chars, distinct from <code>full_name</code>. A taken username on <code>PATCH /profiles/me</code> returns <code>409</code>. Every user is assigned a collision-free username automatically at signup — see <a href="api/resources/../../database/triggers.html">Database › Triggers</a>.</p>
-<p><strong>Avatar upload.</strong> As of <code>20260912085602_avatar_upload_and_rate_limit.sql</code>, clients no longer write to the <code>avatars</code> bucket directly — <code>POST /profiles/me/avatar</code> validates the file server-side and writes it to Storage with the service role, then updates <code>avatar_path</code>, returning the updated profile including the new <code>avatar_url</code>. Switching between PNG and WebP removes the previous object rather than leaving it orphaned. See <a href="api/resources/../../security/storage-security.html">Security › Storage Security</a>.</p>
+<p><strong>Username.</strong> A unique (case-insensitive), alphanumeric/underscore handle, 3–24 chars, distinct from <code>full_name</code>. A taken username on <code>PATCH /profiles/me</code> returns <code>409</code> (<code>username_taken</code>). Every user is assigned a collision-free username automatically at signup — see <a href="api/resources/../../database/triggers.html">Database › Triggers</a>.</p>
+<p><strong>Avatar upload.</strong> As of <code>20260912085602_avatar_upload_and_rate_limit.sql</code>, clients no longer write to the <code>avatars</code> bucket directly — <code>POST /profiles/me/avatar</code> validates the file server-side and writes it to Storage with the service role, then updates <code>avatar_path</code>, returning the updated profile including the new <code>avatar_url</code>. Switching between PNG and WebP removes the previous object rather than leaving it orphaned. <code>DELETE /profiles/me/avatar</code> clears <code>avatar_path</code> and best-effort removes the object. <code>avatar_path</code> is <strong>not</strong> settable through <code>PATCH /profiles/me</code> — it never went through that schema on the server side either, so exposing it there only let a client point their profile at an arbitrary storage object; avatars are set/unset exclusively via these two routes. See <a href="api/resources/../../security/storage-security.html">Security › Storage Security</a>.</p>
+<p><strong>Avatar caching.</strong> Because a re-upload overwrites the same <code>{user_id}.&lt;ext&gt;</code> object, the public URL by itself never changes — so <code>avatar_url</code> has a <code>?v=&lt;updated_at&gt;</code> query parameter appended, which busts browser/CDN caching on every write without renaming the underlying object.</p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="teams"><a class="header" href="#teams">Teams</a></h1>
 <div class="table-wrapper"><table><thead><tr><th>Method</th><th>Path</th><th>Auth</th><th>Does</th></tr></thead><tbody>
 <tr><td><code>POST</code></td><td><code>/teams</code></td><td>Required</td><td>Create a team; caller becomes owner</td></tr>
@@ -1035,7 +1041,7 @@ set row_security = off
 <tr><td><code>PATCH</code></td><td><code>/discussions/{discussionId}</code></td><td>Required (author/moderator)</td><td>Edit, lock, or unlock a discussion</td></tr>
 <tr><td><code>GET</code></td><td><code>/discussions/{discussionId}/replies</code></td><td>Public</td><td>List replies to a discussion</td></tr>
 <tr><td><code>POST</code></td><td><code>/discussions/{discussionId}/replies</code></td><td>Required</td><td>Reply to a discussion (rejected if the discussion <code>is_locked</code>)</td></tr>
-<tr><td><code>PATCH</code></td><td><code>/replies/{replyId}</code></td><td>Required (author/moderator)</td><td>Edit or soft-delete a reply</td></tr>
+<tr><td><code>PATCH</code></td><td><code>/discussions/replies/{replyId}</code></td><td>Required (author/moderator)</td><td>Edit or soft-delete a reply</td></tr>
 </tbody></table>
 </div>
 <p>Deleting a reply is a <strong>soft delete</strong> (<code>deleted_at</code> set, row otherwise retained) rather than a hard <code>DELETE</code>, so a thread's structure survives moderation — the client renders a tombstoned reply as "[deleted]". See <a href="api/resources/../../database/domains/content.html">Database › Domains › Content</a> and <a href="api/resources/../../database/tables/discussions.html">Database › Tables › Discussions</a>.</p>
@@ -1046,7 +1052,7 @@ set row_security = off
 <tr><td><code>GET</code></td><td><code>/polls/{pollId}/results</code></td><td>Public</td><td>Anonymous aggregated vote counts per option</td></tr>
 </tbody></table>
 </div>
-<p>Individual votes are <strong>never</strong> exposed by this API — <code>GET /polls/{pollId}/results</code> calls <code>content.poll_results()</code>, which reads across every user's <code>poll_votes</code> row but returns only per-option counts (see <a href="api/resources/../../database/functions/content.html">Database › Functions › Content</a>). <code>POST /polls/{pollId}/vote</code> will <code>409</code>/<code>400</code> if the caller has already voted (enforced by the <code>(poll_id, user_id)</code> primary key) or if the chosen option doesn't belong to the poll (enforced by a trigger — see <a href="api/resources/../../database/triggers.html">Database › Triggers</a>).</p>
+<p>Individual votes are <strong>never</strong> exposed by this API — <code>GET /polls/{pollId}/results</code> calls <code>content.poll_results()</code>, which reads across every user's <code>poll_votes</code> row but returns only per-option counts (see <a href="api/resources/../../database/functions/content.html">Database › Functions › Content</a>). <code>POST /polls/{pollId}/vote</code> returns <code>404</code> (<code>poll_not_found</code>) if the poll doesn't exist, <code>409</code> (<code>already_voted</code>) if the caller already voted — enforced by the <code>(poll_id, user_id)</code> primary key — <code>409</code> (<code>poll_closed</code>) if the poll's <code>closes_at</code> has passed, or <code>400</code> if the chosen option doesn't belong to the poll (enforced by a trigger — see <a href="api/resources/../../database/triggers.html">Database › Triggers</a>).</p>
 <p>Poll creation (with its options) is not shown as a separate public endpoint here because it's created atomically via <code>content.create_poll_with_options()</code> through the moderator-facing creation flow, alongside <code>news</code>.</p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="news"><a class="header" href="#news">News</a></h1>
 <div class="table-wrapper"><table><thead><tr><th>Method</th><th>Path</th><th>Auth</th><th>Does</th></tr></thead><tbody>
@@ -1425,7 +1431,7 @@ psql &lt;connection-string&gt; -f backup.sql
 <p>Separate from the table above (those are consumed by local
 dev/administration scripts against the DB directly, not by the deployed
 edge functions). <code>SUPABASE_URL</code>, <code>SUPABASE_ANON_KEY</code> and
-<code>SUPABASE_SERVICE_ROLE_KEY</code> are auto-injected into every edge function by
+<code>SERVICE_ROLE_KEY</code> are auto-injected into every edge function by
 the Supabase runtime; the only one this project manages itself is:</p>
 <div class="table-wrapper"><table><thead><tr><th>Variable</th><th>Purpose</th></tr></thead><tbody>
 <tr><td><code>WEBSITE_ALLOWED_ORIGINS</code></td><td>Comma-separated, exact origins (scheme + host + port, no trailing slash) allowed by CORS (<code>_shared/http.ts withCors</code>) and by <code>POST /auth/password-reset</code>'s <code>redirectTo</code> validation.</td></tr>

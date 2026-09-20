@@ -187,7 +187,7 @@
 <p>Separate from the table above (those are consumed by local
 dev/administration scripts against the DB directly, not by the deployed
 edge functions). <code>SUPABASE_URL</code>, <code>SUPABASE_ANON_KEY</code> and
-<code>SUPABASE_SERVICE_ROLE_KEY</code> are auto-injected into every edge function by
+<code>SERVICE_ROLE_KEY</code> are auto-injected into every edge function by
 the Supabase runtime; the only one this project manages itself is:</p>
 <div class="table-wrapper"><table><thead><tr><th>Variable</th><th>Purpose</th></tr></thead><tbody>
 <tr><td><code>WEBSITE_ALLOWED_ORIGINS</code></td><td>Comma-separated, exact origins (scheme + host + port, no trailing slash) allowed by CORS (<code>_shared/http.ts withCors</code>) and by <code>POST /auth/password-reset</code>'s <code>redirectTo</code> validation.</td></tr>

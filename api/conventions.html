@@ -177,7 +177,7 @@
 <ul>
 <li><strong>JSON in, JSON out.</strong> Every request body and response body is <code>application/json</code>; there is no XML or form-encoded surface.</li>
 <li><strong>Resource creation returns the full object</strong>, not just an <code>id</code>. (This was a real bug found and fixed during development — some RPC-backed create endpoints originally returned only <code>{ id }</code> while the spec promised the full <code>Team</code>/<code>Poll</code>/etc. object; the fix added explicit refetches after the underlying database function returns.)</li>
-<li><strong>Path parameters, not query strings, identify a specific resource</strong> — <code>/teams/{teamId}</code>, <code>/polls/{pollId}/vote</code>, <code>/replies/{replyId}</code>.</li>
+<li><strong>Path parameters, not query strings, identify a specific resource</strong> — <code>/teams/{teamId}</code>, <code>/polls/{pollId}/vote</code>, <code>/discussions/replies/{replyId}</code>.</li>
 <li><strong>List endpoints accept pagination/filtering as query parameters</strong> where applicable (e.g. <code>releases</code> status filter, <code>limit</code>/<code>offset</code>).</li>
 <li><strong>Every path-parameterized operation documents a 400</strong> for a malformed identifier, in addition to whatever 401/403/404 responses apply to that specific operation.</li>
 <li><strong>Trivial acknowledgement responses use a shared <code>Ok</code> schema</strong> rather than each endpoint inventing its own <code>{ "success": true }</code> shape.</li>

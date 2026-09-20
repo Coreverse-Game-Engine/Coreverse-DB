@@ -181,7 +181,7 @@
 <tr><td><code>PATCH</code></td><td><code>/discussions/{discussionId}</code></td><td>Required (author/moderator)</td><td>Edit, lock, or unlock a discussion</td></tr>
 <tr><td><code>GET</code></td><td><code>/discussions/{discussionId}/replies</code></td><td>Public</td><td>List replies to a discussion</td></tr>
 <tr><td><code>POST</code></td><td><code>/discussions/{discussionId}/replies</code></td><td>Required</td><td>Reply to a discussion (rejected if the discussion <code>is_locked</code>)</td></tr>
-<tr><td><code>PATCH</code></td><td><code>/replies/{replyId}</code></td><td>Required (author/moderator)</td><td>Edit or soft-delete a reply</td></tr>
+<tr><td><code>PATCH</code></td><td><code>/discussions/replies/{replyId}</code></td><td>Required (author/moderator)</td><td>Edit or soft-delete a reply</td></tr>
 </tbody></table>
 </div>
 <p>Deleting a reply is a <strong>soft delete</strong> (<code>deleted_at</code> set, row otherwise retained) rather than a hard <code>DELETE</code>, so a thread's structure survives moderation — the client renders a tombstoned reply as "[deleted]". See <a href="../../database/domains/content.html">Database › Domains › Content</a> and <a href="../../database/tables/discussions.html">Database › Tables › Discussions</a>.</p>

@@ -189,6 +189,10 @@
 </div>
 <h2 id="request-validation-errors"><a class="header" href="#request-validation-errors">Request validation errors</a></h2>
 <p>A request that fails its Zod schema validation never reaches the database at all — the Edge Function returns <code>400</code> immediately with a message describing what failed.</p>
+<h2 id="error-is-a-closed-set"><a class="header" href="#error-is-a-closed-set"><code>error</code> is a closed set</a></h2>
+<p><code>openapi/schemas/Error.yaml</code> lists every <code>error</code> value an Edge Function can return as an enum — it's not open-ended free text. Adding a new code means adding it there in the same PR.</p>
+<h2 id="message-never-echoes-raw-database-errors"><a class="header" href="#message-never-echoes-raw-database-errors"><code>message</code> never echoes raw database errors</a></h2>
+<p>Once a request reaches the database, <code>message</code> is built from <code>safeDbErrorMessage()</code> (<code>supabase/functions/_shared/http.ts</code>), not from the raw Postgres/PostgREST <code>error.message</code>. The raw message can contain constraint, column, and table names — schema details a caller has no reason to see and that make the schema easier to map out from the outside. The HTTP status plus the route's own <code>error</code> code already convey everything a client can act on; <code>message</code> is for logs, not for showing verbatim in a UI.</p>
 <h2 id="404s"><a class="header" href="#404s">404s</a></h2>
 <p>A <code>404</code> means the referenced resource genuinely doesn't exist (or, in the case of RLS-protected resources, that it exists but the caller can't see it — Coreverse DB does not distinguish "not found" from "not authorized to know it exists" for read paths, to avoid leaking existence information).</p>
 
