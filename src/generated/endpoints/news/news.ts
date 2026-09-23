@@ -15,7 +15,7 @@ import type {
   CreateNewsBody,
   DeleteNews400,
   DeleteNews404,
-  ListNews200Item,
+  ListNews200,
   ListNews400,
   ListNewsParams,
   UpdateNews200,
@@ -28,7 +28,7 @@ import type {
 import { coreverseFetch } from "../../../client/http";
 
 export type listNewsResponse200 = {
-  data: ListNews200Item[];
+  data: ListNews200;
   status: 200;
 };
 

@@ -28,7 +28,7 @@ import type {
   CreateNewsBody,
   DeleteNews400,
   DeleteNews404,
-  ListNews200Item,
+  ListNews200,
   ListNews400,
   ListNewsParams,
   UpdateNews200,
@@ -61,7 +61,7 @@ const withQueryKey = <T extends object, K>(
 };
 
 export type listNewsResponse200 = {
-  data: ListNews200Item[];
+  data: ListNews200;
   status: 200;
 };
 

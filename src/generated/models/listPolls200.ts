@@ -6,13 +6,10 @@
  *
  * OpenAPI spec version: 0.4.2
  */
+import type { ListPolls200ItemsItem } from "./listPolls200ItemsItem";
 
-export type ListDiscussionReplies200Item = {
-  id: string;
-  discussion_id: string;
-  author_id: string;
-  /** null/omitted when deleted_at is set -- render as "[deleted]". */
-  body?: string | null;
-  deleted_at?: string | null;
-  created_at?: string;
+export type ListPolls200 = {
+  items: ListPolls200ItemsItem[];
+  /** Pass as ?cursor= to fetch the next page. null once there are no more. */
+  next_cursor: string | null;
 };

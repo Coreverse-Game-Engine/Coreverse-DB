@@ -4,15 +4,32 @@ list:
     operationId: listPolls
     tags: [polls]
     security: []
+    parameters:
+      - $ref: '../parameters/Pagination.yaml#/limit'
+      - $ref: '../parameters/Pagination.yaml#/cursor'
     responses:
       '200':
-        description: Polls.
+        description: A page of polls, newest first.
         content:
           application/json:
             schema:
-              type: array
-              items:
-                $ref: '../schemas/Poll.yaml'
+              type: object
+              required: [items, next_cursor]
+              properties:
+                items:
+                  type: array
+                  items:
+                    $ref: '../schemas/Poll.yaml'
+                next_cursor:
+                  type: string
+                  nullable: true
+                  description: Pass as ?cursor= to fetch the next page. null once there are no more.
+      '400':
+        description: Invalid limit or cursor.
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/Error.yaml'
   post:
     summary: Create a poll with its options (moderator/admin only)
     operationId: createPoll

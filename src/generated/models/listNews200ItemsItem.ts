@@ -6,11 +6,14 @@
  *
  * OpenAPI spec version: 0.4.2
  */
-import type { ListPolls200ItemOptionsItem } from "./listPolls200ItemOptionsItem";
+import type { ListNews200ItemsItemStatus } from "./listNews200ItemsItemStatus";
 
-export type ListPolls200Item = {
+export type ListNews200ItemsItem = {
   id: string;
-  question: string;
-  closes_at?: string | null;
-  options: ListPolls200ItemOptionsItem[];
+  title: string;
+  slug: string;
+  body?: string;
+  author_id?: string;
+  status: ListNews200ItemsItemStatus;
+  published_at?: string | null;
 };

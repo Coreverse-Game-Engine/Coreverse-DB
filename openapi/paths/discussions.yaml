@@ -9,15 +9,31 @@ list:
         in: query
         required: false
         schema: { type: string }
+      - $ref: '../parameters/Pagination.yaml#/limit'
+      - $ref: '../parameters/Pagination.yaml#/cursor'
     responses:
       '200':
-        description: Discussions.
+        description: A page of discussions, newest first.
         content:
           application/json:
             schema:
-              type: array
-              items:
-                $ref: '../schemas/Discussion.yaml'
+              type: object
+              required: [items, next_cursor]
+              properties:
+                items:
+                  type: array
+                  items:
+                    $ref: '../schemas/Discussion.yaml'
+                next_cursor:
+                  type: string
+                  nullable: true
+                  description: Pass as ?cursor= to fetch the next page. null once there are no more.
+      '400':
+        description: Invalid limit or cursor.
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/Error.yaml'
   post:
     summary: Start a discussion
     operationId: createDiscussion
@@ -140,17 +156,27 @@ replies:
         in: path
         required: true
         schema: { type: string, format: uuid }
+      - $ref: '../parameters/Pagination.yaml#/limit'
+      - $ref: '../parameters/Pagination.yaml#/cursor'
     responses:
       '200':
-        description: Replies (including soft-deleted tombstones).
+        description: A page of replies (including soft-deleted tombstones), oldest first.
         content:
           application/json:
             schema:
-              type: array
-              items:
-                $ref: '../schemas/DiscussionReply.yaml'
+              type: object
+              required: [items, next_cursor]
+              properties:
+                items:
+                  type: array
+                  items:
+                    $ref: '../schemas/DiscussionReply.yaml'
+                next_cursor:
+                  type: string
+                  nullable: true
+                  description: Pass as ?cursor= to fetch the next page. null once there are no more.
       '400':
-        description: Invalid discussion id.
+        description: Invalid discussion id, limit, or cursor.
         content:
           application/json:
             schema:

@@ -11,19 +11,46 @@ import * as zod from "zod";
 /**
  * @summary List polls (with their options)
  */
-export const ListPollsResponseItem = zod.object({
-  id: zod.uuid(),
-  question: zod.string(),
-  closes_at: zod.iso.datetime({ offset: true }).nullish(),
-  options: zod.array(
+export const listPollsQueryLimitDefault = 20;
+export const listPollsQueryLimitMax = 100;
+
+export const ListPollsQueryParams = zod.object({
+  limit: zod
+    .int()
+    .min(1)
+    .max(listPollsQueryLimitMax)
+    .default(listPollsQueryLimitDefault)
+    .describe("Max items to return (1-100, default 20)."),
+  cursor: zod
+    .string()
+    .optional()
+    .describe(
+      "Opaque token from a previous page's next_cursor. Omit for the first page. Treat as opaque -- its encoding is an implementation detail and may change.\n",
+    ),
+});
+
+export const ListPollsResponse = zod.object({
+  items: zod.array(
     zod.object({
       id: zod.uuid(),
-      label: zod.string(),
-      display_order: zod.int().optional(),
+      question: zod.string(),
+      closes_at: zod.iso.datetime({ offset: true }).nullish(),
+      options: zod.array(
+        zod.object({
+          id: zod.uuid(),
+          label: zod.string(),
+          display_order: zod.int().optional(),
+        }),
+      ),
     }),
   ),
+  next_cursor: zod
+    .string()
+    .nullable()
+    .describe(
+      "Pass as ?cursor= to fetch the next page. null once there are no more.",
+    ),
 });
-export const ListPollsResponse = zod.array(ListPollsResponseItem);
 
 /**
  * @summary Create a poll with its options (moderator/admin only)

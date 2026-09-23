@@ -11,14 +11,16 @@ import { defineConfig } from "orval";
 //                      webhook payload) don't have to pull in fetch code.
 //
 // swagger-parser (used internally by Orval) resolves the spec's external
-// $refs (paths/*.yaml, schemas/*.yaml) itself, directly against
-// openapi/openapi.yaml -- no separate bundle step needed here.
+// $refs (paths/*.yaml, schemas/*.yaml, parameters/*.yaml) itself, directly
+// against openapi/openapi.yaml -- no separate bundle step needed here.
 //
 // Orval v8 disallows external $ref targets by default (a v7->v8 breaking
 // change, not something we did wrong) -- every file our multi-file spec
 // pulls in via $ref has to be allow-listed explicitly. This is every
-// paths/*.yaml and schemas/*.yaml file that exists today; add new ones
-// here when a future path/schema file is added to openapi/.
+// paths/*.yaml, schemas/*.yaml, and parameters/*.yaml file that exists
+// today; add new ones here when a future external ref file is added to
+// openapi/.
+
 const externalRefsAllow = [
   "./paths/releases.yaml",
   "./paths/teams.yaml",
@@ -30,6 +32,7 @@ const externalRefsAllow = [
   "./paths/polls.yaml",
   "./paths/discussions.yaml",
   "./paths/docs.yaml",
+
   "./schemas/Ok.yaml",
   "./schemas/Release.yaml",
   "./schemas/Artifact.yaml",
@@ -46,6 +49,8 @@ const externalRefsAllow = [
   "./schemas/DocSource.yaml",
   "./schemas/DocSearchResult.yaml",
   "./schemas/Error.yaml",
+
+  "./parameters/Pagination.yaml",
 ];
 
 export default defineConfig({
@@ -75,6 +80,7 @@ export default defineConfig({
       },
     },
   },
+
   coreverseDbZod: {
     input: {
       target: "./openapi/openapi.yaml",
@@ -89,9 +95,10 @@ export default defineConfig({
       target: "./src/generated/zod",
       client: "zod",
       clean: true,
-      formatter: "prettier"
+      formatter: "prettier",
     },
   },
+
   // TanStack Query hooks for the "@coreverse/db-client/react" subpath
   // export (see src/react.ts + package.json `exports`). Reuses the same
   // coreverseFetch mutator as coreverseDb above -- these hooks are a thin

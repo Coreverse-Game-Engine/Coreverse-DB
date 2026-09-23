@@ -13,9 +13,11 @@ import type {
   CreateDiscussionBody,
   DeleteDiscussion400,
   DeleteDiscussion404,
-  ListDiscussionReplies200Item,
+  ListDiscussionReplies200,
   ListDiscussionReplies400,
-  ListDiscussions200Item,
+  ListDiscussionRepliesParams,
+  ListDiscussions200,
+  ListDiscussions400,
   ListDiscussionsParams,
   ReplyToDiscussion201,
   ReplyToDiscussion400,
@@ -37,14 +39,24 @@ import type {
 import { coreverseFetch } from "../../../client/http";
 
 export type listDiscussionsResponse200 = {
-  data: ListDiscussions200Item[];
+  data: ListDiscussions200;
   status: 200;
+};
+
+export type listDiscussionsResponse400 = {
+  data: ListDiscussions400;
+  status: 400;
 };
 
 export type listDiscussionsResponseSuccess = listDiscussionsResponse200 & {
   headers: Headers;
 };
-export type listDiscussionsResponse = listDiscussionsResponseSuccess;
+export type listDiscussionsResponseError = listDiscussionsResponse400 & {
+  headers: Headers;
+};
+
+export type listDiscussionsResponse =
+  listDiscussionsResponseSuccess | listDiscussionsResponseError;
 
 export const getListDiscussionsUrl = (params?: ListDiscussionsParams) => {
   const normalizedParams = new URLSearchParams();
@@ -251,7 +263,7 @@ export const deleteDiscussion = async (
 };
 
 export type listDiscussionRepliesResponse200 = {
-  data: ListDiscussionReplies200Item[];
+  data: ListDiscussionReplies200;
   status: 200;
 };
 
@@ -272,8 +284,23 @@ export type listDiscussionRepliesResponseError =
 export type listDiscussionRepliesResponse =
   listDiscussionRepliesResponseSuccess | listDiscussionRepliesResponseError;
 
-export const getListDiscussionRepliesUrl = (discussionId: string) => {
-  return `/discussions/${discussionId}/replies`;
+export const getListDiscussionRepliesUrl = (
+  discussionId: string,
+  params?: ListDiscussionRepliesParams,
+) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : String(value));
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/discussions/${discussionId}/replies?${stringifiedParams}`
+    : `/discussions/${discussionId}/replies`;
 };
 
 /**
@@ -281,10 +308,11 @@ export const getListDiscussionRepliesUrl = (discussionId: string) => {
  */
 export const listDiscussionReplies = async (
   discussionId: string,
+  params?: ListDiscussionRepliesParams,
   options?: Parameters<typeof coreverseFetch>[1],
 ): Promise<listDiscussionRepliesResponse> => {
   return coreverseFetch<listDiscussionRepliesResponse>(
-    getListDiscussionRepliesUrl(discussionId),
+    getListDiscussionRepliesUrl(discussionId, params),
     {
       ...options,
       method: "GET",
