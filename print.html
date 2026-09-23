@@ -935,11 +935,16 @@ set row_security = off
 <ul>
 <li><strong>JSON in, JSON out.</strong> Every request body and response body is <code>application/json</code>; there is no XML or form-encoded surface.</li>
 <li><strong>Resource creation returns the full object</strong>, not just an <code>id</code>. (This was a real bug found and fixed during development — some RPC-backed create endpoints originally returned only <code>{ id }</code> while the spec promised the full <code>Team</code>/<code>Poll</code>/etc. object; the fix added explicit refetches after the underlying database function returns.)</li>
-<li><strong>Path parameters, not query strings, identify a specific resource</strong> — <code>/teams/{teamId}</code>, <code>/polls/{pollId}/vote</code>, <code>/discussions/replies/{replyId}</code>.</li>
-<li><strong>List endpoints accept pagination/filtering as query parameters</strong> where applicable (e.g. <code>releases</code> status filter, <code>limit</code>/<code>offset</code>).</li>
+<li><strong>Path parameters, not query strings, identify a specific resource</strong> — <code>/teams/{teamId}</code>, <code>/polls/{pollId}/vote</code>, <code>/discussions/{discussionId}/replies/{replyId}</code>.</li>
 <li><strong>Every path-parameterized operation documents a 400</strong> for a malformed identifier, in addition to whatever 401/403/404 responses apply to that specific operation.</li>
 <li><strong>Trivial acknowledgement responses use a shared <code>Ok</code> schema</strong> rather than each endpoint inventing its own <code>{ "success": true }</code> shape.</li>
 <li><strong>Errors use the shared <code>Error</code> schema</strong> everywhere — see <a href="api/errors.html">Errors</a>.</li>
+</ul>
+<h2 id="pagination"><a class="header" href="#pagination">Pagination</a></h2>
+<p>Two styles coexist, deliberately, rather than one being retrofitted onto the other:</p>
+<ul>
+<li><strong><code>releases</code></strong> uses offset/limit (<code>?limit=&amp;?offset=</code>) and returns a bare array. This predates the pattern below and hasn't been migrated — see <a href="api/resources/releases.html">Resources › Releases</a>.</li>
+<li><strong>Every other list endpoint</strong> (<code>discussions</code>, a discussion's <code>replies</code>, <code>polls</code>, <code>news</code>) uses keyset ("cursor") pagination: <code>?limit=</code> (1-100, default 20) and <code>?cursor=</code>, and the response is <code>{ items: [...], next_cursor: string | null }</code> instead of a bare array. Fetch the next page by passing the previous page's <code>next_cursor</code> back as <code>?cursor=</code>; <code>next_cursor: null</code> means there is no next page. <code>cursor</code> is an opaque token — its encoding is an implementation detail (currently base64 of the last row's <code>created_at</code> and <code>id</code>) and shouldn't be parsed or constructed by clients. See <code>supabase/functions/_shared/pagination.ts</code> for the implementation.</li>
 </ul>
 <p>See <a href="api/../openapi/schemas.html">OpenAPI › Schemas</a> for the schema files these conventions are expressed in.</p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="errors"><a class="header" href="#errors">Errors</a></h1>
@@ -1041,7 +1046,7 @@ set row_security = off
 <tr><td><code>PATCH</code></td><td><code>/discussions/{discussionId}</code></td><td>Required (author/moderator)</td><td>Edit, lock, or unlock a discussion</td></tr>
 <tr><td><code>GET</code></td><td><code>/discussions/{discussionId}/replies</code></td><td>Public</td><td>List replies to a discussion</td></tr>
 <tr><td><code>POST</code></td><td><code>/discussions/{discussionId}/replies</code></td><td>Required</td><td>Reply to a discussion (rejected if the discussion <code>is_locked</code>)</td></tr>
-<tr><td><code>PATCH</code></td><td><code>/discussions/replies/{replyId}</code></td><td>Required (author/moderator)</td><td>Edit or soft-delete a reply</td></tr>
+<tr><td><code>PATCH</code></td><td><code>/discussions/{discussionId}/replies/{replyId}</code></td><td>Required (author/moderator)</td><td>Edit or soft-delete a reply</td></tr>
 </tbody></table>
 </div>
 <p>Deleting a reply is a <strong>soft delete</strong> (<code>deleted_at</code> set, row otherwise retained) rather than a hard <code>DELETE</code>, so a thread's structure survives moderation — the client renders a tombstoned reply as "[deleted]". See <a href="api/resources/../../database/domains/content.html">Database › Domains › Content</a> and <a href="api/resources/../../database/tables/discussions.html">Database › Tables › Discussions</a>.</p>
@@ -1052,6 +1057,7 @@ set row_security = off
 <tr><td><code>GET</code></td><td><code>/polls/{pollId}/results</code></td><td>Public</td><td>Anonymous aggregated vote counts per option</td></tr>
 </tbody></table>
 </div>
+<p><code>GET /polls</code> is cursor-paginated (<code>?limit=&amp;?cursor=</code>, response is <code>{ items, next_cursor }</code>) — see <a href="api/resources/../conventions.html#pagination">Conventions › Pagination</a>.</p>
 <p>Individual votes are <strong>never</strong> exposed by this API — <code>GET /polls/{pollId}/results</code> calls <code>content.poll_results()</code>, which reads across every user's <code>poll_votes</code> row but returns only per-option counts (see <a href="api/resources/../../database/functions/content.html">Database › Functions › Content</a>). <code>POST /polls/{pollId}/vote</code> returns <code>404</code> (<code>poll_not_found</code>) if the poll doesn't exist, <code>409</code> (<code>already_voted</code>) if the caller already voted — enforced by the <code>(poll_id, user_id)</code> primary key — <code>409</code> (<code>poll_closed</code>) if the poll's <code>closes_at</code> has passed, or <code>400</code> if the chosen option doesn't belong to the poll (enforced by a trigger — see <a href="api/resources/../../database/triggers.html">Database › Triggers</a>).</p>
 <p>Poll creation (with its options) is not shown as a separate public endpoint here because it's created atomically via <code>content.create_poll_with_options()</code> through the moderator-facing creation flow, alongside <code>news</code>.</p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="news"><a class="header" href="#news">News</a></h1>
@@ -1063,6 +1069,7 @@ set row_security = off
 <tr><td><code>DELETE</code></td><td><code>/news/{newsId}</code></td><td>Required (moderator/admin)</td><td>Delete an article</td></tr>
 </tbody></table>
 </div>
+<p><code>GET /news</code> is cursor-paginated (<code>?limit=&amp;?cursor=</code>, response is <code>{ items, next_cursor }</code>) — see <a href="api/resources/../conventions.html#pagination">Conventions › Pagination</a>.</p>
 <p>Write access is gated by <code>identity.is_platform_moderator()</code> — platform-wide <code>admin</code>/<code>moderator</code> roles, unrelated to team roles. See <a href="api/resources/../../database/domains/content.html">Database › Domains › Content</a> for why anonymous callers must never trigger that check (it reads a table <code>anon</code> has no grant on) and how the RLS policies avoid it.</p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="requests"><a class="header" href="#requests">Requests</a></h1>
 <div class="table-wrapper"><table><thead><tr><th>Method</th><th>Path</th><th>Auth</th><th>Does</th></tr></thead><tbody>

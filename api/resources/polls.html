@@ -180,6 +180,7 @@
 <tr><td><code>GET</code></td><td><code>/polls/{pollId}/results</code></td><td>Public</td><td>Anonymous aggregated vote counts per option</td></tr>
 </tbody></table>
 </div>
+<p><code>GET /polls</code> is cursor-paginated (<code>?limit=&amp;?cursor=</code>, response is <code>{ items, next_cursor }</code>) — see <a href="../conventions.html#pagination">Conventions › Pagination</a>.</p>
 <p>Individual votes are <strong>never</strong> exposed by this API — <code>GET /polls/{pollId}/results</code> calls <code>content.poll_results()</code>, which reads across every user's <code>poll_votes</code> row but returns only per-option counts (see <a href="../../database/functions/content.html">Database › Functions › Content</a>). <code>POST /polls/{pollId}/vote</code> returns <code>404</code> (<code>poll_not_found</code>) if the poll doesn't exist, <code>409</code> (<code>already_voted</code>) if the caller already voted — enforced by the <code>(poll_id, user_id)</code> primary key — <code>409</code> (<code>poll_closed</code>) if the poll's <code>closes_at</code> has passed, or <code>400</code> if the chosen option doesn't belong to the poll (enforced by a trigger — see <a href="../../database/triggers.html">Database › Triggers</a>).</p>
 <p>Poll creation (with its options) is not shown as a separate public endpoint here because it's created atomically via <code>content.create_poll_with_options()</code> through the moderator-facing creation flow, alongside <code>news</code>.</p>
 

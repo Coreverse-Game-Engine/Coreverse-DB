@@ -182,6 +182,7 @@
 <tr><td><code>DELETE</code></td><td><code>/news/{newsId}</code></td><td>Required (moderator/admin)</td><td>Delete an article</td></tr>
 </tbody></table>
 </div>
+<p><code>GET /news</code> is cursor-paginated (<code>?limit=&amp;?cursor=</code>, response is <code>{ items, next_cursor }</code>) — see <a href="../conventions.html#pagination">Conventions › Pagination</a>.</p>
 <p>Write access is gated by <code>identity.is_platform_moderator()</code> — platform-wide <code>admin</code>/<code>moderator</code> roles, unrelated to team roles. See <a href="../../database/domains/content.html">Database › Domains › Content</a> for why anonymous callers must never trigger that check (it reads a table <code>anon</code> has no grant on) and how the RLS policies avoid it.</p>
 
                     </main>

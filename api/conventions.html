@@ -177,11 +177,16 @@
 <ul>
 <li><strong>JSON in, JSON out.</strong> Every request body and response body is <code>application/json</code>; there is no XML or form-encoded surface.</li>
 <li><strong>Resource creation returns the full object</strong>, not just an <code>id</code>. (This was a real bug found and fixed during development — some RPC-backed create endpoints originally returned only <code>{ id }</code> while the spec promised the full <code>Team</code>/<code>Poll</code>/etc. object; the fix added explicit refetches after the underlying database function returns.)</li>
-<li><strong>Path parameters, not query strings, identify a specific resource</strong> — <code>/teams/{teamId}</code>, <code>/polls/{pollId}/vote</code>, <code>/discussions/replies/{replyId}</code>.</li>
-<li><strong>List endpoints accept pagination/filtering as query parameters</strong> where applicable (e.g. <code>releases</code> status filter, <code>limit</code>/<code>offset</code>).</li>
+<li><strong>Path parameters, not query strings, identify a specific resource</strong> — <code>/teams/{teamId}</code>, <code>/polls/{pollId}/vote</code>, <code>/discussions/{discussionId}/replies/{replyId}</code>.</li>
 <li><strong>Every path-parameterized operation documents a 400</strong> for a malformed identifier, in addition to whatever 401/403/404 responses apply to that specific operation.</li>
 <li><strong>Trivial acknowledgement responses use a shared <code>Ok</code> schema</strong> rather than each endpoint inventing its own <code>{ "success": true }</code> shape.</li>
 <li><strong>Errors use the shared <code>Error</code> schema</strong> everywhere — see <a href="errors.html">Errors</a>.</li>
+</ul>
+<h2 id="pagination"><a class="header" href="#pagination">Pagination</a></h2>
+<p>Two styles coexist, deliberately, rather than one being retrofitted onto the other:</p>
+<ul>
+<li><strong><code>releases</code></strong> uses offset/limit (<code>?limit=&amp;?offset=</code>) and returns a bare array. This predates the pattern below and hasn't been migrated — see <a href="resources/releases.html">Resources › Releases</a>.</li>
+<li><strong>Every other list endpoint</strong> (<code>discussions</code>, a discussion's <code>replies</code>, <code>polls</code>, <code>news</code>) uses keyset ("cursor") pagination: <code>?limit=</code> (1-100, default 20) and <code>?cursor=</code>, and the response is <code>{ items: [...], next_cursor: string | null }</code> instead of a bare array. Fetch the next page by passing the previous page's <code>next_cursor</code> back as <code>?cursor=</code>; <code>next_cursor: null</code> means there is no next page. <code>cursor</code> is an opaque token — its encoding is an implementation detail (currently base64 of the last row's <code>created_at</code> and <code>id</code>) and shouldn't be parsed or constructed by clients. See <code>supabase/functions/_shared/pagination.ts</code> for the implementation.</li>
 </ul>
 <p>See <a href="../openapi/schemas.html">OpenAPI › Schemas</a> for the schema files these conventions are expressed in.</p>
 
