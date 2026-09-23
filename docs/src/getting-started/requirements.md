@@ -2,14 +2,14 @@
 
 A complete local development environment requires:
 
-| Tool | Version | Used for |
-|---|---|---|
-| **Node.js** | 22+ | TypeScript client tooling (`pnpm`, Orval, `tsup`) |
-| **pnpm** | 9.12.0 | Package management for the `@coreverse/db-client` package |
-| **Deno** | 2.x | Edge Function development, formatting, linting, and unit tests |
-| **Supabase CLI** | latest | Running the local Supabase stack, migrations, and pgTAP tests |
-| **Docker** | latest | Backing runtime for the local Supabase/PostgreSQL stack |
-| **Git** | any recent | Version control |
+| Tool             | Version    | Used for                                                       |
+|------------------|------------|----------------------------------------------------------------|
+| **Node.js**      | 22+        | TypeScript client tooling (`pnpm`, Orval, `tsup`)              |
+| **pnpm**         | 9.12.0     | Package management for the `@coreverse/db-client` package      |
+| **Deno**         | 2.x        | Edge Function development, formatting, linting, and unit tests |
+| **Supabase CLI** | latest     | Running the local Supabase stack, migrations, and pgTAP tests  |
+| **Docker**       | latest     | Backing runtime for the local Supabase/PostgreSQL stack        |
+| **Git**          | any recent | Version control                                                |
 
 Optional but recommended:
 

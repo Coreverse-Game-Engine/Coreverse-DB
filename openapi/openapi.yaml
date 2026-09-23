@@ -7,7 +7,7 @@ info:
     defines and serves all data operations; Coreverse Launcher and
     Coreverse Website consume this API and never access Postgres/Supabase
     directly.
-  version: 0.2.0
+  version: 0.4.2
   license:
     name: GPL-3.0-only
     identifier: GPL-3.0-only
@@ -94,7 +94,7 @@ paths:
     $ref: './paths/discussions.yaml#/byId'
   /discussions/{discussionId}/replies:
     $ref: './paths/discussions.yaml#/replies'
-  /replies/{replyId}:
+  /discussions/{discussionId}/replies/{replyId}:
     $ref: './paths/discussions.yaml#/replyById'
   /docs/sources:
     $ref: './paths/docs.yaml#/sources'

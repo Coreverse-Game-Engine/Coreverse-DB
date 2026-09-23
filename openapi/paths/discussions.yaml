@@ -209,6 +209,10 @@ replyById:
     security:
       - bearerAuth: []
     parameters:
+      - name: discussionId
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
       - name: replyId
         in: path
         required: true
@@ -230,7 +234,7 @@ replyById:
             schema:
               $ref: '../schemas/DiscussionReply.yaml'
       '400':
-        description: Invalid reply id or request body.
+        description: Invalid discussion id, reply id, or request body.
         content:
           application/json:
             schema:
@@ -242,7 +246,7 @@ replyById:
             schema:
               $ref: '../schemas/Error.yaml'
       '404':
-        description: No reply with that id (or not authorized).
+        description: No reply with that id in this discussion (or not authorized).
         content:
           application/json:
             schema:

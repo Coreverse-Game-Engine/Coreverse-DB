@@ -4,7 +4,7 @@
  * Coreverse DB API
  * Centralized data-access API for the Coreverse ecosystem. Coreverse DB defines and serves all data operations; Coreverse Launcher and Coreverse Website consume this API and never access Postgres/Supabase directly.
  *
- * OpenAPI spec version: 0.2.0
+ * OpenAPI spec version: 0.4.2
  */
 /**
  * Trivial acknowledgement body for actions that don't return a resource.
@@ -286,10 +286,48 @@ export interface DocSearchResult {
   rank: number;
 }
 
+/**
+ * Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check).
+ */
+export type ErrorError = (typeof ErrorError)[keyof typeof ErrorError];
+
+export const ErrorError = {
+  already_decided: "already_decided",
+  already_voted: "already_voted",
+  internal_error: "internal_error",
+  invalid_body: "invalid_body",
+  invalid_discussion_id: "invalid_discussion_id",
+  invalid_news_id: "invalid_news_id",
+  invalid_poll_id: "invalid_poll_id",
+  invalid_project_id: "invalid_project_id",
+  invalid_query: "invalid_query",
+  invalid_redirect: "invalid_redirect",
+  invalid_reply_id: "invalid_reply_id",
+  invalid_request_id: "invalid_request_id",
+  invalid_team_id: "invalid_team_id",
+  invalid_user_id: "invalid_user_id",
+  invalid_version: "invalid_version",
+  method_not_allowed: "method_not_allowed",
+  misconfigured: "misconfigured",
+  missing_file: "missing_file",
+  not_found: "not_found",
+  poll_closed: "poll_closed",
+  poll_not_found: "poll_not_found",
+  query_error: "query_error",
+  rate_limited: "rate_limited",
+  rpc_error: "rpc_error",
+  storage_error: "storage_error",
+  too_large: "too_large",
+  unauthorized: "unauthorized",
+  unsupported_type: "unsupported_type",
+  username_taken: "username_taken",
+  vote_rejected: "vote_rejected",
+} as const;
+
 export interface Error {
-  /** Short machine-readable error code, e.g. "invalid_version". */
-  error: string;
-  /** Human-readable explanation. */
+  /** Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check). */
+  error: ErrorError;
+  /** Human-readable detail, for logging/debugging. Never contains raw Postgres/PostgREST error text (constraint names, column names, internal query shape) -- see safeDbErrorMessage() in supabase/functions/_shared/http.ts. Not meant to be shown verbatim to end users; Website should key UI copy off `error`. */
   message: string;
 }
 
@@ -388,10 +426,49 @@ export type ListReleases200Item = {
   artifacts: ListReleases200ItemArtifactsItem[];
 };
 
+/**
+ * Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check).
+ */
+export type ListReleases400Error =
+  (typeof ListReleases400Error)[keyof typeof ListReleases400Error];
+
+export const ListReleases400Error = {
+  already_decided: "already_decided",
+  already_voted: "already_voted",
+  internal_error: "internal_error",
+  invalid_body: "invalid_body",
+  invalid_discussion_id: "invalid_discussion_id",
+  invalid_news_id: "invalid_news_id",
+  invalid_poll_id: "invalid_poll_id",
+  invalid_project_id: "invalid_project_id",
+  invalid_query: "invalid_query",
+  invalid_redirect: "invalid_redirect",
+  invalid_reply_id: "invalid_reply_id",
+  invalid_request_id: "invalid_request_id",
+  invalid_team_id: "invalid_team_id",
+  invalid_user_id: "invalid_user_id",
+  invalid_version: "invalid_version",
+  method_not_allowed: "method_not_allowed",
+  misconfigured: "misconfigured",
+  missing_file: "missing_file",
+  not_found: "not_found",
+  poll_closed: "poll_closed",
+  poll_not_found: "poll_not_found",
+  query_error: "query_error",
+  rate_limited: "rate_limited",
+  rpc_error: "rpc_error",
+  storage_error: "storage_error",
+  too_large: "too_large",
+  unauthorized: "unauthorized",
+  unsupported_type: "unsupported_type",
+  username_taken: "username_taken",
+  vote_rejected: "vote_rejected",
+} as const;
+
 export type ListReleases400 = {
-  /** Short machine-readable error code, e.g. "invalid_version". */
-  error: string;
-  /** Human-readable explanation. */
+  /** Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check). */
+  error: ListReleases400Error;
+  /** Human-readable detail, for logging/debugging. Never contains raw Postgres/PostgREST error text (constraint names, column names, internal query shape) -- see safeDbErrorMessage() in supabase/functions/_shared/http.ts. Not meant to be shown verbatim to end users; Website should key UI copy off `error`. */
   message: string;
 };
 
@@ -481,10 +558,49 @@ export type GetLatestRelease200 = {
   artifacts: GetLatestRelease200ArtifactsItem[];
 };
 
+/**
+ * Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check).
+ */
+export type GetLatestRelease404Error =
+  (typeof GetLatestRelease404Error)[keyof typeof GetLatestRelease404Error];
+
+export const GetLatestRelease404Error = {
+  already_decided: "already_decided",
+  already_voted: "already_voted",
+  internal_error: "internal_error",
+  invalid_body: "invalid_body",
+  invalid_discussion_id: "invalid_discussion_id",
+  invalid_news_id: "invalid_news_id",
+  invalid_poll_id: "invalid_poll_id",
+  invalid_project_id: "invalid_project_id",
+  invalid_query: "invalid_query",
+  invalid_redirect: "invalid_redirect",
+  invalid_reply_id: "invalid_reply_id",
+  invalid_request_id: "invalid_request_id",
+  invalid_team_id: "invalid_team_id",
+  invalid_user_id: "invalid_user_id",
+  invalid_version: "invalid_version",
+  method_not_allowed: "method_not_allowed",
+  misconfigured: "misconfigured",
+  missing_file: "missing_file",
+  not_found: "not_found",
+  poll_closed: "poll_closed",
+  poll_not_found: "poll_not_found",
+  query_error: "query_error",
+  rate_limited: "rate_limited",
+  rpc_error: "rpc_error",
+  storage_error: "storage_error",
+  too_large: "too_large",
+  unauthorized: "unauthorized",
+  unsupported_type: "unsupported_type",
+  username_taken: "username_taken",
+  vote_rejected: "vote_rejected",
+} as const;
+
 export type GetLatestRelease404 = {
-  /** Short machine-readable error code, e.g. "invalid_version". */
-  error: string;
-  /** Human-readable explanation. */
+  /** Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check). */
+  error: GetLatestRelease404Error;
+  /** Human-readable detail, for logging/debugging. Never contains raw Postgres/PostgREST error text (constraint names, column names, internal query shape) -- see safeDbErrorMessage() in supabase/functions/_shared/http.ts. Not meant to be shown verbatim to end users; Website should key UI copy off `error`. */
   message: string;
 };
 
@@ -560,17 +676,95 @@ export type GetReleaseByVersion200 = {
   artifacts: GetReleaseByVersion200ArtifactsItem[];
 };
 
+/**
+ * Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check).
+ */
+export type GetReleaseByVersion400Error =
+  (typeof GetReleaseByVersion400Error)[keyof typeof GetReleaseByVersion400Error];
+
+export const GetReleaseByVersion400Error = {
+  already_decided: "already_decided",
+  already_voted: "already_voted",
+  internal_error: "internal_error",
+  invalid_body: "invalid_body",
+  invalid_discussion_id: "invalid_discussion_id",
+  invalid_news_id: "invalid_news_id",
+  invalid_poll_id: "invalid_poll_id",
+  invalid_project_id: "invalid_project_id",
+  invalid_query: "invalid_query",
+  invalid_redirect: "invalid_redirect",
+  invalid_reply_id: "invalid_reply_id",
+  invalid_request_id: "invalid_request_id",
+  invalid_team_id: "invalid_team_id",
+  invalid_user_id: "invalid_user_id",
+  invalid_version: "invalid_version",
+  method_not_allowed: "method_not_allowed",
+  misconfigured: "misconfigured",
+  missing_file: "missing_file",
+  not_found: "not_found",
+  poll_closed: "poll_closed",
+  poll_not_found: "poll_not_found",
+  query_error: "query_error",
+  rate_limited: "rate_limited",
+  rpc_error: "rpc_error",
+  storage_error: "storage_error",
+  too_large: "too_large",
+  unauthorized: "unauthorized",
+  unsupported_type: "unsupported_type",
+  username_taken: "username_taken",
+  vote_rejected: "vote_rejected",
+} as const;
+
 export type GetReleaseByVersion400 = {
-  /** Short machine-readable error code, e.g. "invalid_version". */
-  error: string;
-  /** Human-readable explanation. */
+  /** Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check). */
+  error: GetReleaseByVersion400Error;
+  /** Human-readable detail, for logging/debugging. Never contains raw Postgres/PostgREST error text (constraint names, column names, internal query shape) -- see safeDbErrorMessage() in supabase/functions/_shared/http.ts. Not meant to be shown verbatim to end users; Website should key UI copy off `error`. */
   message: string;
 };
 
+/**
+ * Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check).
+ */
+export type GetReleaseByVersion404Error =
+  (typeof GetReleaseByVersion404Error)[keyof typeof GetReleaseByVersion404Error];
+
+export const GetReleaseByVersion404Error = {
+  already_decided: "already_decided",
+  already_voted: "already_voted",
+  internal_error: "internal_error",
+  invalid_body: "invalid_body",
+  invalid_discussion_id: "invalid_discussion_id",
+  invalid_news_id: "invalid_news_id",
+  invalid_poll_id: "invalid_poll_id",
+  invalid_project_id: "invalid_project_id",
+  invalid_query: "invalid_query",
+  invalid_redirect: "invalid_redirect",
+  invalid_reply_id: "invalid_reply_id",
+  invalid_request_id: "invalid_request_id",
+  invalid_team_id: "invalid_team_id",
+  invalid_user_id: "invalid_user_id",
+  invalid_version: "invalid_version",
+  method_not_allowed: "method_not_allowed",
+  misconfigured: "misconfigured",
+  missing_file: "missing_file",
+  not_found: "not_found",
+  poll_closed: "poll_closed",
+  poll_not_found: "poll_not_found",
+  query_error: "query_error",
+  rate_limited: "rate_limited",
+  rpc_error: "rpc_error",
+  storage_error: "storage_error",
+  too_large: "too_large",
+  unauthorized: "unauthorized",
+  unsupported_type: "unsupported_type",
+  username_taken: "username_taken",
+  vote_rejected: "vote_rejected",
+} as const;
+
 export type GetReleaseByVersion404 = {
-  /** Short machine-readable error code, e.g. "invalid_version". */
-  error: string;
-  /** Human-readable explanation. */
+  /** Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check). */
+  error: GetReleaseByVersion404Error;
+  /** Human-readable detail, for logging/debugging. Never contains raw Postgres/PostgREST error text (constraint names, column names, internal query shape) -- see safeDbErrorMessage() in supabase/functions/_shared/http.ts. Not meant to be shown verbatim to end users; Website should key UI copy off `error`. */
   message: string;
 };
 
@@ -585,17 +779,95 @@ export type CreateTeam201 = {
   created_at?: string;
 };
 
+/**
+ * Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check).
+ */
+export type CreateTeam400Error =
+  (typeof CreateTeam400Error)[keyof typeof CreateTeam400Error];
+
+export const CreateTeam400Error = {
+  already_decided: "already_decided",
+  already_voted: "already_voted",
+  internal_error: "internal_error",
+  invalid_body: "invalid_body",
+  invalid_discussion_id: "invalid_discussion_id",
+  invalid_news_id: "invalid_news_id",
+  invalid_poll_id: "invalid_poll_id",
+  invalid_project_id: "invalid_project_id",
+  invalid_query: "invalid_query",
+  invalid_redirect: "invalid_redirect",
+  invalid_reply_id: "invalid_reply_id",
+  invalid_request_id: "invalid_request_id",
+  invalid_team_id: "invalid_team_id",
+  invalid_user_id: "invalid_user_id",
+  invalid_version: "invalid_version",
+  method_not_allowed: "method_not_allowed",
+  misconfigured: "misconfigured",
+  missing_file: "missing_file",
+  not_found: "not_found",
+  poll_closed: "poll_closed",
+  poll_not_found: "poll_not_found",
+  query_error: "query_error",
+  rate_limited: "rate_limited",
+  rpc_error: "rpc_error",
+  storage_error: "storage_error",
+  too_large: "too_large",
+  unauthorized: "unauthorized",
+  unsupported_type: "unsupported_type",
+  username_taken: "username_taken",
+  vote_rejected: "vote_rejected",
+} as const;
+
 export type CreateTeam400 = {
-  /** Short machine-readable error code, e.g. "invalid_version". */
-  error: string;
-  /** Human-readable explanation. */
+  /** Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check). */
+  error: CreateTeam400Error;
+  /** Human-readable detail, for logging/debugging. Never contains raw Postgres/PostgREST error text (constraint names, column names, internal query shape) -- see safeDbErrorMessage() in supabase/functions/_shared/http.ts. Not meant to be shown verbatim to end users; Website should key UI copy off `error`. */
   message: string;
 };
 
+/**
+ * Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check).
+ */
+export type CreateTeam401Error =
+  (typeof CreateTeam401Error)[keyof typeof CreateTeam401Error];
+
+export const CreateTeam401Error = {
+  already_decided: "already_decided",
+  already_voted: "already_voted",
+  internal_error: "internal_error",
+  invalid_body: "invalid_body",
+  invalid_discussion_id: "invalid_discussion_id",
+  invalid_news_id: "invalid_news_id",
+  invalid_poll_id: "invalid_poll_id",
+  invalid_project_id: "invalid_project_id",
+  invalid_query: "invalid_query",
+  invalid_redirect: "invalid_redirect",
+  invalid_reply_id: "invalid_reply_id",
+  invalid_request_id: "invalid_request_id",
+  invalid_team_id: "invalid_team_id",
+  invalid_user_id: "invalid_user_id",
+  invalid_version: "invalid_version",
+  method_not_allowed: "method_not_allowed",
+  misconfigured: "misconfigured",
+  missing_file: "missing_file",
+  not_found: "not_found",
+  poll_closed: "poll_closed",
+  poll_not_found: "poll_not_found",
+  query_error: "query_error",
+  rate_limited: "rate_limited",
+  rpc_error: "rpc_error",
+  storage_error: "storage_error",
+  too_large: "too_large",
+  unauthorized: "unauthorized",
+  unsupported_type: "unsupported_type",
+  username_taken: "username_taken",
+  vote_rejected: "vote_rejected",
+} as const;
+
 export type CreateTeam401 = {
-  /** Short machine-readable error code, e.g. "invalid_version". */
-  error: string;
-  /** Human-readable explanation. */
+  /** Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check). */
+  error: CreateTeam401Error;
+  /** Human-readable detail, for logging/debugging. Never contains raw Postgres/PostgREST error text (constraint names, column names, internal query shape) -- see safeDbErrorMessage() in supabase/functions/_shared/http.ts. Not meant to be shown verbatim to end users; Website should key UI copy off `error`. */
   message: string;
 };
 
@@ -610,45 +882,279 @@ export type RenameTeam200 = {
   created_at?: string;
 };
 
+/**
+ * Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check).
+ */
+export type RenameTeam400Error =
+  (typeof RenameTeam400Error)[keyof typeof RenameTeam400Error];
+
+export const RenameTeam400Error = {
+  already_decided: "already_decided",
+  already_voted: "already_voted",
+  internal_error: "internal_error",
+  invalid_body: "invalid_body",
+  invalid_discussion_id: "invalid_discussion_id",
+  invalid_news_id: "invalid_news_id",
+  invalid_poll_id: "invalid_poll_id",
+  invalid_project_id: "invalid_project_id",
+  invalid_query: "invalid_query",
+  invalid_redirect: "invalid_redirect",
+  invalid_reply_id: "invalid_reply_id",
+  invalid_request_id: "invalid_request_id",
+  invalid_team_id: "invalid_team_id",
+  invalid_user_id: "invalid_user_id",
+  invalid_version: "invalid_version",
+  method_not_allowed: "method_not_allowed",
+  misconfigured: "misconfigured",
+  missing_file: "missing_file",
+  not_found: "not_found",
+  poll_closed: "poll_closed",
+  poll_not_found: "poll_not_found",
+  query_error: "query_error",
+  rate_limited: "rate_limited",
+  rpc_error: "rpc_error",
+  storage_error: "storage_error",
+  too_large: "too_large",
+  unauthorized: "unauthorized",
+  unsupported_type: "unsupported_type",
+  username_taken: "username_taken",
+  vote_rejected: "vote_rejected",
+} as const;
+
 export type RenameTeam400 = {
-  /** Short machine-readable error code, e.g. "invalid_version". */
-  error: string;
-  /** Human-readable explanation. */
+  /** Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check). */
+  error: RenameTeam400Error;
+  /** Human-readable detail, for logging/debugging. Never contains raw Postgres/PostgREST error text (constraint names, column names, internal query shape) -- see safeDbErrorMessage() in supabase/functions/_shared/http.ts. Not meant to be shown verbatim to end users; Website should key UI copy off `error`. */
   message: string;
 };
+
+/**
+ * Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check).
+ */
+export type RenameTeam401Error =
+  (typeof RenameTeam401Error)[keyof typeof RenameTeam401Error];
+
+export const RenameTeam401Error = {
+  already_decided: "already_decided",
+  already_voted: "already_voted",
+  internal_error: "internal_error",
+  invalid_body: "invalid_body",
+  invalid_discussion_id: "invalid_discussion_id",
+  invalid_news_id: "invalid_news_id",
+  invalid_poll_id: "invalid_poll_id",
+  invalid_project_id: "invalid_project_id",
+  invalid_query: "invalid_query",
+  invalid_redirect: "invalid_redirect",
+  invalid_reply_id: "invalid_reply_id",
+  invalid_request_id: "invalid_request_id",
+  invalid_team_id: "invalid_team_id",
+  invalid_user_id: "invalid_user_id",
+  invalid_version: "invalid_version",
+  method_not_allowed: "method_not_allowed",
+  misconfigured: "misconfigured",
+  missing_file: "missing_file",
+  not_found: "not_found",
+  poll_closed: "poll_closed",
+  poll_not_found: "poll_not_found",
+  query_error: "query_error",
+  rate_limited: "rate_limited",
+  rpc_error: "rpc_error",
+  storage_error: "storage_error",
+  too_large: "too_large",
+  unauthorized: "unauthorized",
+  unsupported_type: "unsupported_type",
+  username_taken: "username_taken",
+  vote_rejected: "vote_rejected",
+} as const;
 
 export type RenameTeam401 = {
-  /** Short machine-readable error code, e.g. "invalid_version". */
-  error: string;
-  /** Human-readable explanation. */
+  /** Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check). */
+  error: RenameTeam401Error;
+  /** Human-readable detail, for logging/debugging. Never contains raw Postgres/PostgREST error text (constraint names, column names, internal query shape) -- see safeDbErrorMessage() in supabase/functions/_shared/http.ts. Not meant to be shown verbatim to end users; Website should key UI copy off `error`. */
   message: string;
 };
+
+/**
+ * Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check).
+ */
+export type RenameTeam403Error =
+  (typeof RenameTeam403Error)[keyof typeof RenameTeam403Error];
+
+export const RenameTeam403Error = {
+  already_decided: "already_decided",
+  already_voted: "already_voted",
+  internal_error: "internal_error",
+  invalid_body: "invalid_body",
+  invalid_discussion_id: "invalid_discussion_id",
+  invalid_news_id: "invalid_news_id",
+  invalid_poll_id: "invalid_poll_id",
+  invalid_project_id: "invalid_project_id",
+  invalid_query: "invalid_query",
+  invalid_redirect: "invalid_redirect",
+  invalid_reply_id: "invalid_reply_id",
+  invalid_request_id: "invalid_request_id",
+  invalid_team_id: "invalid_team_id",
+  invalid_user_id: "invalid_user_id",
+  invalid_version: "invalid_version",
+  method_not_allowed: "method_not_allowed",
+  misconfigured: "misconfigured",
+  missing_file: "missing_file",
+  not_found: "not_found",
+  poll_closed: "poll_closed",
+  poll_not_found: "poll_not_found",
+  query_error: "query_error",
+  rate_limited: "rate_limited",
+  rpc_error: "rpc_error",
+  storage_error: "storage_error",
+  too_large: "too_large",
+  unauthorized: "unauthorized",
+  unsupported_type: "unsupported_type",
+  username_taken: "username_taken",
+  vote_rejected: "vote_rejected",
+} as const;
 
 export type RenameTeam403 = {
-  /** Short machine-readable error code, e.g. "invalid_version". */
-  error: string;
-  /** Human-readable explanation. */
+  /** Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check). */
+  error: RenameTeam403Error;
+  /** Human-readable detail, for logging/debugging. Never contains raw Postgres/PostgREST error text (constraint names, column names, internal query shape) -- see safeDbErrorMessage() in supabase/functions/_shared/http.ts. Not meant to be shown verbatim to end users; Website should key UI copy off `error`. */
   message: string;
 };
+
+/**
+ * Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check).
+ */
+export type DeleteTeam400Error =
+  (typeof DeleteTeam400Error)[keyof typeof DeleteTeam400Error];
+
+export const DeleteTeam400Error = {
+  already_decided: "already_decided",
+  already_voted: "already_voted",
+  internal_error: "internal_error",
+  invalid_body: "invalid_body",
+  invalid_discussion_id: "invalid_discussion_id",
+  invalid_news_id: "invalid_news_id",
+  invalid_poll_id: "invalid_poll_id",
+  invalid_project_id: "invalid_project_id",
+  invalid_query: "invalid_query",
+  invalid_redirect: "invalid_redirect",
+  invalid_reply_id: "invalid_reply_id",
+  invalid_request_id: "invalid_request_id",
+  invalid_team_id: "invalid_team_id",
+  invalid_user_id: "invalid_user_id",
+  invalid_version: "invalid_version",
+  method_not_allowed: "method_not_allowed",
+  misconfigured: "misconfigured",
+  missing_file: "missing_file",
+  not_found: "not_found",
+  poll_closed: "poll_closed",
+  poll_not_found: "poll_not_found",
+  query_error: "query_error",
+  rate_limited: "rate_limited",
+  rpc_error: "rpc_error",
+  storage_error: "storage_error",
+  too_large: "too_large",
+  unauthorized: "unauthorized",
+  unsupported_type: "unsupported_type",
+  username_taken: "username_taken",
+  vote_rejected: "vote_rejected",
+} as const;
 
 export type DeleteTeam400 = {
-  /** Short machine-readable error code, e.g. "invalid_version". */
-  error: string;
-  /** Human-readable explanation. */
+  /** Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check). */
+  error: DeleteTeam400Error;
+  /** Human-readable detail, for logging/debugging. Never contains raw Postgres/PostgREST error text (constraint names, column names, internal query shape) -- see safeDbErrorMessage() in supabase/functions/_shared/http.ts. Not meant to be shown verbatim to end users; Website should key UI copy off `error`. */
   message: string;
 };
+
+/**
+ * Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check).
+ */
+export type DeleteTeam401Error =
+  (typeof DeleteTeam401Error)[keyof typeof DeleteTeam401Error];
+
+export const DeleteTeam401Error = {
+  already_decided: "already_decided",
+  already_voted: "already_voted",
+  internal_error: "internal_error",
+  invalid_body: "invalid_body",
+  invalid_discussion_id: "invalid_discussion_id",
+  invalid_news_id: "invalid_news_id",
+  invalid_poll_id: "invalid_poll_id",
+  invalid_project_id: "invalid_project_id",
+  invalid_query: "invalid_query",
+  invalid_redirect: "invalid_redirect",
+  invalid_reply_id: "invalid_reply_id",
+  invalid_request_id: "invalid_request_id",
+  invalid_team_id: "invalid_team_id",
+  invalid_user_id: "invalid_user_id",
+  invalid_version: "invalid_version",
+  method_not_allowed: "method_not_allowed",
+  misconfigured: "misconfigured",
+  missing_file: "missing_file",
+  not_found: "not_found",
+  poll_closed: "poll_closed",
+  poll_not_found: "poll_not_found",
+  query_error: "query_error",
+  rate_limited: "rate_limited",
+  rpc_error: "rpc_error",
+  storage_error: "storage_error",
+  too_large: "too_large",
+  unauthorized: "unauthorized",
+  unsupported_type: "unsupported_type",
+  username_taken: "username_taken",
+  vote_rejected: "vote_rejected",
+} as const;
 
 export type DeleteTeam401 = {
-  /** Short machine-readable error code, e.g. "invalid_version". */
-  error: string;
-  /** Human-readable explanation. */
+  /** Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check). */
+  error: DeleteTeam401Error;
+  /** Human-readable detail, for logging/debugging. Never contains raw Postgres/PostgREST error text (constraint names, column names, internal query shape) -- see safeDbErrorMessage() in supabase/functions/_shared/http.ts. Not meant to be shown verbatim to end users; Website should key UI copy off `error`. */
   message: string;
 };
 
+/**
+ * Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check).
+ */
+export type DeleteTeam403Error =
+  (typeof DeleteTeam403Error)[keyof typeof DeleteTeam403Error];
+
+export const DeleteTeam403Error = {
+  already_decided: "already_decided",
+  already_voted: "already_voted",
+  internal_error: "internal_error",
+  invalid_body: "invalid_body",
+  invalid_discussion_id: "invalid_discussion_id",
+  invalid_news_id: "invalid_news_id",
+  invalid_poll_id: "invalid_poll_id",
+  invalid_project_id: "invalid_project_id",
+  invalid_query: "invalid_query",
+  invalid_redirect: "invalid_redirect",
+  invalid_reply_id: "invalid_reply_id",
+  invalid_request_id: "invalid_request_id",
+  invalid_team_id: "invalid_team_id",
+  invalid_user_id: "invalid_user_id",
+  invalid_version: "invalid_version",
+  method_not_allowed: "method_not_allowed",
+  misconfigured: "misconfigured",
+  missing_file: "missing_file",
+  not_found: "not_found",
+  poll_closed: "poll_closed",
+  poll_not_found: "poll_not_found",
+  query_error: "query_error",
+  rate_limited: "rate_limited",
+  rpc_error: "rpc_error",
+  storage_error: "storage_error",
+  too_large: "too_large",
+  unauthorized: "unauthorized",
+  unsupported_type: "unsupported_type",
+  username_taken: "username_taken",
+  vote_rejected: "vote_rejected",
+} as const;
+
 export type DeleteTeam403 = {
-  /** Short machine-readable error code, e.g. "invalid_version". */
-  error: string;
-  /** Human-readable explanation. */
+  /** Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check). */
+  error: DeleteTeam403Error;
+  /** Human-readable detail, for logging/debugging. Never contains raw Postgres/PostgREST error text (constraint names, column names, internal query shape) -- see safeDbErrorMessage() in supabase/functions/_shared/http.ts. Not meant to be shown verbatim to end users; Website should key UI copy off `error`. */
   message: string;
 };
 
@@ -667,17 +1173,95 @@ export type ListTeamMembers200Item = {
   joined_at: string;
 };
 
+/**
+ * Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check).
+ */
+export type ListTeamMembers400Error =
+  (typeof ListTeamMembers400Error)[keyof typeof ListTeamMembers400Error];
+
+export const ListTeamMembers400Error = {
+  already_decided: "already_decided",
+  already_voted: "already_voted",
+  internal_error: "internal_error",
+  invalid_body: "invalid_body",
+  invalid_discussion_id: "invalid_discussion_id",
+  invalid_news_id: "invalid_news_id",
+  invalid_poll_id: "invalid_poll_id",
+  invalid_project_id: "invalid_project_id",
+  invalid_query: "invalid_query",
+  invalid_redirect: "invalid_redirect",
+  invalid_reply_id: "invalid_reply_id",
+  invalid_request_id: "invalid_request_id",
+  invalid_team_id: "invalid_team_id",
+  invalid_user_id: "invalid_user_id",
+  invalid_version: "invalid_version",
+  method_not_allowed: "method_not_allowed",
+  misconfigured: "misconfigured",
+  missing_file: "missing_file",
+  not_found: "not_found",
+  poll_closed: "poll_closed",
+  poll_not_found: "poll_not_found",
+  query_error: "query_error",
+  rate_limited: "rate_limited",
+  rpc_error: "rpc_error",
+  storage_error: "storage_error",
+  too_large: "too_large",
+  unauthorized: "unauthorized",
+  unsupported_type: "unsupported_type",
+  username_taken: "username_taken",
+  vote_rejected: "vote_rejected",
+} as const;
+
 export type ListTeamMembers400 = {
-  /** Short machine-readable error code, e.g. "invalid_version". */
-  error: string;
-  /** Human-readable explanation. */
+  /** Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check). */
+  error: ListTeamMembers400Error;
+  /** Human-readable detail, for logging/debugging. Never contains raw Postgres/PostgREST error text (constraint names, column names, internal query shape) -- see safeDbErrorMessage() in supabase/functions/_shared/http.ts. Not meant to be shown verbatim to end users; Website should key UI copy off `error`. */
   message: string;
 };
 
+/**
+ * Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check).
+ */
+export type ListTeamMembers401Error =
+  (typeof ListTeamMembers401Error)[keyof typeof ListTeamMembers401Error];
+
+export const ListTeamMembers401Error = {
+  already_decided: "already_decided",
+  already_voted: "already_voted",
+  internal_error: "internal_error",
+  invalid_body: "invalid_body",
+  invalid_discussion_id: "invalid_discussion_id",
+  invalid_news_id: "invalid_news_id",
+  invalid_poll_id: "invalid_poll_id",
+  invalid_project_id: "invalid_project_id",
+  invalid_query: "invalid_query",
+  invalid_redirect: "invalid_redirect",
+  invalid_reply_id: "invalid_reply_id",
+  invalid_request_id: "invalid_request_id",
+  invalid_team_id: "invalid_team_id",
+  invalid_user_id: "invalid_user_id",
+  invalid_version: "invalid_version",
+  method_not_allowed: "method_not_allowed",
+  misconfigured: "misconfigured",
+  missing_file: "missing_file",
+  not_found: "not_found",
+  poll_closed: "poll_closed",
+  poll_not_found: "poll_not_found",
+  query_error: "query_error",
+  rate_limited: "rate_limited",
+  rpc_error: "rpc_error",
+  storage_error: "storage_error",
+  too_large: "too_large",
+  unauthorized: "unauthorized",
+  unsupported_type: "unsupported_type",
+  username_taken: "username_taken",
+  vote_rejected: "vote_rejected",
+} as const;
+
 export type ListTeamMembers401 = {
-  /** Short machine-readable error code, e.g. "invalid_version". */
-  error: string;
-  /** Human-readable explanation. */
+  /** Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check). */
+  error: ListTeamMembers401Error;
+  /** Human-readable detail, for logging/debugging. Never contains raw Postgres/PostgREST error text (constraint names, column names, internal query shape) -- see safeDbErrorMessage() in supabase/functions/_shared/http.ts. Not meant to be shown verbatim to end users; Website should key UI copy off `error`. */
   message: string;
 };
 
@@ -701,24 +1285,141 @@ export type TeamMemberAction200 = {
   ok: boolean;
 };
 
+/**
+ * Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check).
+ */
+export type TeamMemberAction400Error =
+  (typeof TeamMemberAction400Error)[keyof typeof TeamMemberAction400Error];
+
+export const TeamMemberAction400Error = {
+  already_decided: "already_decided",
+  already_voted: "already_voted",
+  internal_error: "internal_error",
+  invalid_body: "invalid_body",
+  invalid_discussion_id: "invalid_discussion_id",
+  invalid_news_id: "invalid_news_id",
+  invalid_poll_id: "invalid_poll_id",
+  invalid_project_id: "invalid_project_id",
+  invalid_query: "invalid_query",
+  invalid_redirect: "invalid_redirect",
+  invalid_reply_id: "invalid_reply_id",
+  invalid_request_id: "invalid_request_id",
+  invalid_team_id: "invalid_team_id",
+  invalid_user_id: "invalid_user_id",
+  invalid_version: "invalid_version",
+  method_not_allowed: "method_not_allowed",
+  misconfigured: "misconfigured",
+  missing_file: "missing_file",
+  not_found: "not_found",
+  poll_closed: "poll_closed",
+  poll_not_found: "poll_not_found",
+  query_error: "query_error",
+  rate_limited: "rate_limited",
+  rpc_error: "rpc_error",
+  storage_error: "storage_error",
+  too_large: "too_large",
+  unauthorized: "unauthorized",
+  unsupported_type: "unsupported_type",
+  username_taken: "username_taken",
+  vote_rejected: "vote_rejected",
+} as const;
+
 export type TeamMemberAction400 = {
-  /** Short machine-readable error code, e.g. "invalid_version". */
-  error: string;
-  /** Human-readable explanation. */
+  /** Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check). */
+  error: TeamMemberAction400Error;
+  /** Human-readable detail, for logging/debugging. Never contains raw Postgres/PostgREST error text (constraint names, column names, internal query shape) -- see safeDbErrorMessage() in supabase/functions/_shared/http.ts. Not meant to be shown verbatim to end users; Website should key UI copy off `error`. */
   message: string;
 };
+
+/**
+ * Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check).
+ */
+export type TeamMemberAction401Error =
+  (typeof TeamMemberAction401Error)[keyof typeof TeamMemberAction401Error];
+
+export const TeamMemberAction401Error = {
+  already_decided: "already_decided",
+  already_voted: "already_voted",
+  internal_error: "internal_error",
+  invalid_body: "invalid_body",
+  invalid_discussion_id: "invalid_discussion_id",
+  invalid_news_id: "invalid_news_id",
+  invalid_poll_id: "invalid_poll_id",
+  invalid_project_id: "invalid_project_id",
+  invalid_query: "invalid_query",
+  invalid_redirect: "invalid_redirect",
+  invalid_reply_id: "invalid_reply_id",
+  invalid_request_id: "invalid_request_id",
+  invalid_team_id: "invalid_team_id",
+  invalid_user_id: "invalid_user_id",
+  invalid_version: "invalid_version",
+  method_not_allowed: "method_not_allowed",
+  misconfigured: "misconfigured",
+  missing_file: "missing_file",
+  not_found: "not_found",
+  poll_closed: "poll_closed",
+  poll_not_found: "poll_not_found",
+  query_error: "query_error",
+  rate_limited: "rate_limited",
+  rpc_error: "rpc_error",
+  storage_error: "storage_error",
+  too_large: "too_large",
+  unauthorized: "unauthorized",
+  unsupported_type: "unsupported_type",
+  username_taken: "username_taken",
+  vote_rejected: "vote_rejected",
+} as const;
 
 export type TeamMemberAction401 = {
-  /** Short machine-readable error code, e.g. "invalid_version". */
-  error: string;
-  /** Human-readable explanation. */
+  /** Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check). */
+  error: TeamMemberAction401Error;
+  /** Human-readable detail, for logging/debugging. Never contains raw Postgres/PostgREST error text (constraint names, column names, internal query shape) -- see safeDbErrorMessage() in supabase/functions/_shared/http.ts. Not meant to be shown verbatim to end users; Website should key UI copy off `error`. */
   message: string;
 };
 
+/**
+ * Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check).
+ */
+export type TeamMemberAction403Error =
+  (typeof TeamMemberAction403Error)[keyof typeof TeamMemberAction403Error];
+
+export const TeamMemberAction403Error = {
+  already_decided: "already_decided",
+  already_voted: "already_voted",
+  internal_error: "internal_error",
+  invalid_body: "invalid_body",
+  invalid_discussion_id: "invalid_discussion_id",
+  invalid_news_id: "invalid_news_id",
+  invalid_poll_id: "invalid_poll_id",
+  invalid_project_id: "invalid_project_id",
+  invalid_query: "invalid_query",
+  invalid_redirect: "invalid_redirect",
+  invalid_reply_id: "invalid_reply_id",
+  invalid_request_id: "invalid_request_id",
+  invalid_team_id: "invalid_team_id",
+  invalid_user_id: "invalid_user_id",
+  invalid_version: "invalid_version",
+  method_not_allowed: "method_not_allowed",
+  misconfigured: "misconfigured",
+  missing_file: "missing_file",
+  not_found: "not_found",
+  poll_closed: "poll_closed",
+  poll_not_found: "poll_not_found",
+  query_error: "query_error",
+  rate_limited: "rate_limited",
+  rpc_error: "rpc_error",
+  storage_error: "storage_error",
+  too_large: "too_large",
+  unauthorized: "unauthorized",
+  unsupported_type: "unsupported_type",
+  username_taken: "username_taken",
+  vote_rejected: "vote_rejected",
+} as const;
+
 export type TeamMemberAction403 = {
-  /** Short machine-readable error code, e.g. "invalid_version". */
-  error: string;
-  /** Human-readable explanation. */
+  /** Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check). */
+  error: TeamMemberAction403Error;
+  /** Human-readable detail, for logging/debugging. Never contains raw Postgres/PostgREST error text (constraint names, column names, internal query shape) -- see safeDbErrorMessage() in supabase/functions/_shared/http.ts. Not meant to be shown verbatim to end users; Website should key UI copy off `error`. */
   message: string;
 };
 
@@ -754,24 +1455,141 @@ export type RequestToJoinTeam201 = {
   requested_at: string;
 };
 
+/**
+ * Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check).
+ */
+export type RequestToJoinTeam400Error =
+  (typeof RequestToJoinTeam400Error)[keyof typeof RequestToJoinTeam400Error];
+
+export const RequestToJoinTeam400Error = {
+  already_decided: "already_decided",
+  already_voted: "already_voted",
+  internal_error: "internal_error",
+  invalid_body: "invalid_body",
+  invalid_discussion_id: "invalid_discussion_id",
+  invalid_news_id: "invalid_news_id",
+  invalid_poll_id: "invalid_poll_id",
+  invalid_project_id: "invalid_project_id",
+  invalid_query: "invalid_query",
+  invalid_redirect: "invalid_redirect",
+  invalid_reply_id: "invalid_reply_id",
+  invalid_request_id: "invalid_request_id",
+  invalid_team_id: "invalid_team_id",
+  invalid_user_id: "invalid_user_id",
+  invalid_version: "invalid_version",
+  method_not_allowed: "method_not_allowed",
+  misconfigured: "misconfigured",
+  missing_file: "missing_file",
+  not_found: "not_found",
+  poll_closed: "poll_closed",
+  poll_not_found: "poll_not_found",
+  query_error: "query_error",
+  rate_limited: "rate_limited",
+  rpc_error: "rpc_error",
+  storage_error: "storage_error",
+  too_large: "too_large",
+  unauthorized: "unauthorized",
+  unsupported_type: "unsupported_type",
+  username_taken: "username_taken",
+  vote_rejected: "vote_rejected",
+} as const;
+
 export type RequestToJoinTeam400 = {
-  /** Short machine-readable error code, e.g. "invalid_version". */
-  error: string;
-  /** Human-readable explanation. */
+  /** Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check). */
+  error: RequestToJoinTeam400Error;
+  /** Human-readable detail, for logging/debugging. Never contains raw Postgres/PostgREST error text (constraint names, column names, internal query shape) -- see safeDbErrorMessage() in supabase/functions/_shared/http.ts. Not meant to be shown verbatim to end users; Website should key UI copy off `error`. */
   message: string;
 };
+
+/**
+ * Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check).
+ */
+export type RequestToJoinTeam401Error =
+  (typeof RequestToJoinTeam401Error)[keyof typeof RequestToJoinTeam401Error];
+
+export const RequestToJoinTeam401Error = {
+  already_decided: "already_decided",
+  already_voted: "already_voted",
+  internal_error: "internal_error",
+  invalid_body: "invalid_body",
+  invalid_discussion_id: "invalid_discussion_id",
+  invalid_news_id: "invalid_news_id",
+  invalid_poll_id: "invalid_poll_id",
+  invalid_project_id: "invalid_project_id",
+  invalid_query: "invalid_query",
+  invalid_redirect: "invalid_redirect",
+  invalid_reply_id: "invalid_reply_id",
+  invalid_request_id: "invalid_request_id",
+  invalid_team_id: "invalid_team_id",
+  invalid_user_id: "invalid_user_id",
+  invalid_version: "invalid_version",
+  method_not_allowed: "method_not_allowed",
+  misconfigured: "misconfigured",
+  missing_file: "missing_file",
+  not_found: "not_found",
+  poll_closed: "poll_closed",
+  poll_not_found: "poll_not_found",
+  query_error: "query_error",
+  rate_limited: "rate_limited",
+  rpc_error: "rpc_error",
+  storage_error: "storage_error",
+  too_large: "too_large",
+  unauthorized: "unauthorized",
+  unsupported_type: "unsupported_type",
+  username_taken: "username_taken",
+  vote_rejected: "vote_rejected",
+} as const;
 
 export type RequestToJoinTeam401 = {
-  /** Short machine-readable error code, e.g. "invalid_version". */
-  error: string;
-  /** Human-readable explanation. */
+  /** Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check). */
+  error: RequestToJoinTeam401Error;
+  /** Human-readable detail, for logging/debugging. Never contains raw Postgres/PostgREST error text (constraint names, column names, internal query shape) -- see safeDbErrorMessage() in supabase/functions/_shared/http.ts. Not meant to be shown verbatim to end users; Website should key UI copy off `error`. */
   message: string;
 };
 
+/**
+ * Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check).
+ */
+export type RequestToJoinTeam409Error =
+  (typeof RequestToJoinTeam409Error)[keyof typeof RequestToJoinTeam409Error];
+
+export const RequestToJoinTeam409Error = {
+  already_decided: "already_decided",
+  already_voted: "already_voted",
+  internal_error: "internal_error",
+  invalid_body: "invalid_body",
+  invalid_discussion_id: "invalid_discussion_id",
+  invalid_news_id: "invalid_news_id",
+  invalid_poll_id: "invalid_poll_id",
+  invalid_project_id: "invalid_project_id",
+  invalid_query: "invalid_query",
+  invalid_redirect: "invalid_redirect",
+  invalid_reply_id: "invalid_reply_id",
+  invalid_request_id: "invalid_request_id",
+  invalid_team_id: "invalid_team_id",
+  invalid_user_id: "invalid_user_id",
+  invalid_version: "invalid_version",
+  method_not_allowed: "method_not_allowed",
+  misconfigured: "misconfigured",
+  missing_file: "missing_file",
+  not_found: "not_found",
+  poll_closed: "poll_closed",
+  poll_not_found: "poll_not_found",
+  query_error: "query_error",
+  rate_limited: "rate_limited",
+  rpc_error: "rpc_error",
+  storage_error: "storage_error",
+  too_large: "too_large",
+  unauthorized: "unauthorized",
+  unsupported_type: "unsupported_type",
+  username_taken: "username_taken",
+  vote_rejected: "vote_rejected",
+} as const;
+
 export type RequestToJoinTeam409 = {
-  /** Short machine-readable error code, e.g. "invalid_version". */
-  error: string;
-  /** Human-readable explanation. */
+  /** Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check). */
+  error: RequestToJoinTeam409Error;
+  /** Human-readable detail, for logging/debugging. Never contains raw Postgres/PostgREST error text (constraint names, column names, internal query shape) -- see safeDbErrorMessage() in supabase/functions/_shared/http.ts. Not meant to be shown verbatim to end users; Website should key UI copy off `error`. */
   message: string;
 };
 
@@ -811,24 +1629,141 @@ export type InviteToTeam201 = {
   requested_at: string;
 };
 
+/**
+ * Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check).
+ */
+export type InviteToTeam400Error =
+  (typeof InviteToTeam400Error)[keyof typeof InviteToTeam400Error];
+
+export const InviteToTeam400Error = {
+  already_decided: "already_decided",
+  already_voted: "already_voted",
+  internal_error: "internal_error",
+  invalid_body: "invalid_body",
+  invalid_discussion_id: "invalid_discussion_id",
+  invalid_news_id: "invalid_news_id",
+  invalid_poll_id: "invalid_poll_id",
+  invalid_project_id: "invalid_project_id",
+  invalid_query: "invalid_query",
+  invalid_redirect: "invalid_redirect",
+  invalid_reply_id: "invalid_reply_id",
+  invalid_request_id: "invalid_request_id",
+  invalid_team_id: "invalid_team_id",
+  invalid_user_id: "invalid_user_id",
+  invalid_version: "invalid_version",
+  method_not_allowed: "method_not_allowed",
+  misconfigured: "misconfigured",
+  missing_file: "missing_file",
+  not_found: "not_found",
+  poll_closed: "poll_closed",
+  poll_not_found: "poll_not_found",
+  query_error: "query_error",
+  rate_limited: "rate_limited",
+  rpc_error: "rpc_error",
+  storage_error: "storage_error",
+  too_large: "too_large",
+  unauthorized: "unauthorized",
+  unsupported_type: "unsupported_type",
+  username_taken: "username_taken",
+  vote_rejected: "vote_rejected",
+} as const;
+
 export type InviteToTeam400 = {
-  /** Short machine-readable error code, e.g. "invalid_version". */
-  error: string;
-  /** Human-readable explanation. */
+  /** Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check). */
+  error: InviteToTeam400Error;
+  /** Human-readable detail, for logging/debugging. Never contains raw Postgres/PostgREST error text (constraint names, column names, internal query shape) -- see safeDbErrorMessage() in supabase/functions/_shared/http.ts. Not meant to be shown verbatim to end users; Website should key UI copy off `error`. */
   message: string;
 };
+
+/**
+ * Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check).
+ */
+export type InviteToTeam401Error =
+  (typeof InviteToTeam401Error)[keyof typeof InviteToTeam401Error];
+
+export const InviteToTeam401Error = {
+  already_decided: "already_decided",
+  already_voted: "already_voted",
+  internal_error: "internal_error",
+  invalid_body: "invalid_body",
+  invalid_discussion_id: "invalid_discussion_id",
+  invalid_news_id: "invalid_news_id",
+  invalid_poll_id: "invalid_poll_id",
+  invalid_project_id: "invalid_project_id",
+  invalid_query: "invalid_query",
+  invalid_redirect: "invalid_redirect",
+  invalid_reply_id: "invalid_reply_id",
+  invalid_request_id: "invalid_request_id",
+  invalid_team_id: "invalid_team_id",
+  invalid_user_id: "invalid_user_id",
+  invalid_version: "invalid_version",
+  method_not_allowed: "method_not_allowed",
+  misconfigured: "misconfigured",
+  missing_file: "missing_file",
+  not_found: "not_found",
+  poll_closed: "poll_closed",
+  poll_not_found: "poll_not_found",
+  query_error: "query_error",
+  rate_limited: "rate_limited",
+  rpc_error: "rpc_error",
+  storage_error: "storage_error",
+  too_large: "too_large",
+  unauthorized: "unauthorized",
+  unsupported_type: "unsupported_type",
+  username_taken: "username_taken",
+  vote_rejected: "vote_rejected",
+} as const;
 
 export type InviteToTeam401 = {
-  /** Short machine-readable error code, e.g. "invalid_version". */
-  error: string;
-  /** Human-readable explanation. */
+  /** Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check). */
+  error: InviteToTeam401Error;
+  /** Human-readable detail, for logging/debugging. Never contains raw Postgres/PostgREST error text (constraint names, column names, internal query shape) -- see safeDbErrorMessage() in supabase/functions/_shared/http.ts. Not meant to be shown verbatim to end users; Website should key UI copy off `error`. */
   message: string;
 };
 
+/**
+ * Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check).
+ */
+export type InviteToTeam403Error =
+  (typeof InviteToTeam403Error)[keyof typeof InviteToTeam403Error];
+
+export const InviteToTeam403Error = {
+  already_decided: "already_decided",
+  already_voted: "already_voted",
+  internal_error: "internal_error",
+  invalid_body: "invalid_body",
+  invalid_discussion_id: "invalid_discussion_id",
+  invalid_news_id: "invalid_news_id",
+  invalid_poll_id: "invalid_poll_id",
+  invalid_project_id: "invalid_project_id",
+  invalid_query: "invalid_query",
+  invalid_redirect: "invalid_redirect",
+  invalid_reply_id: "invalid_reply_id",
+  invalid_request_id: "invalid_request_id",
+  invalid_team_id: "invalid_team_id",
+  invalid_user_id: "invalid_user_id",
+  invalid_version: "invalid_version",
+  method_not_allowed: "method_not_allowed",
+  misconfigured: "misconfigured",
+  missing_file: "missing_file",
+  not_found: "not_found",
+  poll_closed: "poll_closed",
+  poll_not_found: "poll_not_found",
+  query_error: "query_error",
+  rate_limited: "rate_limited",
+  rpc_error: "rpc_error",
+  storage_error: "storage_error",
+  too_large: "too_large",
+  unauthorized: "unauthorized",
+  unsupported_type: "unsupported_type",
+  username_taken: "username_taken",
+  vote_rejected: "vote_rejected",
+} as const;
+
 export type InviteToTeam403 = {
-  /** Short machine-readable error code, e.g. "invalid_version". */
-  error: string;
-  /** Human-readable explanation. */
+  /** Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check). */
+  error: InviteToTeam403Error;
+  /** Human-readable detail, for logging/debugging. Never contains raw Postgres/PostgREST error text (constraint names, column names, internal query shape) -- see safeDbErrorMessage() in supabase/functions/_shared/http.ts. Not meant to be shown verbatim to end users; Website should key UI copy off `error`. */
   message: string;
 };
 
@@ -868,45 +1803,279 @@ export type OfferOwnershipTransfer201 = {
   requested_at: string;
 };
 
+/**
+ * Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check).
+ */
+export type OfferOwnershipTransfer400Error =
+  (typeof OfferOwnershipTransfer400Error)[keyof typeof OfferOwnershipTransfer400Error];
+
+export const OfferOwnershipTransfer400Error = {
+  already_decided: "already_decided",
+  already_voted: "already_voted",
+  internal_error: "internal_error",
+  invalid_body: "invalid_body",
+  invalid_discussion_id: "invalid_discussion_id",
+  invalid_news_id: "invalid_news_id",
+  invalid_poll_id: "invalid_poll_id",
+  invalid_project_id: "invalid_project_id",
+  invalid_query: "invalid_query",
+  invalid_redirect: "invalid_redirect",
+  invalid_reply_id: "invalid_reply_id",
+  invalid_request_id: "invalid_request_id",
+  invalid_team_id: "invalid_team_id",
+  invalid_user_id: "invalid_user_id",
+  invalid_version: "invalid_version",
+  method_not_allowed: "method_not_allowed",
+  misconfigured: "misconfigured",
+  missing_file: "missing_file",
+  not_found: "not_found",
+  poll_closed: "poll_closed",
+  poll_not_found: "poll_not_found",
+  query_error: "query_error",
+  rate_limited: "rate_limited",
+  rpc_error: "rpc_error",
+  storage_error: "storage_error",
+  too_large: "too_large",
+  unauthorized: "unauthorized",
+  unsupported_type: "unsupported_type",
+  username_taken: "username_taken",
+  vote_rejected: "vote_rejected",
+} as const;
+
 export type OfferOwnershipTransfer400 = {
-  /** Short machine-readable error code, e.g. "invalid_version". */
-  error: string;
-  /** Human-readable explanation. */
+  /** Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check). */
+  error: OfferOwnershipTransfer400Error;
+  /** Human-readable detail, for logging/debugging. Never contains raw Postgres/PostgREST error text (constraint names, column names, internal query shape) -- see safeDbErrorMessage() in supabase/functions/_shared/http.ts. Not meant to be shown verbatim to end users; Website should key UI copy off `error`. */
   message: string;
 };
+
+/**
+ * Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check).
+ */
+export type OfferOwnershipTransfer401Error =
+  (typeof OfferOwnershipTransfer401Error)[keyof typeof OfferOwnershipTransfer401Error];
+
+export const OfferOwnershipTransfer401Error = {
+  already_decided: "already_decided",
+  already_voted: "already_voted",
+  internal_error: "internal_error",
+  invalid_body: "invalid_body",
+  invalid_discussion_id: "invalid_discussion_id",
+  invalid_news_id: "invalid_news_id",
+  invalid_poll_id: "invalid_poll_id",
+  invalid_project_id: "invalid_project_id",
+  invalid_query: "invalid_query",
+  invalid_redirect: "invalid_redirect",
+  invalid_reply_id: "invalid_reply_id",
+  invalid_request_id: "invalid_request_id",
+  invalid_team_id: "invalid_team_id",
+  invalid_user_id: "invalid_user_id",
+  invalid_version: "invalid_version",
+  method_not_allowed: "method_not_allowed",
+  misconfigured: "misconfigured",
+  missing_file: "missing_file",
+  not_found: "not_found",
+  poll_closed: "poll_closed",
+  poll_not_found: "poll_not_found",
+  query_error: "query_error",
+  rate_limited: "rate_limited",
+  rpc_error: "rpc_error",
+  storage_error: "storage_error",
+  too_large: "too_large",
+  unauthorized: "unauthorized",
+  unsupported_type: "unsupported_type",
+  username_taken: "username_taken",
+  vote_rejected: "vote_rejected",
+} as const;
 
 export type OfferOwnershipTransfer401 = {
-  /** Short machine-readable error code, e.g. "invalid_version". */
-  error: string;
-  /** Human-readable explanation. */
+  /** Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check). */
+  error: OfferOwnershipTransfer401Error;
+  /** Human-readable detail, for logging/debugging. Never contains raw Postgres/PostgREST error text (constraint names, column names, internal query shape) -- see safeDbErrorMessage() in supabase/functions/_shared/http.ts. Not meant to be shown verbatim to end users; Website should key UI copy off `error`. */
   message: string;
 };
+
+/**
+ * Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check).
+ */
+export type OfferOwnershipTransfer403Error =
+  (typeof OfferOwnershipTransfer403Error)[keyof typeof OfferOwnershipTransfer403Error];
+
+export const OfferOwnershipTransfer403Error = {
+  already_decided: "already_decided",
+  already_voted: "already_voted",
+  internal_error: "internal_error",
+  invalid_body: "invalid_body",
+  invalid_discussion_id: "invalid_discussion_id",
+  invalid_news_id: "invalid_news_id",
+  invalid_poll_id: "invalid_poll_id",
+  invalid_project_id: "invalid_project_id",
+  invalid_query: "invalid_query",
+  invalid_redirect: "invalid_redirect",
+  invalid_reply_id: "invalid_reply_id",
+  invalid_request_id: "invalid_request_id",
+  invalid_team_id: "invalid_team_id",
+  invalid_user_id: "invalid_user_id",
+  invalid_version: "invalid_version",
+  method_not_allowed: "method_not_allowed",
+  misconfigured: "misconfigured",
+  missing_file: "missing_file",
+  not_found: "not_found",
+  poll_closed: "poll_closed",
+  poll_not_found: "poll_not_found",
+  query_error: "query_error",
+  rate_limited: "rate_limited",
+  rpc_error: "rpc_error",
+  storage_error: "storage_error",
+  too_large: "too_large",
+  unauthorized: "unauthorized",
+  unsupported_type: "unsupported_type",
+  username_taken: "username_taken",
+  vote_rejected: "vote_rejected",
+} as const;
 
 export type OfferOwnershipTransfer403 = {
-  /** Short machine-readable error code, e.g. "invalid_version". */
-  error: string;
-  /** Human-readable explanation. */
+  /** Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check). */
+  error: OfferOwnershipTransfer403Error;
+  /** Human-readable detail, for logging/debugging. Never contains raw Postgres/PostgREST error text (constraint names, column names, internal query shape) -- see safeDbErrorMessage() in supabase/functions/_shared/http.ts. Not meant to be shown verbatim to end users; Website should key UI copy off `error`. */
   message: string;
 };
+
+/**
+ * Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check).
+ */
+export type LeaveTeam400Error =
+  (typeof LeaveTeam400Error)[keyof typeof LeaveTeam400Error];
+
+export const LeaveTeam400Error = {
+  already_decided: "already_decided",
+  already_voted: "already_voted",
+  internal_error: "internal_error",
+  invalid_body: "invalid_body",
+  invalid_discussion_id: "invalid_discussion_id",
+  invalid_news_id: "invalid_news_id",
+  invalid_poll_id: "invalid_poll_id",
+  invalid_project_id: "invalid_project_id",
+  invalid_query: "invalid_query",
+  invalid_redirect: "invalid_redirect",
+  invalid_reply_id: "invalid_reply_id",
+  invalid_request_id: "invalid_request_id",
+  invalid_team_id: "invalid_team_id",
+  invalid_user_id: "invalid_user_id",
+  invalid_version: "invalid_version",
+  method_not_allowed: "method_not_allowed",
+  misconfigured: "misconfigured",
+  missing_file: "missing_file",
+  not_found: "not_found",
+  poll_closed: "poll_closed",
+  poll_not_found: "poll_not_found",
+  query_error: "query_error",
+  rate_limited: "rate_limited",
+  rpc_error: "rpc_error",
+  storage_error: "storage_error",
+  too_large: "too_large",
+  unauthorized: "unauthorized",
+  unsupported_type: "unsupported_type",
+  username_taken: "username_taken",
+  vote_rejected: "vote_rejected",
+} as const;
 
 export type LeaveTeam400 = {
-  /** Short machine-readable error code, e.g. "invalid_version". */
-  error: string;
-  /** Human-readable explanation. */
+  /** Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check). */
+  error: LeaveTeam400Error;
+  /** Human-readable detail, for logging/debugging. Never contains raw Postgres/PostgREST error text (constraint names, column names, internal query shape) -- see safeDbErrorMessage() in supabase/functions/_shared/http.ts. Not meant to be shown verbatim to end users; Website should key UI copy off `error`. */
   message: string;
 };
+
+/**
+ * Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check).
+ */
+export type LeaveTeam401Error =
+  (typeof LeaveTeam401Error)[keyof typeof LeaveTeam401Error];
+
+export const LeaveTeam401Error = {
+  already_decided: "already_decided",
+  already_voted: "already_voted",
+  internal_error: "internal_error",
+  invalid_body: "invalid_body",
+  invalid_discussion_id: "invalid_discussion_id",
+  invalid_news_id: "invalid_news_id",
+  invalid_poll_id: "invalid_poll_id",
+  invalid_project_id: "invalid_project_id",
+  invalid_query: "invalid_query",
+  invalid_redirect: "invalid_redirect",
+  invalid_reply_id: "invalid_reply_id",
+  invalid_request_id: "invalid_request_id",
+  invalid_team_id: "invalid_team_id",
+  invalid_user_id: "invalid_user_id",
+  invalid_version: "invalid_version",
+  method_not_allowed: "method_not_allowed",
+  misconfigured: "misconfigured",
+  missing_file: "missing_file",
+  not_found: "not_found",
+  poll_closed: "poll_closed",
+  poll_not_found: "poll_not_found",
+  query_error: "query_error",
+  rate_limited: "rate_limited",
+  rpc_error: "rpc_error",
+  storage_error: "storage_error",
+  too_large: "too_large",
+  unauthorized: "unauthorized",
+  unsupported_type: "unsupported_type",
+  username_taken: "username_taken",
+  vote_rejected: "vote_rejected",
+} as const;
 
 export type LeaveTeam401 = {
-  /** Short machine-readable error code, e.g. "invalid_version". */
-  error: string;
-  /** Human-readable explanation. */
+  /** Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check). */
+  error: LeaveTeam401Error;
+  /** Human-readable detail, for logging/debugging. Never contains raw Postgres/PostgREST error text (constraint names, column names, internal query shape) -- see safeDbErrorMessage() in supabase/functions/_shared/http.ts. Not meant to be shown verbatim to end users; Website should key UI copy off `error`. */
   message: string;
 };
 
+/**
+ * Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check).
+ */
+export type LeaveTeam403Error =
+  (typeof LeaveTeam403Error)[keyof typeof LeaveTeam403Error];
+
+export const LeaveTeam403Error = {
+  already_decided: "already_decided",
+  already_voted: "already_voted",
+  internal_error: "internal_error",
+  invalid_body: "invalid_body",
+  invalid_discussion_id: "invalid_discussion_id",
+  invalid_news_id: "invalid_news_id",
+  invalid_poll_id: "invalid_poll_id",
+  invalid_project_id: "invalid_project_id",
+  invalid_query: "invalid_query",
+  invalid_redirect: "invalid_redirect",
+  invalid_reply_id: "invalid_reply_id",
+  invalid_request_id: "invalid_request_id",
+  invalid_team_id: "invalid_team_id",
+  invalid_user_id: "invalid_user_id",
+  invalid_version: "invalid_version",
+  method_not_allowed: "method_not_allowed",
+  misconfigured: "misconfigured",
+  missing_file: "missing_file",
+  not_found: "not_found",
+  poll_closed: "poll_closed",
+  poll_not_found: "poll_not_found",
+  query_error: "query_error",
+  rate_limited: "rate_limited",
+  rpc_error: "rpc_error",
+  storage_error: "storage_error",
+  too_large: "too_large",
+  unauthorized: "unauthorized",
+  unsupported_type: "unsupported_type",
+  username_taken: "username_taken",
+  vote_rejected: "vote_rejected",
+} as const;
+
 export type LeaveTeam403 = {
-  /** Short machine-readable error code, e.g. "invalid_version". */
-  error: string;
-  /** Human-readable explanation. */
+  /** Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check). */
+  error: LeaveTeam403Error;
+  /** Human-readable detail, for logging/debugging. Never contains raw Postgres/PostgREST error text (constraint names, column names, internal query shape) -- see safeDbErrorMessage() in supabase/functions/_shared/http.ts. Not meant to be shown verbatim to end users; Website should key UI copy off `error`. */
   message: string;
 };
 
@@ -917,38 +2086,233 @@ export type AcceptMembershipRequest200 = {
   ok: boolean;
 };
 
+/**
+ * Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check).
+ */
+export type AcceptMembershipRequest400Error =
+  (typeof AcceptMembershipRequest400Error)[keyof typeof AcceptMembershipRequest400Error];
+
+export const AcceptMembershipRequest400Error = {
+  already_decided: "already_decided",
+  already_voted: "already_voted",
+  internal_error: "internal_error",
+  invalid_body: "invalid_body",
+  invalid_discussion_id: "invalid_discussion_id",
+  invalid_news_id: "invalid_news_id",
+  invalid_poll_id: "invalid_poll_id",
+  invalid_project_id: "invalid_project_id",
+  invalid_query: "invalid_query",
+  invalid_redirect: "invalid_redirect",
+  invalid_reply_id: "invalid_reply_id",
+  invalid_request_id: "invalid_request_id",
+  invalid_team_id: "invalid_team_id",
+  invalid_user_id: "invalid_user_id",
+  invalid_version: "invalid_version",
+  method_not_allowed: "method_not_allowed",
+  misconfigured: "misconfigured",
+  missing_file: "missing_file",
+  not_found: "not_found",
+  poll_closed: "poll_closed",
+  poll_not_found: "poll_not_found",
+  query_error: "query_error",
+  rate_limited: "rate_limited",
+  rpc_error: "rpc_error",
+  storage_error: "storage_error",
+  too_large: "too_large",
+  unauthorized: "unauthorized",
+  unsupported_type: "unsupported_type",
+  username_taken: "username_taken",
+  vote_rejected: "vote_rejected",
+} as const;
+
 export type AcceptMembershipRequest400 = {
-  /** Short machine-readable error code, e.g. "invalid_version". */
-  error: string;
-  /** Human-readable explanation. */
+  /** Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check). */
+  error: AcceptMembershipRequest400Error;
+  /** Human-readable detail, for logging/debugging. Never contains raw Postgres/PostgREST error text (constraint names, column names, internal query shape) -- see safeDbErrorMessage() in supabase/functions/_shared/http.ts. Not meant to be shown verbatim to end users; Website should key UI copy off `error`. */
   message: string;
 };
+
+/**
+ * Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check).
+ */
+export type AcceptMembershipRequest401Error =
+  (typeof AcceptMembershipRequest401Error)[keyof typeof AcceptMembershipRequest401Error];
+
+export const AcceptMembershipRequest401Error = {
+  already_decided: "already_decided",
+  already_voted: "already_voted",
+  internal_error: "internal_error",
+  invalid_body: "invalid_body",
+  invalid_discussion_id: "invalid_discussion_id",
+  invalid_news_id: "invalid_news_id",
+  invalid_poll_id: "invalid_poll_id",
+  invalid_project_id: "invalid_project_id",
+  invalid_query: "invalid_query",
+  invalid_redirect: "invalid_redirect",
+  invalid_reply_id: "invalid_reply_id",
+  invalid_request_id: "invalid_request_id",
+  invalid_team_id: "invalid_team_id",
+  invalid_user_id: "invalid_user_id",
+  invalid_version: "invalid_version",
+  method_not_allowed: "method_not_allowed",
+  misconfigured: "misconfigured",
+  missing_file: "missing_file",
+  not_found: "not_found",
+  poll_closed: "poll_closed",
+  poll_not_found: "poll_not_found",
+  query_error: "query_error",
+  rate_limited: "rate_limited",
+  rpc_error: "rpc_error",
+  storage_error: "storage_error",
+  too_large: "too_large",
+  unauthorized: "unauthorized",
+  unsupported_type: "unsupported_type",
+  username_taken: "username_taken",
+  vote_rejected: "vote_rejected",
+} as const;
 
 export type AcceptMembershipRequest401 = {
-  /** Short machine-readable error code, e.g. "invalid_version". */
-  error: string;
-  /** Human-readable explanation. */
+  /** Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check). */
+  error: AcceptMembershipRequest401Error;
+  /** Human-readable detail, for logging/debugging. Never contains raw Postgres/PostgREST error text (constraint names, column names, internal query shape) -- see safeDbErrorMessage() in supabase/functions/_shared/http.ts. Not meant to be shown verbatim to end users; Website should key UI copy off `error`. */
   message: string;
 };
+
+/**
+ * Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check).
+ */
+export type AcceptMembershipRequest403Error =
+  (typeof AcceptMembershipRequest403Error)[keyof typeof AcceptMembershipRequest403Error];
+
+export const AcceptMembershipRequest403Error = {
+  already_decided: "already_decided",
+  already_voted: "already_voted",
+  internal_error: "internal_error",
+  invalid_body: "invalid_body",
+  invalid_discussion_id: "invalid_discussion_id",
+  invalid_news_id: "invalid_news_id",
+  invalid_poll_id: "invalid_poll_id",
+  invalid_project_id: "invalid_project_id",
+  invalid_query: "invalid_query",
+  invalid_redirect: "invalid_redirect",
+  invalid_reply_id: "invalid_reply_id",
+  invalid_request_id: "invalid_request_id",
+  invalid_team_id: "invalid_team_id",
+  invalid_user_id: "invalid_user_id",
+  invalid_version: "invalid_version",
+  method_not_allowed: "method_not_allowed",
+  misconfigured: "misconfigured",
+  missing_file: "missing_file",
+  not_found: "not_found",
+  poll_closed: "poll_closed",
+  poll_not_found: "poll_not_found",
+  query_error: "query_error",
+  rate_limited: "rate_limited",
+  rpc_error: "rpc_error",
+  storage_error: "storage_error",
+  too_large: "too_large",
+  unauthorized: "unauthorized",
+  unsupported_type: "unsupported_type",
+  username_taken: "username_taken",
+  vote_rejected: "vote_rejected",
+} as const;
 
 export type AcceptMembershipRequest403 = {
-  /** Short machine-readable error code, e.g. "invalid_version". */
-  error: string;
-  /** Human-readable explanation. */
+  /** Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check). */
+  error: AcceptMembershipRequest403Error;
+  /** Human-readable detail, for logging/debugging. Never contains raw Postgres/PostgREST error text (constraint names, column names, internal query shape) -- see safeDbErrorMessage() in supabase/functions/_shared/http.ts. Not meant to be shown verbatim to end users; Website should key UI copy off `error`. */
   message: string;
 };
+
+/**
+ * Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check).
+ */
+export type AcceptMembershipRequest404Error =
+  (typeof AcceptMembershipRequest404Error)[keyof typeof AcceptMembershipRequest404Error];
+
+export const AcceptMembershipRequest404Error = {
+  already_decided: "already_decided",
+  already_voted: "already_voted",
+  internal_error: "internal_error",
+  invalid_body: "invalid_body",
+  invalid_discussion_id: "invalid_discussion_id",
+  invalid_news_id: "invalid_news_id",
+  invalid_poll_id: "invalid_poll_id",
+  invalid_project_id: "invalid_project_id",
+  invalid_query: "invalid_query",
+  invalid_redirect: "invalid_redirect",
+  invalid_reply_id: "invalid_reply_id",
+  invalid_request_id: "invalid_request_id",
+  invalid_team_id: "invalid_team_id",
+  invalid_user_id: "invalid_user_id",
+  invalid_version: "invalid_version",
+  method_not_allowed: "method_not_allowed",
+  misconfigured: "misconfigured",
+  missing_file: "missing_file",
+  not_found: "not_found",
+  poll_closed: "poll_closed",
+  poll_not_found: "poll_not_found",
+  query_error: "query_error",
+  rate_limited: "rate_limited",
+  rpc_error: "rpc_error",
+  storage_error: "storage_error",
+  too_large: "too_large",
+  unauthorized: "unauthorized",
+  unsupported_type: "unsupported_type",
+  username_taken: "username_taken",
+  vote_rejected: "vote_rejected",
+} as const;
 
 export type AcceptMembershipRequest404 = {
-  /** Short machine-readable error code, e.g. "invalid_version". */
-  error: string;
-  /** Human-readable explanation. */
+  /** Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check). */
+  error: AcceptMembershipRequest404Error;
+  /** Human-readable detail, for logging/debugging. Never contains raw Postgres/PostgREST error text (constraint names, column names, internal query shape) -- see safeDbErrorMessage() in supabase/functions/_shared/http.ts. Not meant to be shown verbatim to end users; Website should key UI copy off `error`. */
   message: string;
 };
 
+/**
+ * Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check).
+ */
+export type AcceptMembershipRequest409Error =
+  (typeof AcceptMembershipRequest409Error)[keyof typeof AcceptMembershipRequest409Error];
+
+export const AcceptMembershipRequest409Error = {
+  already_decided: "already_decided",
+  already_voted: "already_voted",
+  internal_error: "internal_error",
+  invalid_body: "invalid_body",
+  invalid_discussion_id: "invalid_discussion_id",
+  invalid_news_id: "invalid_news_id",
+  invalid_poll_id: "invalid_poll_id",
+  invalid_project_id: "invalid_project_id",
+  invalid_query: "invalid_query",
+  invalid_redirect: "invalid_redirect",
+  invalid_reply_id: "invalid_reply_id",
+  invalid_request_id: "invalid_request_id",
+  invalid_team_id: "invalid_team_id",
+  invalid_user_id: "invalid_user_id",
+  invalid_version: "invalid_version",
+  method_not_allowed: "method_not_allowed",
+  misconfigured: "misconfigured",
+  missing_file: "missing_file",
+  not_found: "not_found",
+  poll_closed: "poll_closed",
+  poll_not_found: "poll_not_found",
+  query_error: "query_error",
+  rate_limited: "rate_limited",
+  rpc_error: "rpc_error",
+  storage_error: "storage_error",
+  too_large: "too_large",
+  unauthorized: "unauthorized",
+  unsupported_type: "unsupported_type",
+  username_taken: "username_taken",
+  vote_rejected: "vote_rejected",
+} as const;
+
 export type AcceptMembershipRequest409 = {
-  /** Short machine-readable error code, e.g. "invalid_version". */
-  error: string;
-  /** Human-readable explanation. */
+  /** Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check). */
+  error: AcceptMembershipRequest409Error;
+  /** Human-readable detail, for logging/debugging. Never contains raw Postgres/PostgREST error text (constraint names, column names, internal query shape) -- see safeDbErrorMessage() in supabase/functions/_shared/http.ts. Not meant to be shown verbatim to end users; Website should key UI copy off `error`. */
   message: string;
 };
 
@@ -959,38 +2323,233 @@ export type RejectMembershipRequest200 = {
   ok: boolean;
 };
 
+/**
+ * Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check).
+ */
+export type RejectMembershipRequest400Error =
+  (typeof RejectMembershipRequest400Error)[keyof typeof RejectMembershipRequest400Error];
+
+export const RejectMembershipRequest400Error = {
+  already_decided: "already_decided",
+  already_voted: "already_voted",
+  internal_error: "internal_error",
+  invalid_body: "invalid_body",
+  invalid_discussion_id: "invalid_discussion_id",
+  invalid_news_id: "invalid_news_id",
+  invalid_poll_id: "invalid_poll_id",
+  invalid_project_id: "invalid_project_id",
+  invalid_query: "invalid_query",
+  invalid_redirect: "invalid_redirect",
+  invalid_reply_id: "invalid_reply_id",
+  invalid_request_id: "invalid_request_id",
+  invalid_team_id: "invalid_team_id",
+  invalid_user_id: "invalid_user_id",
+  invalid_version: "invalid_version",
+  method_not_allowed: "method_not_allowed",
+  misconfigured: "misconfigured",
+  missing_file: "missing_file",
+  not_found: "not_found",
+  poll_closed: "poll_closed",
+  poll_not_found: "poll_not_found",
+  query_error: "query_error",
+  rate_limited: "rate_limited",
+  rpc_error: "rpc_error",
+  storage_error: "storage_error",
+  too_large: "too_large",
+  unauthorized: "unauthorized",
+  unsupported_type: "unsupported_type",
+  username_taken: "username_taken",
+  vote_rejected: "vote_rejected",
+} as const;
+
 export type RejectMembershipRequest400 = {
-  /** Short machine-readable error code, e.g. "invalid_version". */
-  error: string;
-  /** Human-readable explanation. */
+  /** Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check). */
+  error: RejectMembershipRequest400Error;
+  /** Human-readable detail, for logging/debugging. Never contains raw Postgres/PostgREST error text (constraint names, column names, internal query shape) -- see safeDbErrorMessage() in supabase/functions/_shared/http.ts. Not meant to be shown verbatim to end users; Website should key UI copy off `error`. */
   message: string;
 };
+
+/**
+ * Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check).
+ */
+export type RejectMembershipRequest401Error =
+  (typeof RejectMembershipRequest401Error)[keyof typeof RejectMembershipRequest401Error];
+
+export const RejectMembershipRequest401Error = {
+  already_decided: "already_decided",
+  already_voted: "already_voted",
+  internal_error: "internal_error",
+  invalid_body: "invalid_body",
+  invalid_discussion_id: "invalid_discussion_id",
+  invalid_news_id: "invalid_news_id",
+  invalid_poll_id: "invalid_poll_id",
+  invalid_project_id: "invalid_project_id",
+  invalid_query: "invalid_query",
+  invalid_redirect: "invalid_redirect",
+  invalid_reply_id: "invalid_reply_id",
+  invalid_request_id: "invalid_request_id",
+  invalid_team_id: "invalid_team_id",
+  invalid_user_id: "invalid_user_id",
+  invalid_version: "invalid_version",
+  method_not_allowed: "method_not_allowed",
+  misconfigured: "misconfigured",
+  missing_file: "missing_file",
+  not_found: "not_found",
+  poll_closed: "poll_closed",
+  poll_not_found: "poll_not_found",
+  query_error: "query_error",
+  rate_limited: "rate_limited",
+  rpc_error: "rpc_error",
+  storage_error: "storage_error",
+  too_large: "too_large",
+  unauthorized: "unauthorized",
+  unsupported_type: "unsupported_type",
+  username_taken: "username_taken",
+  vote_rejected: "vote_rejected",
+} as const;
 
 export type RejectMembershipRequest401 = {
-  /** Short machine-readable error code, e.g. "invalid_version". */
-  error: string;
-  /** Human-readable explanation. */
+  /** Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check). */
+  error: RejectMembershipRequest401Error;
+  /** Human-readable detail, for logging/debugging. Never contains raw Postgres/PostgREST error text (constraint names, column names, internal query shape) -- see safeDbErrorMessage() in supabase/functions/_shared/http.ts. Not meant to be shown verbatim to end users; Website should key UI copy off `error`. */
   message: string;
 };
+
+/**
+ * Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check).
+ */
+export type RejectMembershipRequest403Error =
+  (typeof RejectMembershipRequest403Error)[keyof typeof RejectMembershipRequest403Error];
+
+export const RejectMembershipRequest403Error = {
+  already_decided: "already_decided",
+  already_voted: "already_voted",
+  internal_error: "internal_error",
+  invalid_body: "invalid_body",
+  invalid_discussion_id: "invalid_discussion_id",
+  invalid_news_id: "invalid_news_id",
+  invalid_poll_id: "invalid_poll_id",
+  invalid_project_id: "invalid_project_id",
+  invalid_query: "invalid_query",
+  invalid_redirect: "invalid_redirect",
+  invalid_reply_id: "invalid_reply_id",
+  invalid_request_id: "invalid_request_id",
+  invalid_team_id: "invalid_team_id",
+  invalid_user_id: "invalid_user_id",
+  invalid_version: "invalid_version",
+  method_not_allowed: "method_not_allowed",
+  misconfigured: "misconfigured",
+  missing_file: "missing_file",
+  not_found: "not_found",
+  poll_closed: "poll_closed",
+  poll_not_found: "poll_not_found",
+  query_error: "query_error",
+  rate_limited: "rate_limited",
+  rpc_error: "rpc_error",
+  storage_error: "storage_error",
+  too_large: "too_large",
+  unauthorized: "unauthorized",
+  unsupported_type: "unsupported_type",
+  username_taken: "username_taken",
+  vote_rejected: "vote_rejected",
+} as const;
 
 export type RejectMembershipRequest403 = {
-  /** Short machine-readable error code, e.g. "invalid_version". */
-  error: string;
-  /** Human-readable explanation. */
+  /** Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check). */
+  error: RejectMembershipRequest403Error;
+  /** Human-readable detail, for logging/debugging. Never contains raw Postgres/PostgREST error text (constraint names, column names, internal query shape) -- see safeDbErrorMessage() in supabase/functions/_shared/http.ts. Not meant to be shown verbatim to end users; Website should key UI copy off `error`. */
   message: string;
 };
+
+/**
+ * Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check).
+ */
+export type RejectMembershipRequest404Error =
+  (typeof RejectMembershipRequest404Error)[keyof typeof RejectMembershipRequest404Error];
+
+export const RejectMembershipRequest404Error = {
+  already_decided: "already_decided",
+  already_voted: "already_voted",
+  internal_error: "internal_error",
+  invalid_body: "invalid_body",
+  invalid_discussion_id: "invalid_discussion_id",
+  invalid_news_id: "invalid_news_id",
+  invalid_poll_id: "invalid_poll_id",
+  invalid_project_id: "invalid_project_id",
+  invalid_query: "invalid_query",
+  invalid_redirect: "invalid_redirect",
+  invalid_reply_id: "invalid_reply_id",
+  invalid_request_id: "invalid_request_id",
+  invalid_team_id: "invalid_team_id",
+  invalid_user_id: "invalid_user_id",
+  invalid_version: "invalid_version",
+  method_not_allowed: "method_not_allowed",
+  misconfigured: "misconfigured",
+  missing_file: "missing_file",
+  not_found: "not_found",
+  poll_closed: "poll_closed",
+  poll_not_found: "poll_not_found",
+  query_error: "query_error",
+  rate_limited: "rate_limited",
+  rpc_error: "rpc_error",
+  storage_error: "storage_error",
+  too_large: "too_large",
+  unauthorized: "unauthorized",
+  unsupported_type: "unsupported_type",
+  username_taken: "username_taken",
+  vote_rejected: "vote_rejected",
+} as const;
 
 export type RejectMembershipRequest404 = {
-  /** Short machine-readable error code, e.g. "invalid_version". */
-  error: string;
-  /** Human-readable explanation. */
+  /** Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check). */
+  error: RejectMembershipRequest404Error;
+  /** Human-readable detail, for logging/debugging. Never contains raw Postgres/PostgREST error text (constraint names, column names, internal query shape) -- see safeDbErrorMessage() in supabase/functions/_shared/http.ts. Not meant to be shown verbatim to end users; Website should key UI copy off `error`. */
   message: string;
 };
 
+/**
+ * Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check).
+ */
+export type RejectMembershipRequest409Error =
+  (typeof RejectMembershipRequest409Error)[keyof typeof RejectMembershipRequest409Error];
+
+export const RejectMembershipRequest409Error = {
+  already_decided: "already_decided",
+  already_voted: "already_voted",
+  internal_error: "internal_error",
+  invalid_body: "invalid_body",
+  invalid_discussion_id: "invalid_discussion_id",
+  invalid_news_id: "invalid_news_id",
+  invalid_poll_id: "invalid_poll_id",
+  invalid_project_id: "invalid_project_id",
+  invalid_query: "invalid_query",
+  invalid_redirect: "invalid_redirect",
+  invalid_reply_id: "invalid_reply_id",
+  invalid_request_id: "invalid_request_id",
+  invalid_team_id: "invalid_team_id",
+  invalid_user_id: "invalid_user_id",
+  invalid_version: "invalid_version",
+  method_not_allowed: "method_not_allowed",
+  misconfigured: "misconfigured",
+  missing_file: "missing_file",
+  not_found: "not_found",
+  poll_closed: "poll_closed",
+  poll_not_found: "poll_not_found",
+  query_error: "query_error",
+  rate_limited: "rate_limited",
+  rpc_error: "rpc_error",
+  storage_error: "storage_error",
+  too_large: "too_large",
+  unauthorized: "unauthorized",
+  unsupported_type: "unsupported_type",
+  username_taken: "username_taken",
+  vote_rejected: "vote_rejected",
+} as const;
+
 export type RejectMembershipRequest409 = {
-  /** Short machine-readable error code, e.g. "invalid_version". */
-  error: string;
-  /** Human-readable explanation. */
+  /** Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check). */
+  error: RejectMembershipRequest409Error;
+  /** Human-readable detail, for logging/debugging. Never contains raw Postgres/PostgREST error text (constraint names, column names, internal query shape) -- see safeDbErrorMessage() in supabase/functions/_shared/http.ts. Not meant to be shown verbatim to end users; Website should key UI copy off `error`. */
   message: string;
 };
 
@@ -1001,24 +2560,141 @@ export type CancelMembershipRequest200 = {
   ok: boolean;
 };
 
+/**
+ * Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check).
+ */
+export type CancelMembershipRequest400Error =
+  (typeof CancelMembershipRequest400Error)[keyof typeof CancelMembershipRequest400Error];
+
+export const CancelMembershipRequest400Error = {
+  already_decided: "already_decided",
+  already_voted: "already_voted",
+  internal_error: "internal_error",
+  invalid_body: "invalid_body",
+  invalid_discussion_id: "invalid_discussion_id",
+  invalid_news_id: "invalid_news_id",
+  invalid_poll_id: "invalid_poll_id",
+  invalid_project_id: "invalid_project_id",
+  invalid_query: "invalid_query",
+  invalid_redirect: "invalid_redirect",
+  invalid_reply_id: "invalid_reply_id",
+  invalid_request_id: "invalid_request_id",
+  invalid_team_id: "invalid_team_id",
+  invalid_user_id: "invalid_user_id",
+  invalid_version: "invalid_version",
+  method_not_allowed: "method_not_allowed",
+  misconfigured: "misconfigured",
+  missing_file: "missing_file",
+  not_found: "not_found",
+  poll_closed: "poll_closed",
+  poll_not_found: "poll_not_found",
+  query_error: "query_error",
+  rate_limited: "rate_limited",
+  rpc_error: "rpc_error",
+  storage_error: "storage_error",
+  too_large: "too_large",
+  unauthorized: "unauthorized",
+  unsupported_type: "unsupported_type",
+  username_taken: "username_taken",
+  vote_rejected: "vote_rejected",
+} as const;
+
 export type CancelMembershipRequest400 = {
-  /** Short machine-readable error code, e.g. "invalid_version". */
-  error: string;
-  /** Human-readable explanation. */
+  /** Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check). */
+  error: CancelMembershipRequest400Error;
+  /** Human-readable detail, for logging/debugging. Never contains raw Postgres/PostgREST error text (constraint names, column names, internal query shape) -- see safeDbErrorMessage() in supabase/functions/_shared/http.ts. Not meant to be shown verbatim to end users; Website should key UI copy off `error`. */
   message: string;
 };
+
+/**
+ * Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check).
+ */
+export type CancelMembershipRequest401Error =
+  (typeof CancelMembershipRequest401Error)[keyof typeof CancelMembershipRequest401Error];
+
+export const CancelMembershipRequest401Error = {
+  already_decided: "already_decided",
+  already_voted: "already_voted",
+  internal_error: "internal_error",
+  invalid_body: "invalid_body",
+  invalid_discussion_id: "invalid_discussion_id",
+  invalid_news_id: "invalid_news_id",
+  invalid_poll_id: "invalid_poll_id",
+  invalid_project_id: "invalid_project_id",
+  invalid_query: "invalid_query",
+  invalid_redirect: "invalid_redirect",
+  invalid_reply_id: "invalid_reply_id",
+  invalid_request_id: "invalid_request_id",
+  invalid_team_id: "invalid_team_id",
+  invalid_user_id: "invalid_user_id",
+  invalid_version: "invalid_version",
+  method_not_allowed: "method_not_allowed",
+  misconfigured: "misconfigured",
+  missing_file: "missing_file",
+  not_found: "not_found",
+  poll_closed: "poll_closed",
+  poll_not_found: "poll_not_found",
+  query_error: "query_error",
+  rate_limited: "rate_limited",
+  rpc_error: "rpc_error",
+  storage_error: "storage_error",
+  too_large: "too_large",
+  unauthorized: "unauthorized",
+  unsupported_type: "unsupported_type",
+  username_taken: "username_taken",
+  vote_rejected: "vote_rejected",
+} as const;
 
 export type CancelMembershipRequest401 = {
-  /** Short machine-readable error code, e.g. "invalid_version". */
-  error: string;
-  /** Human-readable explanation. */
+  /** Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check). */
+  error: CancelMembershipRequest401Error;
+  /** Human-readable detail, for logging/debugging. Never contains raw Postgres/PostgREST error text (constraint names, column names, internal query shape) -- see safeDbErrorMessage() in supabase/functions/_shared/http.ts. Not meant to be shown verbatim to end users; Website should key UI copy off `error`. */
   message: string;
 };
 
+/**
+ * Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check).
+ */
+export type CancelMembershipRequest403Error =
+  (typeof CancelMembershipRequest403Error)[keyof typeof CancelMembershipRequest403Error];
+
+export const CancelMembershipRequest403Error = {
+  already_decided: "already_decided",
+  already_voted: "already_voted",
+  internal_error: "internal_error",
+  invalid_body: "invalid_body",
+  invalid_discussion_id: "invalid_discussion_id",
+  invalid_news_id: "invalid_news_id",
+  invalid_poll_id: "invalid_poll_id",
+  invalid_project_id: "invalid_project_id",
+  invalid_query: "invalid_query",
+  invalid_redirect: "invalid_redirect",
+  invalid_reply_id: "invalid_reply_id",
+  invalid_request_id: "invalid_request_id",
+  invalid_team_id: "invalid_team_id",
+  invalid_user_id: "invalid_user_id",
+  invalid_version: "invalid_version",
+  method_not_allowed: "method_not_allowed",
+  misconfigured: "misconfigured",
+  missing_file: "missing_file",
+  not_found: "not_found",
+  poll_closed: "poll_closed",
+  poll_not_found: "poll_not_found",
+  query_error: "query_error",
+  rate_limited: "rate_limited",
+  rpc_error: "rpc_error",
+  storage_error: "storage_error",
+  too_large: "too_large",
+  unauthorized: "unauthorized",
+  unsupported_type: "unsupported_type",
+  username_taken: "username_taken",
+  vote_rejected: "vote_rejected",
+} as const;
+
 export type CancelMembershipRequest403 = {
-  /** Short machine-readable error code, e.g. "invalid_version". */
-  error: string;
-  /** Human-readable explanation. */
+  /** Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check). */
+  error: CancelMembershipRequest403Error;
+  /** Human-readable detail, for logging/debugging. Never contains raw Postgres/PostgREST error text (constraint names, column names, internal query shape) -- see safeDbErrorMessage() in supabase/functions/_shared/http.ts. Not meant to be shown verbatim to end users; Website should key UI copy off `error`. */
   message: string;
 };
 
@@ -1032,22 +2708,100 @@ export type GetMyProfile200 = {
   avatar_url?: string | null;
 };
 
-export type GetMyProfile401 = {
-  /** Short machine-readable error code, e.g. "invalid_version". */
-  error: string;
-  /** Human-readable explanation. */
-  message: string;
-};
+/**
+ * Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check).
+ */
+export type GetMyProfile401Error =
+  (typeof GetMyProfile401Error)[keyof typeof GetMyProfile401Error];
 
-export type GetMyProfile404 = {
-  /** Short machine-readable error code, e.g. "invalid_version". */
-  error: string;
-  /** Human-readable explanation. */
+export const GetMyProfile401Error = {
+  already_decided: "already_decided",
+  already_voted: "already_voted",
+  internal_error: "internal_error",
+  invalid_body: "invalid_body",
+  invalid_discussion_id: "invalid_discussion_id",
+  invalid_news_id: "invalid_news_id",
+  invalid_poll_id: "invalid_poll_id",
+  invalid_project_id: "invalid_project_id",
+  invalid_query: "invalid_query",
+  invalid_redirect: "invalid_redirect",
+  invalid_reply_id: "invalid_reply_id",
+  invalid_request_id: "invalid_request_id",
+  invalid_team_id: "invalid_team_id",
+  invalid_user_id: "invalid_user_id",
+  invalid_version: "invalid_version",
+  method_not_allowed: "method_not_allowed",
+  misconfigured: "misconfigured",
+  missing_file: "missing_file",
+  not_found: "not_found",
+  poll_closed: "poll_closed",
+  poll_not_found: "poll_not_found",
+  query_error: "query_error",
+  rate_limited: "rate_limited",
+  rpc_error: "rpc_error",
+  storage_error: "storage_error",
+  too_large: "too_large",
+  unauthorized: "unauthorized",
+  unsupported_type: "unsupported_type",
+  username_taken: "username_taken",
+  vote_rejected: "vote_rejected",
+} as const;
+
+export type GetMyProfile401 = {
+  /** Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check). */
+  error: GetMyProfile401Error;
+  /** Human-readable detail, for logging/debugging. Never contains raw Postgres/PostgREST error text (constraint names, column names, internal query shape) -- see safeDbErrorMessage() in supabase/functions/_shared/http.ts. Not meant to be shown verbatim to end users; Website should key UI copy off `error`. */
   message: string;
 };
 
 /**
- * At least one of full_name, username or avatar_path must be provided.
+ * Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check).
+ */
+export type GetMyProfile404Error =
+  (typeof GetMyProfile404Error)[keyof typeof GetMyProfile404Error];
+
+export const GetMyProfile404Error = {
+  already_decided: "already_decided",
+  already_voted: "already_voted",
+  internal_error: "internal_error",
+  invalid_body: "invalid_body",
+  invalid_discussion_id: "invalid_discussion_id",
+  invalid_news_id: "invalid_news_id",
+  invalid_poll_id: "invalid_poll_id",
+  invalid_project_id: "invalid_project_id",
+  invalid_query: "invalid_query",
+  invalid_redirect: "invalid_redirect",
+  invalid_reply_id: "invalid_reply_id",
+  invalid_request_id: "invalid_request_id",
+  invalid_team_id: "invalid_team_id",
+  invalid_user_id: "invalid_user_id",
+  invalid_version: "invalid_version",
+  method_not_allowed: "method_not_allowed",
+  misconfigured: "misconfigured",
+  missing_file: "missing_file",
+  not_found: "not_found",
+  poll_closed: "poll_closed",
+  poll_not_found: "poll_not_found",
+  query_error: "query_error",
+  rate_limited: "rate_limited",
+  rpc_error: "rpc_error",
+  storage_error: "storage_error",
+  too_large: "too_large",
+  unauthorized: "unauthorized",
+  unsupported_type: "unsupported_type",
+  username_taken: "username_taken",
+  vote_rejected: "vote_rejected",
+} as const;
+
+export type GetMyProfile404 = {
+  /** Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check). */
+  error: GetMyProfile404Error;
+  /** Human-readable detail, for logging/debugging. Never contains raw Postgres/PostgREST error text (constraint names, column names, internal query shape) -- see safeDbErrorMessage() in supabase/functions/_shared/http.ts. Not meant to be shown verbatim to end users; Website should key UI copy off `error`. */
+  message: string;
+};
+
+/**
+ * At least one of full_name or username must be provided.
  */
 export type UpdateMyProfileBody = {
   /**
@@ -1062,11 +2816,6 @@ export type UpdateMyProfileBody = {
    * @pattern ^[a-zA-Z0-9_]+$
    */
   username?: string;
-  /**
-   * Storage path in the avatars bucket. Set this directly only if you already know a valid path (e.g. clearing the avatar with null); to upload a new image, use POST /profiles/me/avatar instead, which uploads the file and sets this for you.
-   * @minLength 1
-   */
-  avatar_path?: string | null;
 };
 
 export type UpdateMyProfile200 = {
@@ -1079,31 +2828,187 @@ export type UpdateMyProfile200 = {
   avatar_url?: string | null;
 };
 
+/**
+ * Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check).
+ */
+export type UpdateMyProfile400Error =
+  (typeof UpdateMyProfile400Error)[keyof typeof UpdateMyProfile400Error];
+
+export const UpdateMyProfile400Error = {
+  already_decided: "already_decided",
+  already_voted: "already_voted",
+  internal_error: "internal_error",
+  invalid_body: "invalid_body",
+  invalid_discussion_id: "invalid_discussion_id",
+  invalid_news_id: "invalid_news_id",
+  invalid_poll_id: "invalid_poll_id",
+  invalid_project_id: "invalid_project_id",
+  invalid_query: "invalid_query",
+  invalid_redirect: "invalid_redirect",
+  invalid_reply_id: "invalid_reply_id",
+  invalid_request_id: "invalid_request_id",
+  invalid_team_id: "invalid_team_id",
+  invalid_user_id: "invalid_user_id",
+  invalid_version: "invalid_version",
+  method_not_allowed: "method_not_allowed",
+  misconfigured: "misconfigured",
+  missing_file: "missing_file",
+  not_found: "not_found",
+  poll_closed: "poll_closed",
+  poll_not_found: "poll_not_found",
+  query_error: "query_error",
+  rate_limited: "rate_limited",
+  rpc_error: "rpc_error",
+  storage_error: "storage_error",
+  too_large: "too_large",
+  unauthorized: "unauthorized",
+  unsupported_type: "unsupported_type",
+  username_taken: "username_taken",
+  vote_rejected: "vote_rejected",
+} as const;
+
 export type UpdateMyProfile400 = {
-  /** Short machine-readable error code, e.g. "invalid_version". */
-  error: string;
-  /** Human-readable explanation. */
+  /** Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check). */
+  error: UpdateMyProfile400Error;
+  /** Human-readable detail, for logging/debugging. Never contains raw Postgres/PostgREST error text (constraint names, column names, internal query shape) -- see safeDbErrorMessage() in supabase/functions/_shared/http.ts. Not meant to be shown verbatim to end users; Website should key UI copy off `error`. */
   message: string;
 };
+
+/**
+ * Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check).
+ */
+export type UpdateMyProfile401Error =
+  (typeof UpdateMyProfile401Error)[keyof typeof UpdateMyProfile401Error];
+
+export const UpdateMyProfile401Error = {
+  already_decided: "already_decided",
+  already_voted: "already_voted",
+  internal_error: "internal_error",
+  invalid_body: "invalid_body",
+  invalid_discussion_id: "invalid_discussion_id",
+  invalid_news_id: "invalid_news_id",
+  invalid_poll_id: "invalid_poll_id",
+  invalid_project_id: "invalid_project_id",
+  invalid_query: "invalid_query",
+  invalid_redirect: "invalid_redirect",
+  invalid_reply_id: "invalid_reply_id",
+  invalid_request_id: "invalid_request_id",
+  invalid_team_id: "invalid_team_id",
+  invalid_user_id: "invalid_user_id",
+  invalid_version: "invalid_version",
+  method_not_allowed: "method_not_allowed",
+  misconfigured: "misconfigured",
+  missing_file: "missing_file",
+  not_found: "not_found",
+  poll_closed: "poll_closed",
+  poll_not_found: "poll_not_found",
+  query_error: "query_error",
+  rate_limited: "rate_limited",
+  rpc_error: "rpc_error",
+  storage_error: "storage_error",
+  too_large: "too_large",
+  unauthorized: "unauthorized",
+  unsupported_type: "unsupported_type",
+  username_taken: "username_taken",
+  vote_rejected: "vote_rejected",
+} as const;
 
 export type UpdateMyProfile401 = {
-  /** Short machine-readable error code, e.g. "invalid_version". */
-  error: string;
-  /** Human-readable explanation. */
+  /** Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check). */
+  error: UpdateMyProfile401Error;
+  /** Human-readable detail, for logging/debugging. Never contains raw Postgres/PostgREST error text (constraint names, column names, internal query shape) -- see safeDbErrorMessage() in supabase/functions/_shared/http.ts. Not meant to be shown verbatim to end users; Website should key UI copy off `error`. */
   message: string;
 };
+
+/**
+ * Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check).
+ */
+export type UpdateMyProfile404Error =
+  (typeof UpdateMyProfile404Error)[keyof typeof UpdateMyProfile404Error];
+
+export const UpdateMyProfile404Error = {
+  already_decided: "already_decided",
+  already_voted: "already_voted",
+  internal_error: "internal_error",
+  invalid_body: "invalid_body",
+  invalid_discussion_id: "invalid_discussion_id",
+  invalid_news_id: "invalid_news_id",
+  invalid_poll_id: "invalid_poll_id",
+  invalid_project_id: "invalid_project_id",
+  invalid_query: "invalid_query",
+  invalid_redirect: "invalid_redirect",
+  invalid_reply_id: "invalid_reply_id",
+  invalid_request_id: "invalid_request_id",
+  invalid_team_id: "invalid_team_id",
+  invalid_user_id: "invalid_user_id",
+  invalid_version: "invalid_version",
+  method_not_allowed: "method_not_allowed",
+  misconfigured: "misconfigured",
+  missing_file: "missing_file",
+  not_found: "not_found",
+  poll_closed: "poll_closed",
+  poll_not_found: "poll_not_found",
+  query_error: "query_error",
+  rate_limited: "rate_limited",
+  rpc_error: "rpc_error",
+  storage_error: "storage_error",
+  too_large: "too_large",
+  unauthorized: "unauthorized",
+  unsupported_type: "unsupported_type",
+  username_taken: "username_taken",
+  vote_rejected: "vote_rejected",
+} as const;
 
 export type UpdateMyProfile404 = {
-  /** Short machine-readable error code, e.g. "invalid_version". */
-  error: string;
-  /** Human-readable explanation. */
+  /** Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check). */
+  error: UpdateMyProfile404Error;
+  /** Human-readable detail, for logging/debugging. Never contains raw Postgres/PostgREST error text (constraint names, column names, internal query shape) -- see safeDbErrorMessage() in supabase/functions/_shared/http.ts. Not meant to be shown verbatim to end users; Website should key UI copy off `error`. */
   message: string;
 };
 
+/**
+ * Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check).
+ */
+export type UpdateMyProfile409Error =
+  (typeof UpdateMyProfile409Error)[keyof typeof UpdateMyProfile409Error];
+
+export const UpdateMyProfile409Error = {
+  already_decided: "already_decided",
+  already_voted: "already_voted",
+  internal_error: "internal_error",
+  invalid_body: "invalid_body",
+  invalid_discussion_id: "invalid_discussion_id",
+  invalid_news_id: "invalid_news_id",
+  invalid_poll_id: "invalid_poll_id",
+  invalid_project_id: "invalid_project_id",
+  invalid_query: "invalid_query",
+  invalid_redirect: "invalid_redirect",
+  invalid_reply_id: "invalid_reply_id",
+  invalid_request_id: "invalid_request_id",
+  invalid_team_id: "invalid_team_id",
+  invalid_user_id: "invalid_user_id",
+  invalid_version: "invalid_version",
+  method_not_allowed: "method_not_allowed",
+  misconfigured: "misconfigured",
+  missing_file: "missing_file",
+  not_found: "not_found",
+  poll_closed: "poll_closed",
+  poll_not_found: "poll_not_found",
+  query_error: "query_error",
+  rate_limited: "rate_limited",
+  rpc_error: "rpc_error",
+  storage_error: "storage_error",
+  too_large: "too_large",
+  unauthorized: "unauthorized",
+  unsupported_type: "unsupported_type",
+  username_taken: "username_taken",
+  vote_rejected: "vote_rejected",
+} as const;
+
 export type UpdateMyProfile409 = {
-  /** Short machine-readable error code, e.g. "invalid_version". */
-  error: string;
-  /** Human-readable explanation. */
+  /** Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check). */
+  error: UpdateMyProfile409Error;
+  /** Human-readable detail, for logging/debugging. Never contains raw Postgres/PostgREST error text (constraint names, column names, internal query shape) -- see safeDbErrorMessage() in supabase/functions/_shared/http.ts. Not meant to be shown verbatim to end users; Website should key UI copy off `error`. */
   message: string;
 };
 
@@ -1122,31 +3027,289 @@ export type UploadMyAvatar200 = {
   avatar_url?: string | null;
 };
 
+/**
+ * Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check).
+ */
+export type UploadMyAvatar400Error =
+  (typeof UploadMyAvatar400Error)[keyof typeof UploadMyAvatar400Error];
+
+export const UploadMyAvatar400Error = {
+  already_decided: "already_decided",
+  already_voted: "already_voted",
+  internal_error: "internal_error",
+  invalid_body: "invalid_body",
+  invalid_discussion_id: "invalid_discussion_id",
+  invalid_news_id: "invalid_news_id",
+  invalid_poll_id: "invalid_poll_id",
+  invalid_project_id: "invalid_project_id",
+  invalid_query: "invalid_query",
+  invalid_redirect: "invalid_redirect",
+  invalid_reply_id: "invalid_reply_id",
+  invalid_request_id: "invalid_request_id",
+  invalid_team_id: "invalid_team_id",
+  invalid_user_id: "invalid_user_id",
+  invalid_version: "invalid_version",
+  method_not_allowed: "method_not_allowed",
+  misconfigured: "misconfigured",
+  missing_file: "missing_file",
+  not_found: "not_found",
+  poll_closed: "poll_closed",
+  poll_not_found: "poll_not_found",
+  query_error: "query_error",
+  rate_limited: "rate_limited",
+  rpc_error: "rpc_error",
+  storage_error: "storage_error",
+  too_large: "too_large",
+  unauthorized: "unauthorized",
+  unsupported_type: "unsupported_type",
+  username_taken: "username_taken",
+  vote_rejected: "vote_rejected",
+} as const;
+
 export type UploadMyAvatar400 = {
-  /** Short machine-readable error code, e.g. "invalid_version". */
-  error: string;
-  /** Human-readable explanation. */
+  /** Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check). */
+  error: UploadMyAvatar400Error;
+  /** Human-readable detail, for logging/debugging. Never contains raw Postgres/PostgREST error text (constraint names, column names, internal query shape) -- see safeDbErrorMessage() in supabase/functions/_shared/http.ts. Not meant to be shown verbatim to end users; Website should key UI copy off `error`. */
   message: string;
 };
+
+/**
+ * Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check).
+ */
+export type UploadMyAvatar401Error =
+  (typeof UploadMyAvatar401Error)[keyof typeof UploadMyAvatar401Error];
+
+export const UploadMyAvatar401Error = {
+  already_decided: "already_decided",
+  already_voted: "already_voted",
+  internal_error: "internal_error",
+  invalid_body: "invalid_body",
+  invalid_discussion_id: "invalid_discussion_id",
+  invalid_news_id: "invalid_news_id",
+  invalid_poll_id: "invalid_poll_id",
+  invalid_project_id: "invalid_project_id",
+  invalid_query: "invalid_query",
+  invalid_redirect: "invalid_redirect",
+  invalid_reply_id: "invalid_reply_id",
+  invalid_request_id: "invalid_request_id",
+  invalid_team_id: "invalid_team_id",
+  invalid_user_id: "invalid_user_id",
+  invalid_version: "invalid_version",
+  method_not_allowed: "method_not_allowed",
+  misconfigured: "misconfigured",
+  missing_file: "missing_file",
+  not_found: "not_found",
+  poll_closed: "poll_closed",
+  poll_not_found: "poll_not_found",
+  query_error: "query_error",
+  rate_limited: "rate_limited",
+  rpc_error: "rpc_error",
+  storage_error: "storage_error",
+  too_large: "too_large",
+  unauthorized: "unauthorized",
+  unsupported_type: "unsupported_type",
+  username_taken: "username_taken",
+  vote_rejected: "vote_rejected",
+} as const;
 
 export type UploadMyAvatar401 = {
-  /** Short machine-readable error code, e.g. "invalid_version". */
-  error: string;
-  /** Human-readable explanation. */
+  /** Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check). */
+  error: UploadMyAvatar401Error;
+  /** Human-readable detail, for logging/debugging. Never contains raw Postgres/PostgREST error text (constraint names, column names, internal query shape) -- see safeDbErrorMessage() in supabase/functions/_shared/http.ts. Not meant to be shown verbatim to end users; Website should key UI copy off `error`. */
   message: string;
 };
+
+/**
+ * Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check).
+ */
+export type UploadMyAvatar404Error =
+  (typeof UploadMyAvatar404Error)[keyof typeof UploadMyAvatar404Error];
+
+export const UploadMyAvatar404Error = {
+  already_decided: "already_decided",
+  already_voted: "already_voted",
+  internal_error: "internal_error",
+  invalid_body: "invalid_body",
+  invalid_discussion_id: "invalid_discussion_id",
+  invalid_news_id: "invalid_news_id",
+  invalid_poll_id: "invalid_poll_id",
+  invalid_project_id: "invalid_project_id",
+  invalid_query: "invalid_query",
+  invalid_redirect: "invalid_redirect",
+  invalid_reply_id: "invalid_reply_id",
+  invalid_request_id: "invalid_request_id",
+  invalid_team_id: "invalid_team_id",
+  invalid_user_id: "invalid_user_id",
+  invalid_version: "invalid_version",
+  method_not_allowed: "method_not_allowed",
+  misconfigured: "misconfigured",
+  missing_file: "missing_file",
+  not_found: "not_found",
+  poll_closed: "poll_closed",
+  poll_not_found: "poll_not_found",
+  query_error: "query_error",
+  rate_limited: "rate_limited",
+  rpc_error: "rpc_error",
+  storage_error: "storage_error",
+  too_large: "too_large",
+  unauthorized: "unauthorized",
+  unsupported_type: "unsupported_type",
+  username_taken: "username_taken",
+  vote_rejected: "vote_rejected",
+} as const;
 
 export type UploadMyAvatar404 = {
-  /** Short machine-readable error code, e.g. "invalid_version". */
-  error: string;
-  /** Human-readable explanation. */
+  /** Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check). */
+  error: UploadMyAvatar404Error;
+  /** Human-readable detail, for logging/debugging. Never contains raw Postgres/PostgREST error text (constraint names, column names, internal query shape) -- see safeDbErrorMessage() in supabase/functions/_shared/http.ts. Not meant to be shown verbatim to end users; Website should key UI copy off `error`. */
   message: string;
 };
 
+/**
+ * Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check).
+ */
+export type UploadMyAvatar413Error =
+  (typeof UploadMyAvatar413Error)[keyof typeof UploadMyAvatar413Error];
+
+export const UploadMyAvatar413Error = {
+  already_decided: "already_decided",
+  already_voted: "already_voted",
+  internal_error: "internal_error",
+  invalid_body: "invalid_body",
+  invalid_discussion_id: "invalid_discussion_id",
+  invalid_news_id: "invalid_news_id",
+  invalid_poll_id: "invalid_poll_id",
+  invalid_project_id: "invalid_project_id",
+  invalid_query: "invalid_query",
+  invalid_redirect: "invalid_redirect",
+  invalid_reply_id: "invalid_reply_id",
+  invalid_request_id: "invalid_request_id",
+  invalid_team_id: "invalid_team_id",
+  invalid_user_id: "invalid_user_id",
+  invalid_version: "invalid_version",
+  method_not_allowed: "method_not_allowed",
+  misconfigured: "misconfigured",
+  missing_file: "missing_file",
+  not_found: "not_found",
+  poll_closed: "poll_closed",
+  poll_not_found: "poll_not_found",
+  query_error: "query_error",
+  rate_limited: "rate_limited",
+  rpc_error: "rpc_error",
+  storage_error: "storage_error",
+  too_large: "too_large",
+  unauthorized: "unauthorized",
+  unsupported_type: "unsupported_type",
+  username_taken: "username_taken",
+  vote_rejected: "vote_rejected",
+} as const;
+
 export type UploadMyAvatar413 = {
-  /** Short machine-readable error code, e.g. "invalid_version". */
-  error: string;
-  /** Human-readable explanation. */
+  /** Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check). */
+  error: UploadMyAvatar413Error;
+  /** Human-readable detail, for logging/debugging. Never contains raw Postgres/PostgREST error text (constraint names, column names, internal query shape) -- see safeDbErrorMessage() in supabase/functions/_shared/http.ts. Not meant to be shown verbatim to end users; Website should key UI copy off `error`. */
+  message: string;
+};
+
+export type DeleteMyAvatar200 = {
+  id: string;
+  /** Free-text display name, no format or uniqueness constraint. Distinct from username. */
+  full_name: string;
+  /** Unique (case-insensitive), alphanumeric/underscore handle, 3-24 characters. Every profile has one in practice (assigned at signup, backfilled for pre-existing users), but it's nullable at the schema level rather than required. */
+  username?: string | null;
+  /** Public/signed URL resolved from the stored avatar_path, not the raw path itself. */
+  avatar_url?: string | null;
+};
+
+/**
+ * Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check).
+ */
+export type DeleteMyAvatar401Error =
+  (typeof DeleteMyAvatar401Error)[keyof typeof DeleteMyAvatar401Error];
+
+export const DeleteMyAvatar401Error = {
+  already_decided: "already_decided",
+  already_voted: "already_voted",
+  internal_error: "internal_error",
+  invalid_body: "invalid_body",
+  invalid_discussion_id: "invalid_discussion_id",
+  invalid_news_id: "invalid_news_id",
+  invalid_poll_id: "invalid_poll_id",
+  invalid_project_id: "invalid_project_id",
+  invalid_query: "invalid_query",
+  invalid_redirect: "invalid_redirect",
+  invalid_reply_id: "invalid_reply_id",
+  invalid_request_id: "invalid_request_id",
+  invalid_team_id: "invalid_team_id",
+  invalid_user_id: "invalid_user_id",
+  invalid_version: "invalid_version",
+  method_not_allowed: "method_not_allowed",
+  misconfigured: "misconfigured",
+  missing_file: "missing_file",
+  not_found: "not_found",
+  poll_closed: "poll_closed",
+  poll_not_found: "poll_not_found",
+  query_error: "query_error",
+  rate_limited: "rate_limited",
+  rpc_error: "rpc_error",
+  storage_error: "storage_error",
+  too_large: "too_large",
+  unauthorized: "unauthorized",
+  unsupported_type: "unsupported_type",
+  username_taken: "username_taken",
+  vote_rejected: "vote_rejected",
+} as const;
+
+export type DeleteMyAvatar401 = {
+  /** Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check). */
+  error: DeleteMyAvatar401Error;
+  /** Human-readable detail, for logging/debugging. Never contains raw Postgres/PostgREST error text (constraint names, column names, internal query shape) -- see safeDbErrorMessage() in supabase/functions/_shared/http.ts. Not meant to be shown verbatim to end users; Website should key UI copy off `error`. */
+  message: string;
+};
+
+/**
+ * Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check).
+ */
+export type DeleteMyAvatar404Error =
+  (typeof DeleteMyAvatar404Error)[keyof typeof DeleteMyAvatar404Error];
+
+export const DeleteMyAvatar404Error = {
+  already_decided: "already_decided",
+  already_voted: "already_voted",
+  internal_error: "internal_error",
+  invalid_body: "invalid_body",
+  invalid_discussion_id: "invalid_discussion_id",
+  invalid_news_id: "invalid_news_id",
+  invalid_poll_id: "invalid_poll_id",
+  invalid_project_id: "invalid_project_id",
+  invalid_query: "invalid_query",
+  invalid_redirect: "invalid_redirect",
+  invalid_reply_id: "invalid_reply_id",
+  invalid_request_id: "invalid_request_id",
+  invalid_team_id: "invalid_team_id",
+  invalid_user_id: "invalid_user_id",
+  invalid_version: "invalid_version",
+  method_not_allowed: "method_not_allowed",
+  misconfigured: "misconfigured",
+  missing_file: "missing_file",
+  not_found: "not_found",
+  poll_closed: "poll_closed",
+  poll_not_found: "poll_not_found",
+  query_error: "query_error",
+  rate_limited: "rate_limited",
+  rpc_error: "rpc_error",
+  storage_error: "storage_error",
+  too_large: "too_large",
+  unauthorized: "unauthorized",
+  unsupported_type: "unsupported_type",
+  username_taken: "username_taken",
+  vote_rejected: "vote_rejected",
+} as const;
+
+export type DeleteMyAvatar404 = {
+  /** Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check). */
+  error: DeleteMyAvatar404Error;
+  /** Human-readable detail, for logging/debugging. Never contains raw Postgres/PostgREST error text (constraint names, column names, internal query shape) -- see safeDbErrorMessage() in supabase/functions/_shared/http.ts. Not meant to be shown verbatim to end users; Website should key UI copy off `error`. */
   message: string;
 };
 
@@ -1163,17 +3326,95 @@ export type RequestPasswordReset200 = {
   ok: boolean;
 };
 
+/**
+ * Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check).
+ */
+export type RequestPasswordReset400Error =
+  (typeof RequestPasswordReset400Error)[keyof typeof RequestPasswordReset400Error];
+
+export const RequestPasswordReset400Error = {
+  already_decided: "already_decided",
+  already_voted: "already_voted",
+  internal_error: "internal_error",
+  invalid_body: "invalid_body",
+  invalid_discussion_id: "invalid_discussion_id",
+  invalid_news_id: "invalid_news_id",
+  invalid_poll_id: "invalid_poll_id",
+  invalid_project_id: "invalid_project_id",
+  invalid_query: "invalid_query",
+  invalid_redirect: "invalid_redirect",
+  invalid_reply_id: "invalid_reply_id",
+  invalid_request_id: "invalid_request_id",
+  invalid_team_id: "invalid_team_id",
+  invalid_user_id: "invalid_user_id",
+  invalid_version: "invalid_version",
+  method_not_allowed: "method_not_allowed",
+  misconfigured: "misconfigured",
+  missing_file: "missing_file",
+  not_found: "not_found",
+  poll_closed: "poll_closed",
+  poll_not_found: "poll_not_found",
+  query_error: "query_error",
+  rate_limited: "rate_limited",
+  rpc_error: "rpc_error",
+  storage_error: "storage_error",
+  too_large: "too_large",
+  unauthorized: "unauthorized",
+  unsupported_type: "unsupported_type",
+  username_taken: "username_taken",
+  vote_rejected: "vote_rejected",
+} as const;
+
 export type RequestPasswordReset400 = {
-  /** Short machine-readable error code, e.g. "invalid_version". */
-  error: string;
-  /** Human-readable explanation. */
+  /** Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check). */
+  error: RequestPasswordReset400Error;
+  /** Human-readable detail, for logging/debugging. Never contains raw Postgres/PostgREST error text (constraint names, column names, internal query shape) -- see safeDbErrorMessage() in supabase/functions/_shared/http.ts. Not meant to be shown verbatim to end users; Website should key UI copy off `error`. */
   message: string;
 };
 
+/**
+ * Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check).
+ */
+export type RequestPasswordReset429Error =
+  (typeof RequestPasswordReset429Error)[keyof typeof RequestPasswordReset429Error];
+
+export const RequestPasswordReset429Error = {
+  already_decided: "already_decided",
+  already_voted: "already_voted",
+  internal_error: "internal_error",
+  invalid_body: "invalid_body",
+  invalid_discussion_id: "invalid_discussion_id",
+  invalid_news_id: "invalid_news_id",
+  invalid_poll_id: "invalid_poll_id",
+  invalid_project_id: "invalid_project_id",
+  invalid_query: "invalid_query",
+  invalid_redirect: "invalid_redirect",
+  invalid_reply_id: "invalid_reply_id",
+  invalid_request_id: "invalid_request_id",
+  invalid_team_id: "invalid_team_id",
+  invalid_user_id: "invalid_user_id",
+  invalid_version: "invalid_version",
+  method_not_allowed: "method_not_allowed",
+  misconfigured: "misconfigured",
+  missing_file: "missing_file",
+  not_found: "not_found",
+  poll_closed: "poll_closed",
+  poll_not_found: "poll_not_found",
+  query_error: "query_error",
+  rate_limited: "rate_limited",
+  rpc_error: "rpc_error",
+  storage_error: "storage_error",
+  too_large: "too_large",
+  unauthorized: "unauthorized",
+  unsupported_type: "unsupported_type",
+  username_taken: "username_taken",
+  vote_rejected: "vote_rejected",
+} as const;
+
 export type RequestPasswordReset429 = {
-  /** Short machine-readable error code, e.g. "invalid_version". */
-  error: string;
-  /** Human-readable explanation. */
+  /** Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check). */
+  error: RequestPasswordReset429Error;
+  /** Human-readable detail, for logging/debugging. Never contains raw Postgres/PostgREST error text (constraint names, column names, internal query shape) -- see safeDbErrorMessage() in supabase/functions/_shared/http.ts. Not meant to be shown verbatim to end users; Website should key UI copy off `error`. */
   message: string;
 };
 
@@ -1192,10 +3433,49 @@ export type ListProjects200Item = {
   archive_sha256: string;
 };
 
+/**
+ * Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check).
+ */
+export type ListProjects400Error =
+  (typeof ListProjects400Error)[keyof typeof ListProjects400Error];
+
+export const ListProjects400Error = {
+  already_decided: "already_decided",
+  already_voted: "already_voted",
+  internal_error: "internal_error",
+  invalid_body: "invalid_body",
+  invalid_discussion_id: "invalid_discussion_id",
+  invalid_news_id: "invalid_news_id",
+  invalid_poll_id: "invalid_poll_id",
+  invalid_project_id: "invalid_project_id",
+  invalid_query: "invalid_query",
+  invalid_redirect: "invalid_redirect",
+  invalid_reply_id: "invalid_reply_id",
+  invalid_request_id: "invalid_request_id",
+  invalid_team_id: "invalid_team_id",
+  invalid_user_id: "invalid_user_id",
+  invalid_version: "invalid_version",
+  method_not_allowed: "method_not_allowed",
+  misconfigured: "misconfigured",
+  missing_file: "missing_file",
+  not_found: "not_found",
+  poll_closed: "poll_closed",
+  poll_not_found: "poll_not_found",
+  query_error: "query_error",
+  rate_limited: "rate_limited",
+  rpc_error: "rpc_error",
+  storage_error: "storage_error",
+  too_large: "too_large",
+  unauthorized: "unauthorized",
+  unsupported_type: "unsupported_type",
+  username_taken: "username_taken",
+  vote_rejected: "vote_rejected",
+} as const;
+
 export type ListProjects400 = {
-  /** Short machine-readable error code, e.g. "invalid_version". */
-  error: string;
-  /** Human-readable explanation. */
+  /** Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check). */
+  error: ListProjects400Error;
+  /** Human-readable detail, for logging/debugging. Never contains raw Postgres/PostgREST error text (constraint names, column names, internal query shape) -- see safeDbErrorMessage() in supabase/functions/_shared/http.ts. Not meant to be shown verbatim to end users; Website should key UI copy off `error`. */
   message: string;
 };
 
@@ -1220,17 +3500,95 @@ export type CreateProject201 = {
   archive_sha256: string;
 };
 
+/**
+ * Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check).
+ */
+export type CreateProject400Error =
+  (typeof CreateProject400Error)[keyof typeof CreateProject400Error];
+
+export const CreateProject400Error = {
+  already_decided: "already_decided",
+  already_voted: "already_voted",
+  internal_error: "internal_error",
+  invalid_body: "invalid_body",
+  invalid_discussion_id: "invalid_discussion_id",
+  invalid_news_id: "invalid_news_id",
+  invalid_poll_id: "invalid_poll_id",
+  invalid_project_id: "invalid_project_id",
+  invalid_query: "invalid_query",
+  invalid_redirect: "invalid_redirect",
+  invalid_reply_id: "invalid_reply_id",
+  invalid_request_id: "invalid_request_id",
+  invalid_team_id: "invalid_team_id",
+  invalid_user_id: "invalid_user_id",
+  invalid_version: "invalid_version",
+  method_not_allowed: "method_not_allowed",
+  misconfigured: "misconfigured",
+  missing_file: "missing_file",
+  not_found: "not_found",
+  poll_closed: "poll_closed",
+  poll_not_found: "poll_not_found",
+  query_error: "query_error",
+  rate_limited: "rate_limited",
+  rpc_error: "rpc_error",
+  storage_error: "storage_error",
+  too_large: "too_large",
+  unauthorized: "unauthorized",
+  unsupported_type: "unsupported_type",
+  username_taken: "username_taken",
+  vote_rejected: "vote_rejected",
+} as const;
+
 export type CreateProject400 = {
-  /** Short machine-readable error code, e.g. "invalid_version". */
-  error: string;
-  /** Human-readable explanation. */
+  /** Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check). */
+  error: CreateProject400Error;
+  /** Human-readable detail, for logging/debugging. Never contains raw Postgres/PostgREST error text (constraint names, column names, internal query shape) -- see safeDbErrorMessage() in supabase/functions/_shared/http.ts. Not meant to be shown verbatim to end users; Website should key UI copy off `error`. */
   message: string;
 };
 
+/**
+ * Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check).
+ */
+export type CreateProject401Error =
+  (typeof CreateProject401Error)[keyof typeof CreateProject401Error];
+
+export const CreateProject401Error = {
+  already_decided: "already_decided",
+  already_voted: "already_voted",
+  internal_error: "internal_error",
+  invalid_body: "invalid_body",
+  invalid_discussion_id: "invalid_discussion_id",
+  invalid_news_id: "invalid_news_id",
+  invalid_poll_id: "invalid_poll_id",
+  invalid_project_id: "invalid_project_id",
+  invalid_query: "invalid_query",
+  invalid_redirect: "invalid_redirect",
+  invalid_reply_id: "invalid_reply_id",
+  invalid_request_id: "invalid_request_id",
+  invalid_team_id: "invalid_team_id",
+  invalid_user_id: "invalid_user_id",
+  invalid_version: "invalid_version",
+  method_not_allowed: "method_not_allowed",
+  misconfigured: "misconfigured",
+  missing_file: "missing_file",
+  not_found: "not_found",
+  poll_closed: "poll_closed",
+  poll_not_found: "poll_not_found",
+  query_error: "query_error",
+  rate_limited: "rate_limited",
+  rpc_error: "rpc_error",
+  storage_error: "storage_error",
+  too_large: "too_large",
+  unauthorized: "unauthorized",
+  unsupported_type: "unsupported_type",
+  username_taken: "username_taken",
+  vote_rejected: "vote_rejected",
+} as const;
+
 export type CreateProject401 = {
-  /** Short machine-readable error code, e.g. "invalid_version". */
-  error: string;
-  /** Human-readable explanation. */
+  /** Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check). */
+  error: CreateProject401Error;
+  /** Human-readable detail, for logging/debugging. Never contains raw Postgres/PostgREST error text (constraint names, column names, internal query shape) -- see safeDbErrorMessage() in supabase/functions/_shared/http.ts. Not meant to be shown verbatim to end users; Website should key UI copy off `error`. */
   message: string;
 };
 
@@ -1250,31 +3608,187 @@ export type UpdateProject200 = {
   archive_sha256: string;
 };
 
+/**
+ * Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check).
+ */
+export type UpdateProject400Error =
+  (typeof UpdateProject400Error)[keyof typeof UpdateProject400Error];
+
+export const UpdateProject400Error = {
+  already_decided: "already_decided",
+  already_voted: "already_voted",
+  internal_error: "internal_error",
+  invalid_body: "invalid_body",
+  invalid_discussion_id: "invalid_discussion_id",
+  invalid_news_id: "invalid_news_id",
+  invalid_poll_id: "invalid_poll_id",
+  invalid_project_id: "invalid_project_id",
+  invalid_query: "invalid_query",
+  invalid_redirect: "invalid_redirect",
+  invalid_reply_id: "invalid_reply_id",
+  invalid_request_id: "invalid_request_id",
+  invalid_team_id: "invalid_team_id",
+  invalid_user_id: "invalid_user_id",
+  invalid_version: "invalid_version",
+  method_not_allowed: "method_not_allowed",
+  misconfigured: "misconfigured",
+  missing_file: "missing_file",
+  not_found: "not_found",
+  poll_closed: "poll_closed",
+  poll_not_found: "poll_not_found",
+  query_error: "query_error",
+  rate_limited: "rate_limited",
+  rpc_error: "rpc_error",
+  storage_error: "storage_error",
+  too_large: "too_large",
+  unauthorized: "unauthorized",
+  unsupported_type: "unsupported_type",
+  username_taken: "username_taken",
+  vote_rejected: "vote_rejected",
+} as const;
+
 export type UpdateProject400 = {
-  /** Short machine-readable error code, e.g. "invalid_version". */
-  error: string;
-  /** Human-readable explanation. */
+  /** Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check). */
+  error: UpdateProject400Error;
+  /** Human-readable detail, for logging/debugging. Never contains raw Postgres/PostgREST error text (constraint names, column names, internal query shape) -- see safeDbErrorMessage() in supabase/functions/_shared/http.ts. Not meant to be shown verbatim to end users; Website should key UI copy off `error`. */
   message: string;
 };
+
+/**
+ * Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check).
+ */
+export type UpdateProject404Error =
+  (typeof UpdateProject404Error)[keyof typeof UpdateProject404Error];
+
+export const UpdateProject404Error = {
+  already_decided: "already_decided",
+  already_voted: "already_voted",
+  internal_error: "internal_error",
+  invalid_body: "invalid_body",
+  invalid_discussion_id: "invalid_discussion_id",
+  invalid_news_id: "invalid_news_id",
+  invalid_poll_id: "invalid_poll_id",
+  invalid_project_id: "invalid_project_id",
+  invalid_query: "invalid_query",
+  invalid_redirect: "invalid_redirect",
+  invalid_reply_id: "invalid_reply_id",
+  invalid_request_id: "invalid_request_id",
+  invalid_team_id: "invalid_team_id",
+  invalid_user_id: "invalid_user_id",
+  invalid_version: "invalid_version",
+  method_not_allowed: "method_not_allowed",
+  misconfigured: "misconfigured",
+  missing_file: "missing_file",
+  not_found: "not_found",
+  poll_closed: "poll_closed",
+  poll_not_found: "poll_not_found",
+  query_error: "query_error",
+  rate_limited: "rate_limited",
+  rpc_error: "rpc_error",
+  storage_error: "storage_error",
+  too_large: "too_large",
+  unauthorized: "unauthorized",
+  unsupported_type: "unsupported_type",
+  username_taken: "username_taken",
+  vote_rejected: "vote_rejected",
+} as const;
 
 export type UpdateProject404 = {
-  /** Short machine-readable error code, e.g. "invalid_version". */
-  error: string;
-  /** Human-readable explanation. */
+  /** Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check). */
+  error: UpdateProject404Error;
+  /** Human-readable detail, for logging/debugging. Never contains raw Postgres/PostgREST error text (constraint names, column names, internal query shape) -- see safeDbErrorMessage() in supabase/functions/_shared/http.ts. Not meant to be shown verbatim to end users; Website should key UI copy off `error`. */
   message: string;
 };
+
+/**
+ * Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check).
+ */
+export type DeleteProject400Error =
+  (typeof DeleteProject400Error)[keyof typeof DeleteProject400Error];
+
+export const DeleteProject400Error = {
+  already_decided: "already_decided",
+  already_voted: "already_voted",
+  internal_error: "internal_error",
+  invalid_body: "invalid_body",
+  invalid_discussion_id: "invalid_discussion_id",
+  invalid_news_id: "invalid_news_id",
+  invalid_poll_id: "invalid_poll_id",
+  invalid_project_id: "invalid_project_id",
+  invalid_query: "invalid_query",
+  invalid_redirect: "invalid_redirect",
+  invalid_reply_id: "invalid_reply_id",
+  invalid_request_id: "invalid_request_id",
+  invalid_team_id: "invalid_team_id",
+  invalid_user_id: "invalid_user_id",
+  invalid_version: "invalid_version",
+  method_not_allowed: "method_not_allowed",
+  misconfigured: "misconfigured",
+  missing_file: "missing_file",
+  not_found: "not_found",
+  poll_closed: "poll_closed",
+  poll_not_found: "poll_not_found",
+  query_error: "query_error",
+  rate_limited: "rate_limited",
+  rpc_error: "rpc_error",
+  storage_error: "storage_error",
+  too_large: "too_large",
+  unauthorized: "unauthorized",
+  unsupported_type: "unsupported_type",
+  username_taken: "username_taken",
+  vote_rejected: "vote_rejected",
+} as const;
 
 export type DeleteProject400 = {
-  /** Short machine-readable error code, e.g. "invalid_version". */
-  error: string;
-  /** Human-readable explanation. */
+  /** Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check). */
+  error: DeleteProject400Error;
+  /** Human-readable detail, for logging/debugging. Never contains raw Postgres/PostgREST error text (constraint names, column names, internal query shape) -- see safeDbErrorMessage() in supabase/functions/_shared/http.ts. Not meant to be shown verbatim to end users; Website should key UI copy off `error`. */
   message: string;
 };
 
+/**
+ * Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check).
+ */
+export type DeleteProject404Error =
+  (typeof DeleteProject404Error)[keyof typeof DeleteProject404Error];
+
+export const DeleteProject404Error = {
+  already_decided: "already_decided",
+  already_voted: "already_voted",
+  internal_error: "internal_error",
+  invalid_body: "invalid_body",
+  invalid_discussion_id: "invalid_discussion_id",
+  invalid_news_id: "invalid_news_id",
+  invalid_poll_id: "invalid_poll_id",
+  invalid_project_id: "invalid_project_id",
+  invalid_query: "invalid_query",
+  invalid_redirect: "invalid_redirect",
+  invalid_reply_id: "invalid_reply_id",
+  invalid_request_id: "invalid_request_id",
+  invalid_team_id: "invalid_team_id",
+  invalid_user_id: "invalid_user_id",
+  invalid_version: "invalid_version",
+  method_not_allowed: "method_not_allowed",
+  misconfigured: "misconfigured",
+  missing_file: "missing_file",
+  not_found: "not_found",
+  poll_closed: "poll_closed",
+  poll_not_found: "poll_not_found",
+  query_error: "query_error",
+  rate_limited: "rate_limited",
+  rpc_error: "rpc_error",
+  storage_error: "storage_error",
+  too_large: "too_large",
+  unauthorized: "unauthorized",
+  unsupported_type: "unsupported_type",
+  username_taken: "username_taken",
+  vote_rejected: "vote_rejected",
+} as const;
+
 export type DeleteProject404 = {
-  /** Short machine-readable error code, e.g. "invalid_version". */
-  error: string;
-  /** Human-readable explanation. */
+  /** Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check). */
+  error: DeleteProject404Error;
+  /** Human-readable detail, for logging/debugging. Never contains raw Postgres/PostgREST error text (constraint names, column names, internal query shape) -- see safeDbErrorMessage() in supabase/functions/_shared/http.ts. Not meant to be shown verbatim to end users; Website should key UI copy off `error`. */
   message: string;
 };
 
@@ -1284,17 +3798,95 @@ export type GetProjectDownloadUrl200 = {
   expires_in: number;
 };
 
+/**
+ * Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check).
+ */
+export type GetProjectDownloadUrl400Error =
+  (typeof GetProjectDownloadUrl400Error)[keyof typeof GetProjectDownloadUrl400Error];
+
+export const GetProjectDownloadUrl400Error = {
+  already_decided: "already_decided",
+  already_voted: "already_voted",
+  internal_error: "internal_error",
+  invalid_body: "invalid_body",
+  invalid_discussion_id: "invalid_discussion_id",
+  invalid_news_id: "invalid_news_id",
+  invalid_poll_id: "invalid_poll_id",
+  invalid_project_id: "invalid_project_id",
+  invalid_query: "invalid_query",
+  invalid_redirect: "invalid_redirect",
+  invalid_reply_id: "invalid_reply_id",
+  invalid_request_id: "invalid_request_id",
+  invalid_team_id: "invalid_team_id",
+  invalid_user_id: "invalid_user_id",
+  invalid_version: "invalid_version",
+  method_not_allowed: "method_not_allowed",
+  misconfigured: "misconfigured",
+  missing_file: "missing_file",
+  not_found: "not_found",
+  poll_closed: "poll_closed",
+  poll_not_found: "poll_not_found",
+  query_error: "query_error",
+  rate_limited: "rate_limited",
+  rpc_error: "rpc_error",
+  storage_error: "storage_error",
+  too_large: "too_large",
+  unauthorized: "unauthorized",
+  unsupported_type: "unsupported_type",
+  username_taken: "username_taken",
+  vote_rejected: "vote_rejected",
+} as const;
+
 export type GetProjectDownloadUrl400 = {
-  /** Short machine-readable error code, e.g. "invalid_version". */
-  error: string;
-  /** Human-readable explanation. */
+  /** Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check). */
+  error: GetProjectDownloadUrl400Error;
+  /** Human-readable detail, for logging/debugging. Never contains raw Postgres/PostgREST error text (constraint names, column names, internal query shape) -- see safeDbErrorMessage() in supabase/functions/_shared/http.ts. Not meant to be shown verbatim to end users; Website should key UI copy off `error`. */
   message: string;
 };
 
+/**
+ * Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check).
+ */
+export type GetProjectDownloadUrl404Error =
+  (typeof GetProjectDownloadUrl404Error)[keyof typeof GetProjectDownloadUrl404Error];
+
+export const GetProjectDownloadUrl404Error = {
+  already_decided: "already_decided",
+  already_voted: "already_voted",
+  internal_error: "internal_error",
+  invalid_body: "invalid_body",
+  invalid_discussion_id: "invalid_discussion_id",
+  invalid_news_id: "invalid_news_id",
+  invalid_poll_id: "invalid_poll_id",
+  invalid_project_id: "invalid_project_id",
+  invalid_query: "invalid_query",
+  invalid_redirect: "invalid_redirect",
+  invalid_reply_id: "invalid_reply_id",
+  invalid_request_id: "invalid_request_id",
+  invalid_team_id: "invalid_team_id",
+  invalid_user_id: "invalid_user_id",
+  invalid_version: "invalid_version",
+  method_not_allowed: "method_not_allowed",
+  misconfigured: "misconfigured",
+  missing_file: "missing_file",
+  not_found: "not_found",
+  poll_closed: "poll_closed",
+  poll_not_found: "poll_not_found",
+  query_error: "query_error",
+  rate_limited: "rate_limited",
+  rpc_error: "rpc_error",
+  storage_error: "storage_error",
+  too_large: "too_large",
+  unauthorized: "unauthorized",
+  unsupported_type: "unsupported_type",
+  username_taken: "username_taken",
+  vote_rejected: "vote_rejected",
+} as const;
+
 export type GetProjectDownloadUrl404 = {
-  /** Short machine-readable error code, e.g. "invalid_version". */
-  error: string;
-  /** Human-readable explanation. */
+  /** Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check). */
+  error: GetProjectDownloadUrl404Error;
+  /** Human-readable detail, for logging/debugging. Never contains raw Postgres/PostgREST error text (constraint names, column names, internal query shape) -- see safeDbErrorMessage() in supabase/functions/_shared/http.ts. Not meant to be shown verbatim to end users; Website should key UI copy off `error`. */
   message: string;
 };
 
@@ -1328,10 +3920,49 @@ export type ListNews200Item = {
   published_at?: string | null;
 };
 
+/**
+ * Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check).
+ */
+export type ListNews400Error =
+  (typeof ListNews400Error)[keyof typeof ListNews400Error];
+
+export const ListNews400Error = {
+  already_decided: "already_decided",
+  already_voted: "already_voted",
+  internal_error: "internal_error",
+  invalid_body: "invalid_body",
+  invalid_discussion_id: "invalid_discussion_id",
+  invalid_news_id: "invalid_news_id",
+  invalid_poll_id: "invalid_poll_id",
+  invalid_project_id: "invalid_project_id",
+  invalid_query: "invalid_query",
+  invalid_redirect: "invalid_redirect",
+  invalid_reply_id: "invalid_reply_id",
+  invalid_request_id: "invalid_request_id",
+  invalid_team_id: "invalid_team_id",
+  invalid_user_id: "invalid_user_id",
+  invalid_version: "invalid_version",
+  method_not_allowed: "method_not_allowed",
+  misconfigured: "misconfigured",
+  missing_file: "missing_file",
+  not_found: "not_found",
+  poll_closed: "poll_closed",
+  poll_not_found: "poll_not_found",
+  query_error: "query_error",
+  rate_limited: "rate_limited",
+  rpc_error: "rpc_error",
+  storage_error: "storage_error",
+  too_large: "too_large",
+  unauthorized: "unauthorized",
+  unsupported_type: "unsupported_type",
+  username_taken: "username_taken",
+  vote_rejected: "vote_rejected",
+} as const;
+
 export type ListNews400 = {
-  /** Short machine-readable error code, e.g. "invalid_version". */
-  error: string;
-  /** Human-readable explanation. */
+  /** Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check). */
+  error: ListNews400Error;
+  /** Human-readable detail, for logging/debugging. Never contains raw Postgres/PostgREST error text (constraint names, column names, internal query shape) -- see safeDbErrorMessage() in supabase/functions/_shared/http.ts. Not meant to be shown verbatim to end users; Website should key UI copy off `error`. */
   message: string;
 };
 
@@ -1359,31 +3990,187 @@ export type CreateNews201 = {
   published_at?: string | null;
 };
 
+/**
+ * Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check).
+ */
+export type CreateNews400Error =
+  (typeof CreateNews400Error)[keyof typeof CreateNews400Error];
+
+export const CreateNews400Error = {
+  already_decided: "already_decided",
+  already_voted: "already_voted",
+  internal_error: "internal_error",
+  invalid_body: "invalid_body",
+  invalid_discussion_id: "invalid_discussion_id",
+  invalid_news_id: "invalid_news_id",
+  invalid_poll_id: "invalid_poll_id",
+  invalid_project_id: "invalid_project_id",
+  invalid_query: "invalid_query",
+  invalid_redirect: "invalid_redirect",
+  invalid_reply_id: "invalid_reply_id",
+  invalid_request_id: "invalid_request_id",
+  invalid_team_id: "invalid_team_id",
+  invalid_user_id: "invalid_user_id",
+  invalid_version: "invalid_version",
+  method_not_allowed: "method_not_allowed",
+  misconfigured: "misconfigured",
+  missing_file: "missing_file",
+  not_found: "not_found",
+  poll_closed: "poll_closed",
+  poll_not_found: "poll_not_found",
+  query_error: "query_error",
+  rate_limited: "rate_limited",
+  rpc_error: "rpc_error",
+  storage_error: "storage_error",
+  too_large: "too_large",
+  unauthorized: "unauthorized",
+  unsupported_type: "unsupported_type",
+  username_taken: "username_taken",
+  vote_rejected: "vote_rejected",
+} as const;
+
 export type CreateNews400 = {
-  /** Short machine-readable error code, e.g. "invalid_version". */
-  error: string;
-  /** Human-readable explanation. */
+  /** Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check). */
+  error: CreateNews400Error;
+  /** Human-readable detail, for logging/debugging. Never contains raw Postgres/PostgREST error text (constraint names, column names, internal query shape) -- see safeDbErrorMessage() in supabase/functions/_shared/http.ts. Not meant to be shown verbatim to end users; Website should key UI copy off `error`. */
   message: string;
 };
+
+/**
+ * Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check).
+ */
+export type CreateNews401Error =
+  (typeof CreateNews401Error)[keyof typeof CreateNews401Error];
+
+export const CreateNews401Error = {
+  already_decided: "already_decided",
+  already_voted: "already_voted",
+  internal_error: "internal_error",
+  invalid_body: "invalid_body",
+  invalid_discussion_id: "invalid_discussion_id",
+  invalid_news_id: "invalid_news_id",
+  invalid_poll_id: "invalid_poll_id",
+  invalid_project_id: "invalid_project_id",
+  invalid_query: "invalid_query",
+  invalid_redirect: "invalid_redirect",
+  invalid_reply_id: "invalid_reply_id",
+  invalid_request_id: "invalid_request_id",
+  invalid_team_id: "invalid_team_id",
+  invalid_user_id: "invalid_user_id",
+  invalid_version: "invalid_version",
+  method_not_allowed: "method_not_allowed",
+  misconfigured: "misconfigured",
+  missing_file: "missing_file",
+  not_found: "not_found",
+  poll_closed: "poll_closed",
+  poll_not_found: "poll_not_found",
+  query_error: "query_error",
+  rate_limited: "rate_limited",
+  rpc_error: "rpc_error",
+  storage_error: "storage_error",
+  too_large: "too_large",
+  unauthorized: "unauthorized",
+  unsupported_type: "unsupported_type",
+  username_taken: "username_taken",
+  vote_rejected: "vote_rejected",
+} as const;
 
 export type CreateNews401 = {
-  /** Short machine-readable error code, e.g. "invalid_version". */
-  error: string;
-  /** Human-readable explanation. */
+  /** Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check). */
+  error: CreateNews401Error;
+  /** Human-readable detail, for logging/debugging. Never contains raw Postgres/PostgREST error text (constraint names, column names, internal query shape) -- see safeDbErrorMessage() in supabase/functions/_shared/http.ts. Not meant to be shown verbatim to end users; Website should key UI copy off `error`. */
   message: string;
 };
+
+/**
+ * Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check).
+ */
+export type CreateNews403Error =
+  (typeof CreateNews403Error)[keyof typeof CreateNews403Error];
+
+export const CreateNews403Error = {
+  already_decided: "already_decided",
+  already_voted: "already_voted",
+  internal_error: "internal_error",
+  invalid_body: "invalid_body",
+  invalid_discussion_id: "invalid_discussion_id",
+  invalid_news_id: "invalid_news_id",
+  invalid_poll_id: "invalid_poll_id",
+  invalid_project_id: "invalid_project_id",
+  invalid_query: "invalid_query",
+  invalid_redirect: "invalid_redirect",
+  invalid_reply_id: "invalid_reply_id",
+  invalid_request_id: "invalid_request_id",
+  invalid_team_id: "invalid_team_id",
+  invalid_user_id: "invalid_user_id",
+  invalid_version: "invalid_version",
+  method_not_allowed: "method_not_allowed",
+  misconfigured: "misconfigured",
+  missing_file: "missing_file",
+  not_found: "not_found",
+  poll_closed: "poll_closed",
+  poll_not_found: "poll_not_found",
+  query_error: "query_error",
+  rate_limited: "rate_limited",
+  rpc_error: "rpc_error",
+  storage_error: "storage_error",
+  too_large: "too_large",
+  unauthorized: "unauthorized",
+  unsupported_type: "unsupported_type",
+  username_taken: "username_taken",
+  vote_rejected: "vote_rejected",
+} as const;
 
 export type CreateNews403 = {
-  /** Short machine-readable error code, e.g. "invalid_version". */
-  error: string;
-  /** Human-readable explanation. */
+  /** Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check). */
+  error: CreateNews403Error;
+  /** Human-readable detail, for logging/debugging. Never contains raw Postgres/PostgREST error text (constraint names, column names, internal query shape) -- see safeDbErrorMessage() in supabase/functions/_shared/http.ts. Not meant to be shown verbatim to end users; Website should key UI copy off `error`. */
   message: string;
 };
 
+/**
+ * Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check).
+ */
+export type CreateNews409Error =
+  (typeof CreateNews409Error)[keyof typeof CreateNews409Error];
+
+export const CreateNews409Error = {
+  already_decided: "already_decided",
+  already_voted: "already_voted",
+  internal_error: "internal_error",
+  invalid_body: "invalid_body",
+  invalid_discussion_id: "invalid_discussion_id",
+  invalid_news_id: "invalid_news_id",
+  invalid_poll_id: "invalid_poll_id",
+  invalid_project_id: "invalid_project_id",
+  invalid_query: "invalid_query",
+  invalid_redirect: "invalid_redirect",
+  invalid_reply_id: "invalid_reply_id",
+  invalid_request_id: "invalid_request_id",
+  invalid_team_id: "invalid_team_id",
+  invalid_user_id: "invalid_user_id",
+  invalid_version: "invalid_version",
+  method_not_allowed: "method_not_allowed",
+  misconfigured: "misconfigured",
+  missing_file: "missing_file",
+  not_found: "not_found",
+  poll_closed: "poll_closed",
+  poll_not_found: "poll_not_found",
+  query_error: "query_error",
+  rate_limited: "rate_limited",
+  rpc_error: "rpc_error",
+  storage_error: "storage_error",
+  too_large: "too_large",
+  unauthorized: "unauthorized",
+  unsupported_type: "unsupported_type",
+  username_taken: "username_taken",
+  vote_rejected: "vote_rejected",
+} as const;
+
 export type CreateNews409 = {
-  /** Short machine-readable error code, e.g. "invalid_version". */
-  error: string;
-  /** Human-readable explanation. */
+  /** Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check). */
+  error: CreateNews409Error;
+  /** Human-readable detail, for logging/debugging. Never contains raw Postgres/PostgREST error text (constraint names, column names, internal query shape) -- see safeDbErrorMessage() in supabase/functions/_shared/http.ts. Not meant to be shown verbatim to end users; Website should key UI copy off `error`. */
   message: string;
 };
 
@@ -1419,38 +4206,233 @@ export type UpdateNews200 = {
   published_at?: string | null;
 };
 
+/**
+ * Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check).
+ */
+export type UpdateNews400Error =
+  (typeof UpdateNews400Error)[keyof typeof UpdateNews400Error];
+
+export const UpdateNews400Error = {
+  already_decided: "already_decided",
+  already_voted: "already_voted",
+  internal_error: "internal_error",
+  invalid_body: "invalid_body",
+  invalid_discussion_id: "invalid_discussion_id",
+  invalid_news_id: "invalid_news_id",
+  invalid_poll_id: "invalid_poll_id",
+  invalid_project_id: "invalid_project_id",
+  invalid_query: "invalid_query",
+  invalid_redirect: "invalid_redirect",
+  invalid_reply_id: "invalid_reply_id",
+  invalid_request_id: "invalid_request_id",
+  invalid_team_id: "invalid_team_id",
+  invalid_user_id: "invalid_user_id",
+  invalid_version: "invalid_version",
+  method_not_allowed: "method_not_allowed",
+  misconfigured: "misconfigured",
+  missing_file: "missing_file",
+  not_found: "not_found",
+  poll_closed: "poll_closed",
+  poll_not_found: "poll_not_found",
+  query_error: "query_error",
+  rate_limited: "rate_limited",
+  rpc_error: "rpc_error",
+  storage_error: "storage_error",
+  too_large: "too_large",
+  unauthorized: "unauthorized",
+  unsupported_type: "unsupported_type",
+  username_taken: "username_taken",
+  vote_rejected: "vote_rejected",
+} as const;
+
 export type UpdateNews400 = {
-  /** Short machine-readable error code, e.g. "invalid_version". */
-  error: string;
-  /** Human-readable explanation. */
+  /** Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check). */
+  error: UpdateNews400Error;
+  /** Human-readable detail, for logging/debugging. Never contains raw Postgres/PostgREST error text (constraint names, column names, internal query shape) -- see safeDbErrorMessage() in supabase/functions/_shared/http.ts. Not meant to be shown verbatim to end users; Website should key UI copy off `error`. */
   message: string;
 };
+
+/**
+ * Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check).
+ */
+export type UpdateNews403Error =
+  (typeof UpdateNews403Error)[keyof typeof UpdateNews403Error];
+
+export const UpdateNews403Error = {
+  already_decided: "already_decided",
+  already_voted: "already_voted",
+  internal_error: "internal_error",
+  invalid_body: "invalid_body",
+  invalid_discussion_id: "invalid_discussion_id",
+  invalid_news_id: "invalid_news_id",
+  invalid_poll_id: "invalid_poll_id",
+  invalid_project_id: "invalid_project_id",
+  invalid_query: "invalid_query",
+  invalid_redirect: "invalid_redirect",
+  invalid_reply_id: "invalid_reply_id",
+  invalid_request_id: "invalid_request_id",
+  invalid_team_id: "invalid_team_id",
+  invalid_user_id: "invalid_user_id",
+  invalid_version: "invalid_version",
+  method_not_allowed: "method_not_allowed",
+  misconfigured: "misconfigured",
+  missing_file: "missing_file",
+  not_found: "not_found",
+  poll_closed: "poll_closed",
+  poll_not_found: "poll_not_found",
+  query_error: "query_error",
+  rate_limited: "rate_limited",
+  rpc_error: "rpc_error",
+  storage_error: "storage_error",
+  too_large: "too_large",
+  unauthorized: "unauthorized",
+  unsupported_type: "unsupported_type",
+  username_taken: "username_taken",
+  vote_rejected: "vote_rejected",
+} as const;
 
 export type UpdateNews403 = {
-  /** Short machine-readable error code, e.g. "invalid_version". */
-  error: string;
-  /** Human-readable explanation. */
+  /** Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check). */
+  error: UpdateNews403Error;
+  /** Human-readable detail, for logging/debugging. Never contains raw Postgres/PostgREST error text (constraint names, column names, internal query shape) -- see safeDbErrorMessage() in supabase/functions/_shared/http.ts. Not meant to be shown verbatim to end users; Website should key UI copy off `error`. */
   message: string;
 };
+
+/**
+ * Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check).
+ */
+export type UpdateNews404Error =
+  (typeof UpdateNews404Error)[keyof typeof UpdateNews404Error];
+
+export const UpdateNews404Error = {
+  already_decided: "already_decided",
+  already_voted: "already_voted",
+  internal_error: "internal_error",
+  invalid_body: "invalid_body",
+  invalid_discussion_id: "invalid_discussion_id",
+  invalid_news_id: "invalid_news_id",
+  invalid_poll_id: "invalid_poll_id",
+  invalid_project_id: "invalid_project_id",
+  invalid_query: "invalid_query",
+  invalid_redirect: "invalid_redirect",
+  invalid_reply_id: "invalid_reply_id",
+  invalid_request_id: "invalid_request_id",
+  invalid_team_id: "invalid_team_id",
+  invalid_user_id: "invalid_user_id",
+  invalid_version: "invalid_version",
+  method_not_allowed: "method_not_allowed",
+  misconfigured: "misconfigured",
+  missing_file: "missing_file",
+  not_found: "not_found",
+  poll_closed: "poll_closed",
+  poll_not_found: "poll_not_found",
+  query_error: "query_error",
+  rate_limited: "rate_limited",
+  rpc_error: "rpc_error",
+  storage_error: "storage_error",
+  too_large: "too_large",
+  unauthorized: "unauthorized",
+  unsupported_type: "unsupported_type",
+  username_taken: "username_taken",
+  vote_rejected: "vote_rejected",
+} as const;
 
 export type UpdateNews404 = {
-  /** Short machine-readable error code, e.g. "invalid_version". */
-  error: string;
-  /** Human-readable explanation. */
+  /** Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check). */
+  error: UpdateNews404Error;
+  /** Human-readable detail, for logging/debugging. Never contains raw Postgres/PostgREST error text (constraint names, column names, internal query shape) -- see safeDbErrorMessage() in supabase/functions/_shared/http.ts. Not meant to be shown verbatim to end users; Website should key UI copy off `error`. */
   message: string;
 };
+
+/**
+ * Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check).
+ */
+export type DeleteNews400Error =
+  (typeof DeleteNews400Error)[keyof typeof DeleteNews400Error];
+
+export const DeleteNews400Error = {
+  already_decided: "already_decided",
+  already_voted: "already_voted",
+  internal_error: "internal_error",
+  invalid_body: "invalid_body",
+  invalid_discussion_id: "invalid_discussion_id",
+  invalid_news_id: "invalid_news_id",
+  invalid_poll_id: "invalid_poll_id",
+  invalid_project_id: "invalid_project_id",
+  invalid_query: "invalid_query",
+  invalid_redirect: "invalid_redirect",
+  invalid_reply_id: "invalid_reply_id",
+  invalid_request_id: "invalid_request_id",
+  invalid_team_id: "invalid_team_id",
+  invalid_user_id: "invalid_user_id",
+  invalid_version: "invalid_version",
+  method_not_allowed: "method_not_allowed",
+  misconfigured: "misconfigured",
+  missing_file: "missing_file",
+  not_found: "not_found",
+  poll_closed: "poll_closed",
+  poll_not_found: "poll_not_found",
+  query_error: "query_error",
+  rate_limited: "rate_limited",
+  rpc_error: "rpc_error",
+  storage_error: "storage_error",
+  too_large: "too_large",
+  unauthorized: "unauthorized",
+  unsupported_type: "unsupported_type",
+  username_taken: "username_taken",
+  vote_rejected: "vote_rejected",
+} as const;
 
 export type DeleteNews400 = {
-  /** Short machine-readable error code, e.g. "invalid_version". */
-  error: string;
-  /** Human-readable explanation. */
+  /** Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check). */
+  error: DeleteNews400Error;
+  /** Human-readable detail, for logging/debugging. Never contains raw Postgres/PostgREST error text (constraint names, column names, internal query shape) -- see safeDbErrorMessage() in supabase/functions/_shared/http.ts. Not meant to be shown verbatim to end users; Website should key UI copy off `error`. */
   message: string;
 };
 
+/**
+ * Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check).
+ */
+export type DeleteNews404Error =
+  (typeof DeleteNews404Error)[keyof typeof DeleteNews404Error];
+
+export const DeleteNews404Error = {
+  already_decided: "already_decided",
+  already_voted: "already_voted",
+  internal_error: "internal_error",
+  invalid_body: "invalid_body",
+  invalid_discussion_id: "invalid_discussion_id",
+  invalid_news_id: "invalid_news_id",
+  invalid_poll_id: "invalid_poll_id",
+  invalid_project_id: "invalid_project_id",
+  invalid_query: "invalid_query",
+  invalid_redirect: "invalid_redirect",
+  invalid_reply_id: "invalid_reply_id",
+  invalid_request_id: "invalid_request_id",
+  invalid_team_id: "invalid_team_id",
+  invalid_user_id: "invalid_user_id",
+  invalid_version: "invalid_version",
+  method_not_allowed: "method_not_allowed",
+  misconfigured: "misconfigured",
+  missing_file: "missing_file",
+  not_found: "not_found",
+  poll_closed: "poll_closed",
+  poll_not_found: "poll_not_found",
+  query_error: "query_error",
+  rate_limited: "rate_limited",
+  rpc_error: "rpc_error",
+  storage_error: "storage_error",
+  too_large: "too_large",
+  unauthorized: "unauthorized",
+  unsupported_type: "unsupported_type",
+  username_taken: "username_taken",
+  vote_rejected: "vote_rejected",
+} as const;
+
 export type DeleteNews404 = {
-  /** Short machine-readable error code, e.g. "invalid_version". */
-  error: string;
-  /** Human-readable explanation. */
+  /** Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check). */
+  error: DeleteNews404Error;
+  /** Human-readable detail, for logging/debugging. Never contains raw Postgres/PostgREST error text (constraint names, column names, internal query shape) -- see safeDbErrorMessage() in supabase/functions/_shared/http.ts. Not meant to be shown verbatim to end users; Website should key UI copy off `error`. */
   message: string;
 };
 
@@ -1487,17 +4469,95 @@ export type CreatePoll201 = {
   options: CreatePoll201OptionsItem[];
 };
 
+/**
+ * Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check).
+ */
+export type CreatePoll400Error =
+  (typeof CreatePoll400Error)[keyof typeof CreatePoll400Error];
+
+export const CreatePoll400Error = {
+  already_decided: "already_decided",
+  already_voted: "already_voted",
+  internal_error: "internal_error",
+  invalid_body: "invalid_body",
+  invalid_discussion_id: "invalid_discussion_id",
+  invalid_news_id: "invalid_news_id",
+  invalid_poll_id: "invalid_poll_id",
+  invalid_project_id: "invalid_project_id",
+  invalid_query: "invalid_query",
+  invalid_redirect: "invalid_redirect",
+  invalid_reply_id: "invalid_reply_id",
+  invalid_request_id: "invalid_request_id",
+  invalid_team_id: "invalid_team_id",
+  invalid_user_id: "invalid_user_id",
+  invalid_version: "invalid_version",
+  method_not_allowed: "method_not_allowed",
+  misconfigured: "misconfigured",
+  missing_file: "missing_file",
+  not_found: "not_found",
+  poll_closed: "poll_closed",
+  poll_not_found: "poll_not_found",
+  query_error: "query_error",
+  rate_limited: "rate_limited",
+  rpc_error: "rpc_error",
+  storage_error: "storage_error",
+  too_large: "too_large",
+  unauthorized: "unauthorized",
+  unsupported_type: "unsupported_type",
+  username_taken: "username_taken",
+  vote_rejected: "vote_rejected",
+} as const;
+
 export type CreatePoll400 = {
-  /** Short machine-readable error code, e.g. "invalid_version". */
-  error: string;
-  /** Human-readable explanation. */
+  /** Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check). */
+  error: CreatePoll400Error;
+  /** Human-readable detail, for logging/debugging. Never contains raw Postgres/PostgREST error text (constraint names, column names, internal query shape) -- see safeDbErrorMessage() in supabase/functions/_shared/http.ts. Not meant to be shown verbatim to end users; Website should key UI copy off `error`. */
   message: string;
 };
 
+/**
+ * Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check).
+ */
+export type CreatePoll403Error =
+  (typeof CreatePoll403Error)[keyof typeof CreatePoll403Error];
+
+export const CreatePoll403Error = {
+  already_decided: "already_decided",
+  already_voted: "already_voted",
+  internal_error: "internal_error",
+  invalid_body: "invalid_body",
+  invalid_discussion_id: "invalid_discussion_id",
+  invalid_news_id: "invalid_news_id",
+  invalid_poll_id: "invalid_poll_id",
+  invalid_project_id: "invalid_project_id",
+  invalid_query: "invalid_query",
+  invalid_redirect: "invalid_redirect",
+  invalid_reply_id: "invalid_reply_id",
+  invalid_request_id: "invalid_request_id",
+  invalid_team_id: "invalid_team_id",
+  invalid_user_id: "invalid_user_id",
+  invalid_version: "invalid_version",
+  method_not_allowed: "method_not_allowed",
+  misconfigured: "misconfigured",
+  missing_file: "missing_file",
+  not_found: "not_found",
+  poll_closed: "poll_closed",
+  poll_not_found: "poll_not_found",
+  query_error: "query_error",
+  rate_limited: "rate_limited",
+  rpc_error: "rpc_error",
+  storage_error: "storage_error",
+  too_large: "too_large",
+  unauthorized: "unauthorized",
+  unsupported_type: "unsupported_type",
+  username_taken: "username_taken",
+  vote_rejected: "vote_rejected",
+} as const;
+
 export type CreatePoll403 = {
-  /** Short machine-readable error code, e.g. "invalid_version". */
-  error: string;
-  /** Human-readable explanation. */
+  /** Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check). */
+  error: CreatePoll403Error;
+  /** Human-readable detail, for logging/debugging. Never contains raw Postgres/PostgREST error text (constraint names, column names, internal query shape) -- see safeDbErrorMessage() in supabase/functions/_shared/http.ts. Not meant to be shown verbatim to end users; Website should key UI copy off `error`. */
   message: string;
 };
 
@@ -1512,24 +4572,187 @@ export type CastVote201 = {
   ok: boolean;
 };
 
+/**
+ * Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check).
+ */
+export type CastVote400Error =
+  (typeof CastVote400Error)[keyof typeof CastVote400Error];
+
+export const CastVote400Error = {
+  already_decided: "already_decided",
+  already_voted: "already_voted",
+  internal_error: "internal_error",
+  invalid_body: "invalid_body",
+  invalid_discussion_id: "invalid_discussion_id",
+  invalid_news_id: "invalid_news_id",
+  invalid_poll_id: "invalid_poll_id",
+  invalid_project_id: "invalid_project_id",
+  invalid_query: "invalid_query",
+  invalid_redirect: "invalid_redirect",
+  invalid_reply_id: "invalid_reply_id",
+  invalid_request_id: "invalid_request_id",
+  invalid_team_id: "invalid_team_id",
+  invalid_user_id: "invalid_user_id",
+  invalid_version: "invalid_version",
+  method_not_allowed: "method_not_allowed",
+  misconfigured: "misconfigured",
+  missing_file: "missing_file",
+  not_found: "not_found",
+  poll_closed: "poll_closed",
+  poll_not_found: "poll_not_found",
+  query_error: "query_error",
+  rate_limited: "rate_limited",
+  rpc_error: "rpc_error",
+  storage_error: "storage_error",
+  too_large: "too_large",
+  unauthorized: "unauthorized",
+  unsupported_type: "unsupported_type",
+  username_taken: "username_taken",
+  vote_rejected: "vote_rejected",
+} as const;
+
 export type CastVote400 = {
-  /** Short machine-readable error code, e.g. "invalid_version". */
-  error: string;
-  /** Human-readable explanation. */
+  /** Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check). */
+  error: CastVote400Error;
+  /** Human-readable detail, for logging/debugging. Never contains raw Postgres/PostgREST error text (constraint names, column names, internal query shape) -- see safeDbErrorMessage() in supabase/functions/_shared/http.ts. Not meant to be shown verbatim to end users; Website should key UI copy off `error`. */
   message: string;
 };
+
+/**
+ * Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check).
+ */
+export type CastVote401Error =
+  (typeof CastVote401Error)[keyof typeof CastVote401Error];
+
+export const CastVote401Error = {
+  already_decided: "already_decided",
+  already_voted: "already_voted",
+  internal_error: "internal_error",
+  invalid_body: "invalid_body",
+  invalid_discussion_id: "invalid_discussion_id",
+  invalid_news_id: "invalid_news_id",
+  invalid_poll_id: "invalid_poll_id",
+  invalid_project_id: "invalid_project_id",
+  invalid_query: "invalid_query",
+  invalid_redirect: "invalid_redirect",
+  invalid_reply_id: "invalid_reply_id",
+  invalid_request_id: "invalid_request_id",
+  invalid_team_id: "invalid_team_id",
+  invalid_user_id: "invalid_user_id",
+  invalid_version: "invalid_version",
+  method_not_allowed: "method_not_allowed",
+  misconfigured: "misconfigured",
+  missing_file: "missing_file",
+  not_found: "not_found",
+  poll_closed: "poll_closed",
+  poll_not_found: "poll_not_found",
+  query_error: "query_error",
+  rate_limited: "rate_limited",
+  rpc_error: "rpc_error",
+  storage_error: "storage_error",
+  too_large: "too_large",
+  unauthorized: "unauthorized",
+  unsupported_type: "unsupported_type",
+  username_taken: "username_taken",
+  vote_rejected: "vote_rejected",
+} as const;
 
 export type CastVote401 = {
-  /** Short machine-readable error code, e.g. "invalid_version". */
-  error: string;
-  /** Human-readable explanation. */
+  /** Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check). */
+  error: CastVote401Error;
+  /** Human-readable detail, for logging/debugging. Never contains raw Postgres/PostgREST error text (constraint names, column names, internal query shape) -- see safeDbErrorMessage() in supabase/functions/_shared/http.ts. Not meant to be shown verbatim to end users; Website should key UI copy off `error`. */
   message: string;
 };
 
+/**
+ * Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check).
+ */
+export type CastVote404Error =
+  (typeof CastVote404Error)[keyof typeof CastVote404Error];
+
+export const CastVote404Error = {
+  already_decided: "already_decided",
+  already_voted: "already_voted",
+  internal_error: "internal_error",
+  invalid_body: "invalid_body",
+  invalid_discussion_id: "invalid_discussion_id",
+  invalid_news_id: "invalid_news_id",
+  invalid_poll_id: "invalid_poll_id",
+  invalid_project_id: "invalid_project_id",
+  invalid_query: "invalid_query",
+  invalid_redirect: "invalid_redirect",
+  invalid_reply_id: "invalid_reply_id",
+  invalid_request_id: "invalid_request_id",
+  invalid_team_id: "invalid_team_id",
+  invalid_user_id: "invalid_user_id",
+  invalid_version: "invalid_version",
+  method_not_allowed: "method_not_allowed",
+  misconfigured: "misconfigured",
+  missing_file: "missing_file",
+  not_found: "not_found",
+  poll_closed: "poll_closed",
+  poll_not_found: "poll_not_found",
+  query_error: "query_error",
+  rate_limited: "rate_limited",
+  rpc_error: "rpc_error",
+  storage_error: "storage_error",
+  too_large: "too_large",
+  unauthorized: "unauthorized",
+  unsupported_type: "unsupported_type",
+  username_taken: "username_taken",
+  vote_rejected: "vote_rejected",
+} as const;
+
+export type CastVote404 = {
+  /** Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check). */
+  error: CastVote404Error;
+  /** Human-readable detail, for logging/debugging. Never contains raw Postgres/PostgREST error text (constraint names, column names, internal query shape) -- see safeDbErrorMessage() in supabase/functions/_shared/http.ts. Not meant to be shown verbatim to end users; Website should key UI copy off `error`. */
+  message: string;
+};
+
+/**
+ * Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check).
+ */
+export type CastVote409Error =
+  (typeof CastVote409Error)[keyof typeof CastVote409Error];
+
+export const CastVote409Error = {
+  already_decided: "already_decided",
+  already_voted: "already_voted",
+  internal_error: "internal_error",
+  invalid_body: "invalid_body",
+  invalid_discussion_id: "invalid_discussion_id",
+  invalid_news_id: "invalid_news_id",
+  invalid_poll_id: "invalid_poll_id",
+  invalid_project_id: "invalid_project_id",
+  invalid_query: "invalid_query",
+  invalid_redirect: "invalid_redirect",
+  invalid_reply_id: "invalid_reply_id",
+  invalid_request_id: "invalid_request_id",
+  invalid_team_id: "invalid_team_id",
+  invalid_user_id: "invalid_user_id",
+  invalid_version: "invalid_version",
+  method_not_allowed: "method_not_allowed",
+  misconfigured: "misconfigured",
+  missing_file: "missing_file",
+  not_found: "not_found",
+  poll_closed: "poll_closed",
+  poll_not_found: "poll_not_found",
+  query_error: "query_error",
+  rate_limited: "rate_limited",
+  rpc_error: "rpc_error",
+  storage_error: "storage_error",
+  too_large: "too_large",
+  unauthorized: "unauthorized",
+  unsupported_type: "unsupported_type",
+  username_taken: "username_taken",
+  vote_rejected: "vote_rejected",
+} as const;
+
 export type CastVote409 = {
-  /** Short machine-readable error code, e.g. "invalid_version". */
-  error: string;
-  /** Human-readable explanation. */
+  /** Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check). */
+  error: CastVote409Error;
+  /** Human-readable detail, for logging/debugging. Never contains raw Postgres/PostgREST error text (constraint names, column names, internal query shape) -- see safeDbErrorMessage() in supabase/functions/_shared/http.ts. Not meant to be shown verbatim to end users; Website should key UI copy off `error`. */
   message: string;
 };
 
@@ -1539,10 +4762,49 @@ export type GetPollResults200Item = {
   vote_count: number;
 };
 
+/**
+ * Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check).
+ */
+export type GetPollResults400Error =
+  (typeof GetPollResults400Error)[keyof typeof GetPollResults400Error];
+
+export const GetPollResults400Error = {
+  already_decided: "already_decided",
+  already_voted: "already_voted",
+  internal_error: "internal_error",
+  invalid_body: "invalid_body",
+  invalid_discussion_id: "invalid_discussion_id",
+  invalid_news_id: "invalid_news_id",
+  invalid_poll_id: "invalid_poll_id",
+  invalid_project_id: "invalid_project_id",
+  invalid_query: "invalid_query",
+  invalid_redirect: "invalid_redirect",
+  invalid_reply_id: "invalid_reply_id",
+  invalid_request_id: "invalid_request_id",
+  invalid_team_id: "invalid_team_id",
+  invalid_user_id: "invalid_user_id",
+  invalid_version: "invalid_version",
+  method_not_allowed: "method_not_allowed",
+  misconfigured: "misconfigured",
+  missing_file: "missing_file",
+  not_found: "not_found",
+  poll_closed: "poll_closed",
+  poll_not_found: "poll_not_found",
+  query_error: "query_error",
+  rate_limited: "rate_limited",
+  rpc_error: "rpc_error",
+  storage_error: "storage_error",
+  too_large: "too_large",
+  unauthorized: "unauthorized",
+  unsupported_type: "unsupported_type",
+  username_taken: "username_taken",
+  vote_rejected: "vote_rejected",
+} as const;
+
 export type GetPollResults400 = {
-  /** Short machine-readable error code, e.g. "invalid_version". */
-  error: string;
-  /** Human-readable explanation. */
+  /** Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check). */
+  error: GetPollResults400Error;
+  /** Human-readable detail, for logging/debugging. Never contains raw Postgres/PostgREST error text (constraint names, column names, internal query shape) -- see safeDbErrorMessage() in supabase/functions/_shared/http.ts. Not meant to be shown verbatim to end users; Website should key UI copy off `error`. */
   message: string;
 };
 
@@ -1576,17 +4838,95 @@ export type CreateDiscussion201 = {
   created_at?: string;
 };
 
+/**
+ * Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check).
+ */
+export type CreateDiscussion400Error =
+  (typeof CreateDiscussion400Error)[keyof typeof CreateDiscussion400Error];
+
+export const CreateDiscussion400Error = {
+  already_decided: "already_decided",
+  already_voted: "already_voted",
+  internal_error: "internal_error",
+  invalid_body: "invalid_body",
+  invalid_discussion_id: "invalid_discussion_id",
+  invalid_news_id: "invalid_news_id",
+  invalid_poll_id: "invalid_poll_id",
+  invalid_project_id: "invalid_project_id",
+  invalid_query: "invalid_query",
+  invalid_redirect: "invalid_redirect",
+  invalid_reply_id: "invalid_reply_id",
+  invalid_request_id: "invalid_request_id",
+  invalid_team_id: "invalid_team_id",
+  invalid_user_id: "invalid_user_id",
+  invalid_version: "invalid_version",
+  method_not_allowed: "method_not_allowed",
+  misconfigured: "misconfigured",
+  missing_file: "missing_file",
+  not_found: "not_found",
+  poll_closed: "poll_closed",
+  poll_not_found: "poll_not_found",
+  query_error: "query_error",
+  rate_limited: "rate_limited",
+  rpc_error: "rpc_error",
+  storage_error: "storage_error",
+  too_large: "too_large",
+  unauthorized: "unauthorized",
+  unsupported_type: "unsupported_type",
+  username_taken: "username_taken",
+  vote_rejected: "vote_rejected",
+} as const;
+
 export type CreateDiscussion400 = {
-  /** Short machine-readable error code, e.g. "invalid_version". */
-  error: string;
-  /** Human-readable explanation. */
+  /** Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check). */
+  error: CreateDiscussion400Error;
+  /** Human-readable detail, for logging/debugging. Never contains raw Postgres/PostgREST error text (constraint names, column names, internal query shape) -- see safeDbErrorMessage() in supabase/functions/_shared/http.ts. Not meant to be shown verbatim to end users; Website should key UI copy off `error`. */
   message: string;
 };
 
+/**
+ * Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check).
+ */
+export type CreateDiscussion401Error =
+  (typeof CreateDiscussion401Error)[keyof typeof CreateDiscussion401Error];
+
+export const CreateDiscussion401Error = {
+  already_decided: "already_decided",
+  already_voted: "already_voted",
+  internal_error: "internal_error",
+  invalid_body: "invalid_body",
+  invalid_discussion_id: "invalid_discussion_id",
+  invalid_news_id: "invalid_news_id",
+  invalid_poll_id: "invalid_poll_id",
+  invalid_project_id: "invalid_project_id",
+  invalid_query: "invalid_query",
+  invalid_redirect: "invalid_redirect",
+  invalid_reply_id: "invalid_reply_id",
+  invalid_request_id: "invalid_request_id",
+  invalid_team_id: "invalid_team_id",
+  invalid_user_id: "invalid_user_id",
+  invalid_version: "invalid_version",
+  method_not_allowed: "method_not_allowed",
+  misconfigured: "misconfigured",
+  missing_file: "missing_file",
+  not_found: "not_found",
+  poll_closed: "poll_closed",
+  poll_not_found: "poll_not_found",
+  query_error: "query_error",
+  rate_limited: "rate_limited",
+  rpc_error: "rpc_error",
+  storage_error: "storage_error",
+  too_large: "too_large",
+  unauthorized: "unauthorized",
+  unsupported_type: "unsupported_type",
+  username_taken: "username_taken",
+  vote_rejected: "vote_rejected",
+} as const;
+
 export type CreateDiscussion401 = {
-  /** Short machine-readable error code, e.g. "invalid_version". */
-  error: string;
-  /** Human-readable explanation. */
+  /** Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check). */
+  error: CreateDiscussion401Error;
+  /** Human-readable detail, for logging/debugging. Never contains raw Postgres/PostgREST error text (constraint names, column names, internal query shape) -- see safeDbErrorMessage() in supabase/functions/_shared/http.ts. Not meant to be shown verbatim to end users; Website should key UI copy off `error`. */
   message: string;
 };
 
@@ -1606,38 +4946,233 @@ export type UpdateDiscussion200 = {
   created_at?: string;
 };
 
+/**
+ * Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check).
+ */
+export type UpdateDiscussion400Error =
+  (typeof UpdateDiscussion400Error)[keyof typeof UpdateDiscussion400Error];
+
+export const UpdateDiscussion400Error = {
+  already_decided: "already_decided",
+  already_voted: "already_voted",
+  internal_error: "internal_error",
+  invalid_body: "invalid_body",
+  invalid_discussion_id: "invalid_discussion_id",
+  invalid_news_id: "invalid_news_id",
+  invalid_poll_id: "invalid_poll_id",
+  invalid_project_id: "invalid_project_id",
+  invalid_query: "invalid_query",
+  invalid_redirect: "invalid_redirect",
+  invalid_reply_id: "invalid_reply_id",
+  invalid_request_id: "invalid_request_id",
+  invalid_team_id: "invalid_team_id",
+  invalid_user_id: "invalid_user_id",
+  invalid_version: "invalid_version",
+  method_not_allowed: "method_not_allowed",
+  misconfigured: "misconfigured",
+  missing_file: "missing_file",
+  not_found: "not_found",
+  poll_closed: "poll_closed",
+  poll_not_found: "poll_not_found",
+  query_error: "query_error",
+  rate_limited: "rate_limited",
+  rpc_error: "rpc_error",
+  storage_error: "storage_error",
+  too_large: "too_large",
+  unauthorized: "unauthorized",
+  unsupported_type: "unsupported_type",
+  username_taken: "username_taken",
+  vote_rejected: "vote_rejected",
+} as const;
+
 export type UpdateDiscussion400 = {
-  /** Short machine-readable error code, e.g. "invalid_version". */
-  error: string;
-  /** Human-readable explanation. */
+  /** Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check). */
+  error: UpdateDiscussion400Error;
+  /** Human-readable detail, for logging/debugging. Never contains raw Postgres/PostgREST error text (constraint names, column names, internal query shape) -- see safeDbErrorMessage() in supabase/functions/_shared/http.ts. Not meant to be shown verbatim to end users; Website should key UI copy off `error`. */
   message: string;
 };
+
+/**
+ * Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check).
+ */
+export type UpdateDiscussion403Error =
+  (typeof UpdateDiscussion403Error)[keyof typeof UpdateDiscussion403Error];
+
+export const UpdateDiscussion403Error = {
+  already_decided: "already_decided",
+  already_voted: "already_voted",
+  internal_error: "internal_error",
+  invalid_body: "invalid_body",
+  invalid_discussion_id: "invalid_discussion_id",
+  invalid_news_id: "invalid_news_id",
+  invalid_poll_id: "invalid_poll_id",
+  invalid_project_id: "invalid_project_id",
+  invalid_query: "invalid_query",
+  invalid_redirect: "invalid_redirect",
+  invalid_reply_id: "invalid_reply_id",
+  invalid_request_id: "invalid_request_id",
+  invalid_team_id: "invalid_team_id",
+  invalid_user_id: "invalid_user_id",
+  invalid_version: "invalid_version",
+  method_not_allowed: "method_not_allowed",
+  misconfigured: "misconfigured",
+  missing_file: "missing_file",
+  not_found: "not_found",
+  poll_closed: "poll_closed",
+  poll_not_found: "poll_not_found",
+  query_error: "query_error",
+  rate_limited: "rate_limited",
+  rpc_error: "rpc_error",
+  storage_error: "storage_error",
+  too_large: "too_large",
+  unauthorized: "unauthorized",
+  unsupported_type: "unsupported_type",
+  username_taken: "username_taken",
+  vote_rejected: "vote_rejected",
+} as const;
 
 export type UpdateDiscussion403 = {
-  /** Short machine-readable error code, e.g. "invalid_version". */
-  error: string;
-  /** Human-readable explanation. */
+  /** Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check). */
+  error: UpdateDiscussion403Error;
+  /** Human-readable detail, for logging/debugging. Never contains raw Postgres/PostgREST error text (constraint names, column names, internal query shape) -- see safeDbErrorMessage() in supabase/functions/_shared/http.ts. Not meant to be shown verbatim to end users; Website should key UI copy off `error`. */
   message: string;
 };
+
+/**
+ * Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check).
+ */
+export type UpdateDiscussion404Error =
+  (typeof UpdateDiscussion404Error)[keyof typeof UpdateDiscussion404Error];
+
+export const UpdateDiscussion404Error = {
+  already_decided: "already_decided",
+  already_voted: "already_voted",
+  internal_error: "internal_error",
+  invalid_body: "invalid_body",
+  invalid_discussion_id: "invalid_discussion_id",
+  invalid_news_id: "invalid_news_id",
+  invalid_poll_id: "invalid_poll_id",
+  invalid_project_id: "invalid_project_id",
+  invalid_query: "invalid_query",
+  invalid_redirect: "invalid_redirect",
+  invalid_reply_id: "invalid_reply_id",
+  invalid_request_id: "invalid_request_id",
+  invalid_team_id: "invalid_team_id",
+  invalid_user_id: "invalid_user_id",
+  invalid_version: "invalid_version",
+  method_not_allowed: "method_not_allowed",
+  misconfigured: "misconfigured",
+  missing_file: "missing_file",
+  not_found: "not_found",
+  poll_closed: "poll_closed",
+  poll_not_found: "poll_not_found",
+  query_error: "query_error",
+  rate_limited: "rate_limited",
+  rpc_error: "rpc_error",
+  storage_error: "storage_error",
+  too_large: "too_large",
+  unauthorized: "unauthorized",
+  unsupported_type: "unsupported_type",
+  username_taken: "username_taken",
+  vote_rejected: "vote_rejected",
+} as const;
 
 export type UpdateDiscussion404 = {
-  /** Short machine-readable error code, e.g. "invalid_version". */
-  error: string;
-  /** Human-readable explanation. */
+  /** Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check). */
+  error: UpdateDiscussion404Error;
+  /** Human-readable detail, for logging/debugging. Never contains raw Postgres/PostgREST error text (constraint names, column names, internal query shape) -- see safeDbErrorMessage() in supabase/functions/_shared/http.ts. Not meant to be shown verbatim to end users; Website should key UI copy off `error`. */
   message: string;
 };
+
+/**
+ * Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check).
+ */
+export type DeleteDiscussion400Error =
+  (typeof DeleteDiscussion400Error)[keyof typeof DeleteDiscussion400Error];
+
+export const DeleteDiscussion400Error = {
+  already_decided: "already_decided",
+  already_voted: "already_voted",
+  internal_error: "internal_error",
+  invalid_body: "invalid_body",
+  invalid_discussion_id: "invalid_discussion_id",
+  invalid_news_id: "invalid_news_id",
+  invalid_poll_id: "invalid_poll_id",
+  invalid_project_id: "invalid_project_id",
+  invalid_query: "invalid_query",
+  invalid_redirect: "invalid_redirect",
+  invalid_reply_id: "invalid_reply_id",
+  invalid_request_id: "invalid_request_id",
+  invalid_team_id: "invalid_team_id",
+  invalid_user_id: "invalid_user_id",
+  invalid_version: "invalid_version",
+  method_not_allowed: "method_not_allowed",
+  misconfigured: "misconfigured",
+  missing_file: "missing_file",
+  not_found: "not_found",
+  poll_closed: "poll_closed",
+  poll_not_found: "poll_not_found",
+  query_error: "query_error",
+  rate_limited: "rate_limited",
+  rpc_error: "rpc_error",
+  storage_error: "storage_error",
+  too_large: "too_large",
+  unauthorized: "unauthorized",
+  unsupported_type: "unsupported_type",
+  username_taken: "username_taken",
+  vote_rejected: "vote_rejected",
+} as const;
 
 export type DeleteDiscussion400 = {
-  /** Short machine-readable error code, e.g. "invalid_version". */
-  error: string;
-  /** Human-readable explanation. */
+  /** Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check). */
+  error: DeleteDiscussion400Error;
+  /** Human-readable detail, for logging/debugging. Never contains raw Postgres/PostgREST error text (constraint names, column names, internal query shape) -- see safeDbErrorMessage() in supabase/functions/_shared/http.ts. Not meant to be shown verbatim to end users; Website should key UI copy off `error`. */
   message: string;
 };
 
+/**
+ * Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check).
+ */
+export type DeleteDiscussion404Error =
+  (typeof DeleteDiscussion404Error)[keyof typeof DeleteDiscussion404Error];
+
+export const DeleteDiscussion404Error = {
+  already_decided: "already_decided",
+  already_voted: "already_voted",
+  internal_error: "internal_error",
+  invalid_body: "invalid_body",
+  invalid_discussion_id: "invalid_discussion_id",
+  invalid_news_id: "invalid_news_id",
+  invalid_poll_id: "invalid_poll_id",
+  invalid_project_id: "invalid_project_id",
+  invalid_query: "invalid_query",
+  invalid_redirect: "invalid_redirect",
+  invalid_reply_id: "invalid_reply_id",
+  invalid_request_id: "invalid_request_id",
+  invalid_team_id: "invalid_team_id",
+  invalid_user_id: "invalid_user_id",
+  invalid_version: "invalid_version",
+  method_not_allowed: "method_not_allowed",
+  misconfigured: "misconfigured",
+  missing_file: "missing_file",
+  not_found: "not_found",
+  poll_closed: "poll_closed",
+  poll_not_found: "poll_not_found",
+  query_error: "query_error",
+  rate_limited: "rate_limited",
+  rpc_error: "rpc_error",
+  storage_error: "storage_error",
+  too_large: "too_large",
+  unauthorized: "unauthorized",
+  unsupported_type: "unsupported_type",
+  username_taken: "username_taken",
+  vote_rejected: "vote_rejected",
+} as const;
+
 export type DeleteDiscussion404 = {
-  /** Short machine-readable error code, e.g. "invalid_version". */
-  error: string;
-  /** Human-readable explanation. */
+  /** Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check). */
+  error: DeleteDiscussion404Error;
+  /** Human-readable detail, for logging/debugging. Never contains raw Postgres/PostgREST error text (constraint names, column names, internal query shape) -- see safeDbErrorMessage() in supabase/functions/_shared/http.ts. Not meant to be shown verbatim to end users; Website should key UI copy off `error`. */
   message: string;
 };
 
@@ -1651,10 +5186,49 @@ export type ListDiscussionReplies200Item = {
   created_at?: string;
 };
 
+/**
+ * Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check).
+ */
+export type ListDiscussionReplies400Error =
+  (typeof ListDiscussionReplies400Error)[keyof typeof ListDiscussionReplies400Error];
+
+export const ListDiscussionReplies400Error = {
+  already_decided: "already_decided",
+  already_voted: "already_voted",
+  internal_error: "internal_error",
+  invalid_body: "invalid_body",
+  invalid_discussion_id: "invalid_discussion_id",
+  invalid_news_id: "invalid_news_id",
+  invalid_poll_id: "invalid_poll_id",
+  invalid_project_id: "invalid_project_id",
+  invalid_query: "invalid_query",
+  invalid_redirect: "invalid_redirect",
+  invalid_reply_id: "invalid_reply_id",
+  invalid_request_id: "invalid_request_id",
+  invalid_team_id: "invalid_team_id",
+  invalid_user_id: "invalid_user_id",
+  invalid_version: "invalid_version",
+  method_not_allowed: "method_not_allowed",
+  misconfigured: "misconfigured",
+  missing_file: "missing_file",
+  not_found: "not_found",
+  poll_closed: "poll_closed",
+  poll_not_found: "poll_not_found",
+  query_error: "query_error",
+  rate_limited: "rate_limited",
+  rpc_error: "rpc_error",
+  storage_error: "storage_error",
+  too_large: "too_large",
+  unauthorized: "unauthorized",
+  unsupported_type: "unsupported_type",
+  username_taken: "username_taken",
+  vote_rejected: "vote_rejected",
+} as const;
+
 export type ListDiscussionReplies400 = {
-  /** Short machine-readable error code, e.g. "invalid_version". */
-  error: string;
-  /** Human-readable explanation. */
+  /** Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check). */
+  error: ListDiscussionReplies400Error;
+  /** Human-readable detail, for logging/debugging. Never contains raw Postgres/PostgREST error text (constraint names, column names, internal query shape) -- see safeDbErrorMessage() in supabase/functions/_shared/http.ts. Not meant to be shown verbatim to end users; Website should key UI copy off `error`. */
   message: string;
 };
 
@@ -1672,24 +5246,141 @@ export type ReplyToDiscussion201 = {
   created_at?: string;
 };
 
+/**
+ * Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check).
+ */
+export type ReplyToDiscussion400Error =
+  (typeof ReplyToDiscussion400Error)[keyof typeof ReplyToDiscussion400Error];
+
+export const ReplyToDiscussion400Error = {
+  already_decided: "already_decided",
+  already_voted: "already_voted",
+  internal_error: "internal_error",
+  invalid_body: "invalid_body",
+  invalid_discussion_id: "invalid_discussion_id",
+  invalid_news_id: "invalid_news_id",
+  invalid_poll_id: "invalid_poll_id",
+  invalid_project_id: "invalid_project_id",
+  invalid_query: "invalid_query",
+  invalid_redirect: "invalid_redirect",
+  invalid_reply_id: "invalid_reply_id",
+  invalid_request_id: "invalid_request_id",
+  invalid_team_id: "invalid_team_id",
+  invalid_user_id: "invalid_user_id",
+  invalid_version: "invalid_version",
+  method_not_allowed: "method_not_allowed",
+  misconfigured: "misconfigured",
+  missing_file: "missing_file",
+  not_found: "not_found",
+  poll_closed: "poll_closed",
+  poll_not_found: "poll_not_found",
+  query_error: "query_error",
+  rate_limited: "rate_limited",
+  rpc_error: "rpc_error",
+  storage_error: "storage_error",
+  too_large: "too_large",
+  unauthorized: "unauthorized",
+  unsupported_type: "unsupported_type",
+  username_taken: "username_taken",
+  vote_rejected: "vote_rejected",
+} as const;
+
 export type ReplyToDiscussion400 = {
-  /** Short machine-readable error code, e.g. "invalid_version". */
-  error: string;
-  /** Human-readable explanation. */
+  /** Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check). */
+  error: ReplyToDiscussion400Error;
+  /** Human-readable detail, for logging/debugging. Never contains raw Postgres/PostgREST error text (constraint names, column names, internal query shape) -- see safeDbErrorMessage() in supabase/functions/_shared/http.ts. Not meant to be shown verbatim to end users; Website should key UI copy off `error`. */
   message: string;
 };
+
+/**
+ * Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check).
+ */
+export type ReplyToDiscussion401Error =
+  (typeof ReplyToDiscussion401Error)[keyof typeof ReplyToDiscussion401Error];
+
+export const ReplyToDiscussion401Error = {
+  already_decided: "already_decided",
+  already_voted: "already_voted",
+  internal_error: "internal_error",
+  invalid_body: "invalid_body",
+  invalid_discussion_id: "invalid_discussion_id",
+  invalid_news_id: "invalid_news_id",
+  invalid_poll_id: "invalid_poll_id",
+  invalid_project_id: "invalid_project_id",
+  invalid_query: "invalid_query",
+  invalid_redirect: "invalid_redirect",
+  invalid_reply_id: "invalid_reply_id",
+  invalid_request_id: "invalid_request_id",
+  invalid_team_id: "invalid_team_id",
+  invalid_user_id: "invalid_user_id",
+  invalid_version: "invalid_version",
+  method_not_allowed: "method_not_allowed",
+  misconfigured: "misconfigured",
+  missing_file: "missing_file",
+  not_found: "not_found",
+  poll_closed: "poll_closed",
+  poll_not_found: "poll_not_found",
+  query_error: "query_error",
+  rate_limited: "rate_limited",
+  rpc_error: "rpc_error",
+  storage_error: "storage_error",
+  too_large: "too_large",
+  unauthorized: "unauthorized",
+  unsupported_type: "unsupported_type",
+  username_taken: "username_taken",
+  vote_rejected: "vote_rejected",
+} as const;
 
 export type ReplyToDiscussion401 = {
-  /** Short machine-readable error code, e.g. "invalid_version". */
-  error: string;
-  /** Human-readable explanation. */
+  /** Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check). */
+  error: ReplyToDiscussion401Error;
+  /** Human-readable detail, for logging/debugging. Never contains raw Postgres/PostgREST error text (constraint names, column names, internal query shape) -- see safeDbErrorMessage() in supabase/functions/_shared/http.ts. Not meant to be shown verbatim to end users; Website should key UI copy off `error`. */
   message: string;
 };
 
+/**
+ * Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check).
+ */
+export type ReplyToDiscussion403Error =
+  (typeof ReplyToDiscussion403Error)[keyof typeof ReplyToDiscussion403Error];
+
+export const ReplyToDiscussion403Error = {
+  already_decided: "already_decided",
+  already_voted: "already_voted",
+  internal_error: "internal_error",
+  invalid_body: "invalid_body",
+  invalid_discussion_id: "invalid_discussion_id",
+  invalid_news_id: "invalid_news_id",
+  invalid_poll_id: "invalid_poll_id",
+  invalid_project_id: "invalid_project_id",
+  invalid_query: "invalid_query",
+  invalid_redirect: "invalid_redirect",
+  invalid_reply_id: "invalid_reply_id",
+  invalid_request_id: "invalid_request_id",
+  invalid_team_id: "invalid_team_id",
+  invalid_user_id: "invalid_user_id",
+  invalid_version: "invalid_version",
+  method_not_allowed: "method_not_allowed",
+  misconfigured: "misconfigured",
+  missing_file: "missing_file",
+  not_found: "not_found",
+  poll_closed: "poll_closed",
+  poll_not_found: "poll_not_found",
+  query_error: "query_error",
+  rate_limited: "rate_limited",
+  rpc_error: "rpc_error",
+  storage_error: "storage_error",
+  too_large: "too_large",
+  unauthorized: "unauthorized",
+  unsupported_type: "unsupported_type",
+  username_taken: "username_taken",
+  vote_rejected: "vote_rejected",
+} as const;
+
 export type ReplyToDiscussion403 = {
-  /** Short machine-readable error code, e.g. "invalid_version". */
-  error: string;
-  /** Human-readable explanation. */
+  /** Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check). */
+  error: ReplyToDiscussion403Error;
+  /** Human-readable detail, for logging/debugging. Never contains raw Postgres/PostgREST error text (constraint names, column names, internal query shape) -- see safeDbErrorMessage() in supabase/functions/_shared/http.ts. Not meant to be shown verbatim to end users; Website should key UI copy off `error`. */
   message: string;
 };
 
@@ -1709,24 +5400,141 @@ export type UpdateDiscussionReply200 = {
   created_at?: string;
 };
 
+/**
+ * Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check).
+ */
+export type UpdateDiscussionReply400Error =
+  (typeof UpdateDiscussionReply400Error)[keyof typeof UpdateDiscussionReply400Error];
+
+export const UpdateDiscussionReply400Error = {
+  already_decided: "already_decided",
+  already_voted: "already_voted",
+  internal_error: "internal_error",
+  invalid_body: "invalid_body",
+  invalid_discussion_id: "invalid_discussion_id",
+  invalid_news_id: "invalid_news_id",
+  invalid_poll_id: "invalid_poll_id",
+  invalid_project_id: "invalid_project_id",
+  invalid_query: "invalid_query",
+  invalid_redirect: "invalid_redirect",
+  invalid_reply_id: "invalid_reply_id",
+  invalid_request_id: "invalid_request_id",
+  invalid_team_id: "invalid_team_id",
+  invalid_user_id: "invalid_user_id",
+  invalid_version: "invalid_version",
+  method_not_allowed: "method_not_allowed",
+  misconfigured: "misconfigured",
+  missing_file: "missing_file",
+  not_found: "not_found",
+  poll_closed: "poll_closed",
+  poll_not_found: "poll_not_found",
+  query_error: "query_error",
+  rate_limited: "rate_limited",
+  rpc_error: "rpc_error",
+  storage_error: "storage_error",
+  too_large: "too_large",
+  unauthorized: "unauthorized",
+  unsupported_type: "unsupported_type",
+  username_taken: "username_taken",
+  vote_rejected: "vote_rejected",
+} as const;
+
 export type UpdateDiscussionReply400 = {
-  /** Short machine-readable error code, e.g. "invalid_version". */
-  error: string;
-  /** Human-readable explanation. */
+  /** Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check). */
+  error: UpdateDiscussionReply400Error;
+  /** Human-readable detail, for logging/debugging. Never contains raw Postgres/PostgREST error text (constraint names, column names, internal query shape) -- see safeDbErrorMessage() in supabase/functions/_shared/http.ts. Not meant to be shown verbatim to end users; Website should key UI copy off `error`. */
   message: string;
 };
+
+/**
+ * Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check).
+ */
+export type UpdateDiscussionReply403Error =
+  (typeof UpdateDiscussionReply403Error)[keyof typeof UpdateDiscussionReply403Error];
+
+export const UpdateDiscussionReply403Error = {
+  already_decided: "already_decided",
+  already_voted: "already_voted",
+  internal_error: "internal_error",
+  invalid_body: "invalid_body",
+  invalid_discussion_id: "invalid_discussion_id",
+  invalid_news_id: "invalid_news_id",
+  invalid_poll_id: "invalid_poll_id",
+  invalid_project_id: "invalid_project_id",
+  invalid_query: "invalid_query",
+  invalid_redirect: "invalid_redirect",
+  invalid_reply_id: "invalid_reply_id",
+  invalid_request_id: "invalid_request_id",
+  invalid_team_id: "invalid_team_id",
+  invalid_user_id: "invalid_user_id",
+  invalid_version: "invalid_version",
+  method_not_allowed: "method_not_allowed",
+  misconfigured: "misconfigured",
+  missing_file: "missing_file",
+  not_found: "not_found",
+  poll_closed: "poll_closed",
+  poll_not_found: "poll_not_found",
+  query_error: "query_error",
+  rate_limited: "rate_limited",
+  rpc_error: "rpc_error",
+  storage_error: "storage_error",
+  too_large: "too_large",
+  unauthorized: "unauthorized",
+  unsupported_type: "unsupported_type",
+  username_taken: "username_taken",
+  vote_rejected: "vote_rejected",
+} as const;
 
 export type UpdateDiscussionReply403 = {
-  /** Short machine-readable error code, e.g. "invalid_version". */
-  error: string;
-  /** Human-readable explanation. */
+  /** Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check). */
+  error: UpdateDiscussionReply403Error;
+  /** Human-readable detail, for logging/debugging. Never contains raw Postgres/PostgREST error text (constraint names, column names, internal query shape) -- see safeDbErrorMessage() in supabase/functions/_shared/http.ts. Not meant to be shown verbatim to end users; Website should key UI copy off `error`. */
   message: string;
 };
 
+/**
+ * Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check).
+ */
+export type UpdateDiscussionReply404Error =
+  (typeof UpdateDiscussionReply404Error)[keyof typeof UpdateDiscussionReply404Error];
+
+export const UpdateDiscussionReply404Error = {
+  already_decided: "already_decided",
+  already_voted: "already_voted",
+  internal_error: "internal_error",
+  invalid_body: "invalid_body",
+  invalid_discussion_id: "invalid_discussion_id",
+  invalid_news_id: "invalid_news_id",
+  invalid_poll_id: "invalid_poll_id",
+  invalid_project_id: "invalid_project_id",
+  invalid_query: "invalid_query",
+  invalid_redirect: "invalid_redirect",
+  invalid_reply_id: "invalid_reply_id",
+  invalid_request_id: "invalid_request_id",
+  invalid_team_id: "invalid_team_id",
+  invalid_user_id: "invalid_user_id",
+  invalid_version: "invalid_version",
+  method_not_allowed: "method_not_allowed",
+  misconfigured: "misconfigured",
+  missing_file: "missing_file",
+  not_found: "not_found",
+  poll_closed: "poll_closed",
+  poll_not_found: "poll_not_found",
+  query_error: "query_error",
+  rate_limited: "rate_limited",
+  rpc_error: "rpc_error",
+  storage_error: "storage_error",
+  too_large: "too_large",
+  unauthorized: "unauthorized",
+  unsupported_type: "unsupported_type",
+  username_taken: "username_taken",
+  vote_rejected: "vote_rejected",
+} as const;
+
 export type UpdateDiscussionReply404 = {
-  /** Short machine-readable error code, e.g. "invalid_version". */
-  error: string;
-  /** Human-readable explanation. */
+  /** Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check). */
+  error: UpdateDiscussionReply404Error;
+  /** Human-readable detail, for logging/debugging. Never contains raw Postgres/PostgREST error text (constraint names, column names, internal query shape) -- see safeDbErrorMessage() in supabase/functions/_shared/http.ts. Not meant to be shown verbatim to end users; Website should key UI copy off `error`. */
   message: string;
 };
 
@@ -1780,10 +5588,49 @@ export type SearchDocs200Item = {
   rank: number;
 };
 
+/**
+ * Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check).
+ */
+export type SearchDocs400Error =
+  (typeof SearchDocs400Error)[keyof typeof SearchDocs400Error];
+
+export const SearchDocs400Error = {
+  already_decided: "already_decided",
+  already_voted: "already_voted",
+  internal_error: "internal_error",
+  invalid_body: "invalid_body",
+  invalid_discussion_id: "invalid_discussion_id",
+  invalid_news_id: "invalid_news_id",
+  invalid_poll_id: "invalid_poll_id",
+  invalid_project_id: "invalid_project_id",
+  invalid_query: "invalid_query",
+  invalid_redirect: "invalid_redirect",
+  invalid_reply_id: "invalid_reply_id",
+  invalid_request_id: "invalid_request_id",
+  invalid_team_id: "invalid_team_id",
+  invalid_user_id: "invalid_user_id",
+  invalid_version: "invalid_version",
+  method_not_allowed: "method_not_allowed",
+  misconfigured: "misconfigured",
+  missing_file: "missing_file",
+  not_found: "not_found",
+  poll_closed: "poll_closed",
+  poll_not_found: "poll_not_found",
+  query_error: "query_error",
+  rate_limited: "rate_limited",
+  rpc_error: "rpc_error",
+  storage_error: "storage_error",
+  too_large: "too_large",
+  unauthorized: "unauthorized",
+  unsupported_type: "unsupported_type",
+  username_taken: "username_taken",
+  vote_rejected: "vote_rejected",
+} as const;
+
 export type SearchDocs400 = {
-  /** Short machine-readable error code, e.g. "invalid_version". */
-  error: string;
-  /** Human-readable explanation. */
+  /** Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check). */
+  error: SearchDocs400Error;
+  /** Human-readable detail, for logging/debugging. Never contains raw Postgres/PostgREST error text (constraint names, column names, internal query shape) -- see safeDbErrorMessage() in supabase/functions/_shared/http.ts. Not meant to be shown verbatim to end users; Website should key UI copy off `error`. */
   message: string;
 };
 
@@ -1822,16 +5669,94 @@ export type ReindexDocs200 = {
   pruned?: number;
 };
 
+/**
+ * Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check).
+ */
+export type ReindexDocs400Error =
+  (typeof ReindexDocs400Error)[keyof typeof ReindexDocs400Error];
+
+export const ReindexDocs400Error = {
+  already_decided: "already_decided",
+  already_voted: "already_voted",
+  internal_error: "internal_error",
+  invalid_body: "invalid_body",
+  invalid_discussion_id: "invalid_discussion_id",
+  invalid_news_id: "invalid_news_id",
+  invalid_poll_id: "invalid_poll_id",
+  invalid_project_id: "invalid_project_id",
+  invalid_query: "invalid_query",
+  invalid_redirect: "invalid_redirect",
+  invalid_reply_id: "invalid_reply_id",
+  invalid_request_id: "invalid_request_id",
+  invalid_team_id: "invalid_team_id",
+  invalid_user_id: "invalid_user_id",
+  invalid_version: "invalid_version",
+  method_not_allowed: "method_not_allowed",
+  misconfigured: "misconfigured",
+  missing_file: "missing_file",
+  not_found: "not_found",
+  poll_closed: "poll_closed",
+  poll_not_found: "poll_not_found",
+  query_error: "query_error",
+  rate_limited: "rate_limited",
+  rpc_error: "rpc_error",
+  storage_error: "storage_error",
+  too_large: "too_large",
+  unauthorized: "unauthorized",
+  unsupported_type: "unsupported_type",
+  username_taken: "username_taken",
+  vote_rejected: "vote_rejected",
+} as const;
+
 export type ReindexDocs400 = {
-  /** Short machine-readable error code, e.g. "invalid_version". */
-  error: string;
-  /** Human-readable explanation. */
+  /** Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check). */
+  error: ReindexDocs400Error;
+  /** Human-readable detail, for logging/debugging. Never contains raw Postgres/PostgREST error text (constraint names, column names, internal query shape) -- see safeDbErrorMessage() in supabase/functions/_shared/http.ts. Not meant to be shown verbatim to end users; Website should key UI copy off `error`. */
   message: string;
 };
 
+/**
+ * Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check).
+ */
+export type ReindexDocs401Error =
+  (typeof ReindexDocs401Error)[keyof typeof ReindexDocs401Error];
+
+export const ReindexDocs401Error = {
+  already_decided: "already_decided",
+  already_voted: "already_voted",
+  internal_error: "internal_error",
+  invalid_body: "invalid_body",
+  invalid_discussion_id: "invalid_discussion_id",
+  invalid_news_id: "invalid_news_id",
+  invalid_poll_id: "invalid_poll_id",
+  invalid_project_id: "invalid_project_id",
+  invalid_query: "invalid_query",
+  invalid_redirect: "invalid_redirect",
+  invalid_reply_id: "invalid_reply_id",
+  invalid_request_id: "invalid_request_id",
+  invalid_team_id: "invalid_team_id",
+  invalid_user_id: "invalid_user_id",
+  invalid_version: "invalid_version",
+  method_not_allowed: "method_not_allowed",
+  misconfigured: "misconfigured",
+  missing_file: "missing_file",
+  not_found: "not_found",
+  poll_closed: "poll_closed",
+  poll_not_found: "poll_not_found",
+  query_error: "query_error",
+  rate_limited: "rate_limited",
+  rpc_error: "rpc_error",
+  storage_error: "storage_error",
+  too_large: "too_large",
+  unauthorized: "unauthorized",
+  unsupported_type: "unsupported_type",
+  username_taken: "username_taken",
+  vote_rejected: "vote_rejected",
+} as const;
+
 export type ReindexDocs401 = {
-  /** Short machine-readable error code, e.g. "invalid_version". */
-  error: string;
-  /** Human-readable explanation. */
+  /** Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check). */
+  error: ReindexDocs401Error;
+  /** Human-readable detail, for logging/debugging. Never contains raw Postgres/PostgREST error text (constraint names, column names, internal query shape) -- see safeDbErrorMessage() in supabase/functions/_shared/http.ts. Not meant to be shown verbatim to end users; Website should key UI copy off `error`. */
   message: string;
 };
