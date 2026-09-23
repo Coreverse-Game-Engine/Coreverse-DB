@@ -94,7 +94,7 @@ paths:
     $ref: './paths/discussions.yaml#/byId'
   /discussions/{discussionId}/replies:
     $ref: './paths/discussions.yaml#/replies'
-  /discussions/replies/{replyId}:
+  /discussions/{discussionId}/replies/{replyId}:
     $ref: './paths/discussions.yaml#/replyById'
   /docs/sources:
     $ref: './paths/docs.yaml#/sources'

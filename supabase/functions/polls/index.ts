@@ -6,6 +6,7 @@
 import { serve, } from '@std/http/server';
 import { createUserClient, } from '../_shared/supabase-client.ts';
 import { errorResponse, jsonResponse, safeDbErrorMessage, withCors, } from '../_shared/http.ts';
+import { buildCursorFilter, paginate, parsePagination, } from '../_shared/pagination.ts';
 import { CastVoteSchema, CreatePollSchema, UuidSchema, } from './schemas.ts';
 
 serve(withCors(async (req,) => {
@@ -20,16 +21,24 @@ serve(withCors(async (req,) => {
   try {
     // GET /polls
     if (segments.length === 0 && req.method === 'GET') {
-      const { data, error, } = await supabase
+      const page = parsePagination(url,);
+      if ('error' in page) return page.error;
+
+      let query = supabase
         .schema('content',)
         .from('polls',)
         .select(
           'id, question, closes_at, created_at, options:poll_options(id, label, display_order)',
-        )
-        .order('created_at', { ascending: false, },);
+        );
+      if (page.cursor) query = query.or(buildCursorFilter(page.cursor, 'desc',),);
+
+      const { data, error, } = await query
+        .order('created_at', { ascending: false, },)
+        .order('id', { ascending: false, },)
+        .limit(page.limit + 1,);
 
       if (error) return errorResponse('query_error', safeDbErrorMessage(500,), 500,);
-      return jsonResponse(data,);
+      return jsonResponse(paginate(data ?? [], page.limit,),);
     }
 
     // POST /polls

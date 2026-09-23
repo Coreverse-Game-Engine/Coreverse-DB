@@ -15,17 +15,27 @@ list:
         in: query
         required: false
         schema: { type: string, enum: [draft, published] }
+      - $ref: '../parameters/Pagination.yaml#/limit'
+      - $ref: '../parameters/Pagination.yaml#/cursor'
     responses:
       '200':
-        description: News items.
+        description: A page of news items, newest first.
         content:
           application/json:
             schema:
-              type: array
-              items:
-                $ref: '../schemas/News.yaml'
+              type: object
+              required: [items, next_cursor]
+              properties:
+                items:
+                  type: array
+                  items:
+                    $ref: '../schemas/News.yaml'
+                next_cursor:
+                  type: string
+                  nullable: true
+                  description: Pass as ?cursor= to fetch the next page. null once there are no more.
       '400':
-        description: Invalid status filter.
+        description: Invalid status filter, limit, or cursor.
         content:
           application/json:
             schema:
