@@ -56,7 +56,10 @@
   "scripts": {
     "generate": "orval --config orval.config.ts",
     "typecheck": "tsc --noEmit",
-    "verify": "pnpm run generate && git diff --exit-code src/generated && pnpm run typecheck",
+    "check:version-sync": "node scripts/check-version-sync.mjs",
+    "verify": "pnpm run check:version-sync && pnpm run generate && git diff --exit-code src/generated && pnpm run typecheck",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "build": "tsup",
     "prepublishOnly": "pnpm run build"
   },
@@ -78,13 +81,16 @@
   "devDependencies": {
     "@redocly/cli": "^2.49.1",
     "@tanstack/react-query": "^5",
+    "@types/node": "^22.18.13",
     "@types/react": "^19.2.18",
     "@typescript/native": "npm:typescript@^7.0.2",
+    "@vitest/coverage-v8": "^5.0.1",
     "orval": "^8.27.0",
     "prettier": "^3.9.6",
     "react": "^19.2.8",
     "tsup": "^8.5.1",
-    "typescript": "npm:@typescript/typescript6@^6.0.2"
+    "typescript": "npm:@typescript/typescript6@^6.0.2",
+    "vitest": "^5.0.1"
   },
-  "packageManager": "pnpm@12.4.1+sha512.2e81e399d73fe8390dab25e06aa788ab7a5908248d2f5a370f82b481147a6a7a367bf8048f9a6fdb6460f21a66f0542dedb8b94ca2c8723596741920b1656d4c"
+  "packageManager": "pnpm@12.5.1+sha512.e3f305bc784a2bc89f5ad3b6138889470fae8d2af5f36b61216ec91c2c3d64089775f9de38aac331044ea40f245cb0d5666392dfdf65824e1907ef6a2c62de5f"
 }

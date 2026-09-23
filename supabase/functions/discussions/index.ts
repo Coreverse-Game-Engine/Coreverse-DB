@@ -1,14 +1,15 @@
-// GET    /discussions                        -> list (optional ?category=)
-// POST   /discussions                         -> start a discussion
-// PATCH  /discussions/{discussionId}          -> update / lock / unlock
-// DELETE /discussions/{discussionId}          -> delete
-// GET    /discussions/{discussionId}/replies  -> list replies (tombstones included)
-// POST   /discussions/{discussionId}/replies  -> reply (rejected if locked)
-// PATCH  /discussions/replies/{replyId}       -> edit body, or soft-delete ({ deleted: true })
+// GET    /discussions                                    -> list (optional ?category=)
+// POST   /discussions                                     -> start a discussion
+// PATCH  /discussions/{discussionId}                      -> update / lock / unlock
+// DELETE /discussions/{discussionId}                      -> delete
+// GET    /discussions/{discussionId}/replies              -> list replies (tombstones included)
+// POST   /discussions/{discussionId}/replies              -> reply (rejected if locked)
+// PATCH  /discussions/{discussionId}/replies/{replyId}    -> edit body, or soft-delete ({ deleted: true })
 
 import { serve, } from '@std/http/server';
 import { createUserClient, } from '../_shared/supabase-client.ts';
 import { errorResponse, jsonResponse, safeDbErrorMessage, withCors, } from '../_shared/http.ts';
+import { buildCursorFilter, paginate, parsePagination, } from '../_shared/pagination.ts';
 import {
   CreateDiscussionSchema,
   CreateReplySchema,
@@ -33,14 +34,22 @@ serve(withCors(async (req,) => {
   try {
     // GET /discussions
     if (segments.length === 0 && req.method === 'GET') {
+      const page = parsePagination(url,);
+      if ('error' in page) return page.error;
+
       let query = supabase.schema('content',).from('discussions',).select(DISCUSSION_COLUMNS,);
 
       const categoryParam = url.searchParams.get('category',);
       if (categoryParam) query = query.eq('category', categoryParam,);
+      if (page.cursor) query = query.or(buildCursorFilter(page.cursor, 'desc',),);
 
-      const { data, error, } = await query.order('created_at', { ascending: false, },);
+      // limit + 1: see paginate()'s doc comment for why.
+      const { data, error, } = await query
+        .order('created_at', { ascending: false, },)
+        .order('id', { ascending: false, },)
+        .limit(page.limit + 1,);
       if (error) return errorResponse('query_error', safeDbErrorMessage(500,), 500,);
-      return jsonResponse(data,);
+      return jsonResponse(paginate(data ?? [], page.limit,),);
     }
 
     // POST /discussions
@@ -65,39 +74,16 @@ serve(withCors(async (req,) => {
       return jsonResponse(data, 201,);
     }
 
-    // PATCH /discussions/replies/{replyId} -- disambiguated first, since
-    // "replies" here is a literal path segment, not a discussionId.
-    if (segments.length === 2 && segments[0] === 'replies' && req.method === 'PATCH') {
-      const replyIdParsed = UuidSchema.safeParse(segments[1],);
-      if (!replyIdParsed.success) {
-        return errorResponse('invalid_reply_id', `"${segments[1]}" is not a valid UUID.`, 400,);
-      }
-
-      const body = await req.json().catch(() => ({}));
-      const parsed = UpdateReplySchema.safeParse(body,);
-      if (!parsed.success) return errorResponse('invalid_body', parsed.error.message, 400,);
-
-      const update: Record<string, unknown> = {};
-      if (parsed.data.body !== undefined) update.body = parsed.data.body;
-      if (parsed.data.deleted) update.deleted_at = new Date().toISOString();
-
-      const { data, error, } = await supabase
-        .schema('content',)
-        .from('discussion_replies',)
-        .update(update,)
-        .eq('id', replyIdParsed.data,)
-        .select(REPLY_COLUMNS,)
-        .maybeSingle();
-
-      if (error) {
-        const status = error.code === '42501' ? 403 : 500;
-        return errorResponse('query_error', safeDbErrorMessage(status,), status,);
-      }
-      if (!data) {
-        return errorResponse('not_found', 'No reply with that id (or not authorized).', 404,);
-      }
-      return jsonResponse(data,);
-    }
+    // PATCH /discussions/replies/{replyId} used to live here as a flat,
+    // 2-segment route disambiguated from /discussions/{discussionId} by
+    // checking segments[0] === 'replies' -- which relied on discussionId
+    // never actually being the literal string "replies" (true in
+    // practice, since it's UUID-formatted, but not something a path
+    // router can verify statically; redocly's no-ambiguous-paths rule
+    // correctly flagged the two routes as ambiguous). It's now nested
+    // under the discussion (see below), which is unambiguous by
+    // segment count alone: 2 segments = the replies collection, 3 =
+    // one specific reply.
 
     const discussionIdParsed = segments.length >= 1 ? UuidSchema.safeParse(segments[0],) : null;
     if (segments.length >= 1 && (!discussionIdParsed || !discussionIdParsed.success)) {
@@ -146,15 +132,22 @@ serve(withCors(async (req,) => {
 
     // GET /discussions/{discussionId}/replies
     if (segments.length === 2 && segments[1] === 'replies' && req.method === 'GET') {
-      const { data, error, } = await supabase
+      const page = parsePagination(url,);
+      if ('error' in page) return page.error;
+
+      let query = supabase
         .schema('content',)
         .from('discussion_replies',)
         .select(REPLY_COLUMNS,)
-        .eq('discussion_id', discussionId,)
-        .order('created_at', { ascending: true, },);
+        .eq('discussion_id', discussionId,);
+      if (page.cursor) query = query.or(buildCursorFilter(page.cursor, 'asc',),);
 
+      const { data, error, } = await query
+        .order('created_at', { ascending: true, },)
+        .order('id', { ascending: true, },)
+        .limit(page.limit + 1,);
       if (error) return errorResponse('query_error', safeDbErrorMessage(500,), 500,);
-      return jsonResponse(data,);
+      return jsonResponse(paginate(data ?? [], page.limit,),);
     }
 
     // POST /discussions/{discussionId}/replies
@@ -184,6 +177,48 @@ serve(withCors(async (req,) => {
         return errorResponse('query_error', safeDbErrorMessage(status,), status,);
       }
       return jsonResponse(data, 201,);
+    }
+
+    // PATCH /discussions/{discussionId}/replies/{replyId}
+    if (segments.length === 3 && segments[1] === 'replies' && req.method === 'PATCH') {
+      const replyIdParsed = UuidSchema.safeParse(segments[2],);
+      if (!replyIdParsed.success) {
+        return errorResponse('invalid_reply_id', `"${segments[2]}" is not a valid UUID.`, 400,);
+      }
+
+      const body = await req.json().catch(() => ({}));
+      const parsed = UpdateReplySchema.safeParse(body,);
+      if (!parsed.success) return errorResponse('invalid_body', parsed.error.message, 400,);
+
+      const update: Record<string, unknown> = {};
+      if (parsed.data.body !== undefined) update.body = parsed.data.body;
+      if (parsed.data.deleted) update.deleted_at = new Date().toISOString();
+
+      const { data, error, } = await supabase
+        .schema('content',)
+        .from('discussion_replies',)
+        .update(update,)
+        .eq('id', replyIdParsed.data,)
+        // Scoping to discussion_id too (not just id) means a
+        // discussionId/replyId pair that don't actually belong together
+        // 404s instead of silently succeeding -- the URL now claims a
+        // relationship it's worth actually enforcing.
+        .eq('discussion_id', discussionId,)
+        .select(REPLY_COLUMNS,)
+        .maybeSingle();
+
+      if (error) {
+        const status = error.code === '42501' ? 403 : 500;
+        return errorResponse('query_error', safeDbErrorMessage(status,), status,);
+      }
+      if (!data) {
+        return errorResponse(
+          'not_found',
+          'No reply with that id in this discussion (or not authorized).',
+          404,
+        );
+      }
+      return jsonResponse(data,);
     }
 
     return errorResponse('not_found', 'Unknown discussions route.', 404,);

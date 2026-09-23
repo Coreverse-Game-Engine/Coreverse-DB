@@ -4,37 +4,37 @@ All of these are `SECURITY DEFINER` PL/pgSQL functions in the `identity` schema.
 
 ## Team lifecycle
 
-| Function | Signature | Does |
-|---|---|---|
-| `create_team` | `(p_name text) → uuid` | Creates a team and inserts the caller as `owner` |
-| `rename_team` | `(p_team_id uuid, p_name text)` | Renames a team; caller must be owner/admin |
-| `delete_team` | `(p_team_id uuid)` | Deletes a team; caller must be owner |
-| `leave_team` | `(p_team_id uuid)` | Removes the caller from a team; the owner cannot leave without transferring ownership first |
+| Function      | Signature                       | Does                                                                                        |
+|---------------|---------------------------------|---------------------------------------------------------------------------------------------|
+| `create_team` | `(p_name text) → uuid`          | Creates a team and inserts the caller as `owner`                                            |
+| `rename_team` | `(p_team_id uuid, p_name text)` | Renames a team; caller must be owner/admin                                                  |
+| `delete_team` | `(p_team_id uuid)`              | Deletes a team; caller must be owner                                                        |
+| `leave_team`  | `(p_team_id uuid)`              | Removes the caller from a team; the owner cannot leave without transferring ownership first |
 
 ## Membership requests (create side)
 
-| Function | Signature | Does |
-|---|---|---|
-| `request_to_join` | `(p_team_id uuid) → uuid` | Creates a `join_request` from the caller |
-| `invite_to_team` | `(p_team_id uuid, p_user_id uuid) → uuid` | Owner/admin creates an `invite` for a user |
+| Function          | Signature                                 | Does                                                                     |
+|-------------------|-------------------------------------------|--------------------------------------------------------------------------|
+| `request_to_join` | `(p_team_id uuid) → uuid`                 | Creates a `join_request` from the caller                                 |
+| `invite_to_team`  | `(p_team_id uuid, p_user_id uuid) → uuid` | Owner/admin creates an `invite` for a user                               |
 | `offer_ownership` | `(p_team_id uuid, p_user_id uuid) → uuid` | Owner creates an `ownership_transfer` targeting any user (member or not) |
-| `cancel_request` | `(p_request_id uuid)` | The original initiator withdraws their own pending request |
+| `cancel_request`  | `(p_request_id uuid)`                     | The original initiator withdraws their own pending request               |
 
 ## Membership requests (respond side)
 
-| Function | Signature | Does |
-|---|---|---|
-| `respond_to_join_request` | `(p_request_id uuid, p_decision text)` | Owner/admin accepts or rejects a join request |
-| `respond_to_invite` | `(p_request_id uuid, p_decision text)` | Invited user accepts or rejects |
+| Function                        | Signature                              | Does                                                                                                                                                                                                                               |
+|---------------------------------|----------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `respond_to_join_request`       | `(p_request_id uuid, p_decision text)` | Owner/admin accepts or rejects a join request                                                                                                                                                                                      |
+| `respond_to_invite`             | `(p_request_id uuid, p_decision text)` | Invited user accepts or rejects                                                                                                                                                                                                    |
 | `respond_to_ownership_transfer` | `(p_request_id uuid, p_decision text)` | Target accepts or rejects; on accept, if the target wasn't already a member and the team is at its 30-cap, the previous owner is evicted to make room — if the target was already a member, it's a pure role swap with no eviction |
 
 ## Team management (owner/admin actions on existing members)
 
-| Function | Signature | Does |
-|---|---|---|
-| `promote_to_admin` | `(p_team_id uuid, p_target uuid)` | Owner promotes a member to admin |
-| `demote_to_member` | `(p_team_id uuid, p_target uuid)` | Owner demotes an admin to member |
-| `remove_member` | `(p_team_id uuid, p_target uuid)` | Owner can remove any member/admin; an admin can remove members only — not other admins or the owner |
+| Function           | Signature                         | Does                                                                                                |
+|--------------------|-----------------------------------|-----------------------------------------------------------------------------------------------------|
+| `promote_to_admin` | `(p_team_id uuid, p_target uuid)` | Owner promotes a member to admin                                                                    |
+| `demote_to_member` | `(p_team_id uuid, p_target uuid)` | Owner demotes an admin to member                                                                    |
+| `remove_member`    | `(p_team_id uuid, p_target uuid)` | Owner can remove any member/admin; an admin can remove members only — not other admins or the owner |
 
 ## Rules encoded across these functions
 

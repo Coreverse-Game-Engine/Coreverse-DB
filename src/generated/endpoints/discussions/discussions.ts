@@ -4,7 +4,7 @@
  * Coreverse DB API
  * Centralized data-access API for the Coreverse ecosystem. Coreverse DB defines and serves all data operations; Coreverse Launcher and Coreverse Website consume this API and never access Postgres/Supabase directly.
  *
- * OpenAPI spec version: 0.2.0
+ * OpenAPI spec version: 0.4.2
  */
 import type {
   CreateDiscussion201,
@@ -395,14 +395,18 @@ export type updateDiscussionReplyResponseError = (
 export type updateDiscussionReplyResponse =
   updateDiscussionReplyResponseSuccess | updateDiscussionReplyResponseError;
 
-export const getUpdateDiscussionReplyUrl = (replyId: string) => {
-  return `/replies/${replyId}`;
+export const getUpdateDiscussionReplyUrl = (
+  discussionId: string,
+  replyId: string,
+) => {
+  return `/discussions/${discussionId}/replies/${replyId}`;
 };
 
 /**
  * @summary Edit or soft-delete a reply (author or moderator)
  */
 export const updateDiscussionReply = async (
+  discussionId: string,
   replyId: string,
   updateDiscussionReplyBody: UpdateDiscussionReplyBody,
   options?: Parameters<typeof coreverseFetch>[1],
@@ -416,7 +420,7 @@ export const updateDiscussionReply = async (
     return h;
   };
   return coreverseFetch<updateDiscussionReplyResponse>(
-    getUpdateDiscussionReplyUrl(replyId),
+    getUpdateDiscussionReplyUrl(discussionId, replyId),
     {
       ...options,
       method: "PATCH",
