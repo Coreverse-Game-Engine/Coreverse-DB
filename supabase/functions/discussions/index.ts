@@ -9,6 +9,7 @@
 import { serve, } from '@std/http/server';
 import { createUserClient, } from '../_shared/supabase-client.ts';
 import { errorResponse, jsonResponse, safeDbErrorMessage, withCors, } from '../_shared/http.ts';
+import { buildCursorFilter, paginate, parsePagination, } from '../_shared/pagination.ts';
 import {
   CreateDiscussionSchema,
   CreateReplySchema,
@@ -33,14 +34,22 @@ serve(withCors(async (req,) => {
   try {
     // GET /discussions
     if (segments.length === 0 && req.method === 'GET') {
+      const page = parsePagination(url,);
+      if ('error' in page) return page.error;
+
       let query = supabase.schema('content',).from('discussions',).select(DISCUSSION_COLUMNS,);
 
       const categoryParam = url.searchParams.get('category',);
       if (categoryParam) query = query.eq('category', categoryParam,);
+      if (page.cursor) query = query.or(buildCursorFilter(page.cursor, 'desc',),);
 
-      const { data, error, } = await query.order('created_at', { ascending: false, },);
+      // limit + 1: see paginate()'s doc comment for why.
+      const { data, error, } = await query
+        .order('created_at', { ascending: false, },)
+        .order('id', { ascending: false, },)
+        .limit(page.limit + 1,);
       if (error) return errorResponse('query_error', safeDbErrorMessage(500,), 500,);
-      return jsonResponse(data,);
+      return jsonResponse(paginate(data ?? [], page.limit,),);
     }
 
     // POST /discussions
@@ -123,15 +132,22 @@ serve(withCors(async (req,) => {
 
     // GET /discussions/{discussionId}/replies
     if (segments.length === 2 && segments[1] === 'replies' && req.method === 'GET') {
-      const { data, error, } = await supabase
+      const page = parsePagination(url,);
+      if ('error' in page) return page.error;
+
+      let query = supabase
         .schema('content',)
         .from('discussion_replies',)
         .select(REPLY_COLUMNS,)
-        .eq('discussion_id', discussionId,)
-        .order('created_at', { ascending: true, },);
+        .eq('discussion_id', discussionId,);
+      if (page.cursor) query = query.or(buildCursorFilter(page.cursor, 'asc',),);
 
+      const { data, error, } = await query
+        .order('created_at', { ascending: true, },)
+        .order('id', { ascending: true, },)
+        .limit(page.limit + 1,);
       if (error) return errorResponse('query_error', safeDbErrorMessage(500,), 500,);
-      return jsonResponse(data,);
+      return jsonResponse(paginate(data ?? [], page.limit,),);
     }
 
     // POST /discussions/{discussionId}/replies
