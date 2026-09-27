@@ -1,36 +1,39 @@
 type: object
 required:
   - id
-  - discussion_id
+  - title
+  - excerpt
   - author_id
   - author
+  - is_locked
+  - reply_count
+  - last_activity_at
   - created_at
   - updated_at
 properties:
   id:
     type: string
     format: uuid
-  discussion_id:
+  title:
     type: string
-    format: uuid
+  excerpt:
+    type: string
+    description: body truncated to ~280 chars, word-boundary aware. Fetch GET /discussions/{id} for the full body.
   author_id:
     type: string
     format: uuid
   author:
     $ref: './Author.yaml'
-  body:
+  category:
     type: string
     nullable: true
-    description: null/omitted when deleted_at is set -- render as "[deleted]".
-  deleted_at:
+  is_locked:
+    type: boolean
+  reply_count:
+    type: integer
+  last_activity_at:
     type: string
     format: date-time
-    nullable: true
-  edited_at:
-    type: string
-    format: date-time
-    nullable: true
-    description: Set when body is edited. Distinct from deleted_at/updated_at -- see the Faz 3 migration.
   created_at:
     type: string
     format: date-time

@@ -2,6 +2,8 @@ type: object
 required:
   - id
   - full_name
+  - created_at
+  - updated_at
 properties:
   id:
     type: string
@@ -22,3 +24,17 @@ properties:
     format: uri
     nullable: true
     description: Public/signed URL resolved from the stored avatar_path, not the raw path itself.
+  platform_role:
+    type: string
+    nullable: true
+    enum: [admin, moderator, null]
+    description: >
+      Only present on GET /profiles/me (never on another user's
+      profile) -- identity.platform_roles is self-only RLS. null means
+      no elevated role.
+  created_at:
+    type: string
+    format: date-time
+  updated_at:
+    type: string
+    format: date-time
