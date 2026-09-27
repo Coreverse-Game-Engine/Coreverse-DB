@@ -4,23 +4,31 @@
  * Coreverse DB API
  * Centralized data-access API for the Coreverse ecosystem. Coreverse DB defines and serves all data operations; Coreverse Launcher and Coreverse Website consume this API and never access Postgres/Supabase directly.
  *
- * OpenAPI spec version: 0.2.0
+ * OpenAPI spec version: 0.4.2
  */
 import type {
   CreateDiscussion201,
   CreateDiscussion400,
   CreateDiscussion401,
+  CreateDiscussion429,
   CreateDiscussionBody,
   DeleteDiscussion400,
   DeleteDiscussion404,
-  ListDiscussionReplies200Item,
+  GetDiscussion200,
+  GetDiscussion400,
+  GetDiscussion404,
+  ListDiscussionCategories200Item,
+  ListDiscussionReplies200,
   ListDiscussionReplies400,
-  ListDiscussions200Item,
+  ListDiscussionRepliesParams,
+  ListDiscussions200,
+  ListDiscussions400,
   ListDiscussionsParams,
   ReplyToDiscussion201,
   ReplyToDiscussion400,
   ReplyToDiscussion401,
   ReplyToDiscussion403,
+  ReplyToDiscussion429,
   ReplyToDiscussionBody,
   UpdateDiscussion200,
   UpdateDiscussion400,
@@ -37,14 +45,24 @@ import type {
 import { coreverseFetch } from "../../../client/http";
 
 export type listDiscussionsResponse200 = {
-  data: ListDiscussions200Item[];
+  data: ListDiscussions200;
   status: 200;
+};
+
+export type listDiscussionsResponse400 = {
+  data: ListDiscussions400;
+  status: 400;
 };
 
 export type listDiscussionsResponseSuccess = listDiscussionsResponse200 & {
   headers: Headers;
 };
-export type listDiscussionsResponse = listDiscussionsResponseSuccess;
+export type listDiscussionsResponseError = listDiscussionsResponse400 & {
+  headers: Headers;
+};
+
+export type listDiscussionsResponse =
+  listDiscussionsResponseSuccess | listDiscussionsResponseError;
 
 export const getListDiscussionsUrl = (params?: ListDiscussionsParams) => {
   const normalizedParams = new URLSearchParams();
@@ -93,11 +111,18 @@ export type createDiscussionResponse401 = {
   status: 401;
 };
 
+export type createDiscussionResponse429 = {
+  data: CreateDiscussion429;
+  status: 429;
+};
+
 export type createDiscussionResponseSuccess = createDiscussionResponse201 & {
   headers: Headers;
 };
 export type createDiscussionResponseError = (
-  createDiscussionResponse400 | createDiscussionResponse401
+  | createDiscussionResponse400
+  | createDiscussionResponse401
+  | createDiscussionResponse429
 ) & {
   headers: Headers;
 };
@@ -133,6 +158,85 @@ export const createDiscussion = async (
     },
     body: JSON.stringify(createDiscussionBody),
   });
+};
+
+export type listDiscussionCategoriesResponse200 = {
+  data: ListDiscussionCategories200Item[];
+  status: 200;
+};
+
+export type listDiscussionCategoriesResponseSuccess =
+  listDiscussionCategoriesResponse200 & {
+    headers: Headers;
+  };
+export type listDiscussionCategoriesResponse =
+  listDiscussionCategoriesResponseSuccess;
+
+export const getListDiscussionCategoriesUrl = () => {
+  return `/discussions/categories`;
+};
+
+/**
+ * For a filter UI. Categories are free text (trimmed + lowercased at write time), not a fixed/localized set -- see the Faz 3 plan notes.
+ * @summary Distinct discussion categories with counts
+ */
+export const listDiscussionCategories = async (
+  options?: Parameters<typeof coreverseFetch>[1],
+): Promise<listDiscussionCategoriesResponse> => {
+  return coreverseFetch<listDiscussionCategoriesResponse>(
+    getListDiscussionCategoriesUrl(),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export type getDiscussionResponse200 = {
+  data: GetDiscussion200;
+  status: 200;
+};
+
+export type getDiscussionResponse400 = {
+  data: GetDiscussion400;
+  status: 400;
+};
+
+export type getDiscussionResponse404 = {
+  data: GetDiscussion404;
+  status: 404;
+};
+
+export type getDiscussionResponseSuccess = getDiscussionResponse200 & {
+  headers: Headers;
+};
+export type getDiscussionResponseError = (
+  getDiscussionResponse400 | getDiscussionResponse404
+) & {
+  headers: Headers;
+};
+
+export type getDiscussionResponse =
+  getDiscussionResponseSuccess | getDiscussionResponseError;
+
+export const getGetDiscussionUrl = (discussionId: string) => {
+  return `/discussions/${discussionId}`;
+};
+
+/**
+ * @summary Fetch one discussion (full body)
+ */
+export const getDiscussion = async (
+  discussionId: string,
+  options?: Parameters<typeof coreverseFetch>[1],
+): Promise<getDiscussionResponse> => {
+  return coreverseFetch<getDiscussionResponse>(
+    getGetDiscussionUrl(discussionId),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
 };
 
 export type updateDiscussionResponse200 = {
@@ -251,7 +355,7 @@ export const deleteDiscussion = async (
 };
 
 export type listDiscussionRepliesResponse200 = {
-  data: ListDiscussionReplies200Item[];
+  data: ListDiscussionReplies200;
   status: 200;
 };
 
@@ -272,8 +376,23 @@ export type listDiscussionRepliesResponseError =
 export type listDiscussionRepliesResponse =
   listDiscussionRepliesResponseSuccess | listDiscussionRepliesResponseError;
 
-export const getListDiscussionRepliesUrl = (discussionId: string) => {
-  return `/discussions/${discussionId}/replies`;
+export const getListDiscussionRepliesUrl = (
+  discussionId: string,
+  params?: ListDiscussionRepliesParams,
+) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : String(value));
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/discussions/${discussionId}/replies?${stringifiedParams}`
+    : `/discussions/${discussionId}/replies`;
 };
 
 /**
@@ -281,10 +400,11 @@ export const getListDiscussionRepliesUrl = (discussionId: string) => {
  */
 export const listDiscussionReplies = async (
   discussionId: string,
+  params?: ListDiscussionRepliesParams,
   options?: Parameters<typeof coreverseFetch>[1],
 ): Promise<listDiscussionRepliesResponse> => {
   return coreverseFetch<listDiscussionRepliesResponse>(
-    getListDiscussionRepliesUrl(discussionId),
+    getListDiscussionRepliesUrl(discussionId, params),
     {
       ...options,
       method: "GET",
@@ -312,6 +432,11 @@ export type replyToDiscussionResponse403 = {
   status: 403;
 };
 
+export type replyToDiscussionResponse429 = {
+  data: ReplyToDiscussion429;
+  status: 429;
+};
+
 export type replyToDiscussionResponseSuccess = replyToDiscussionResponse201 & {
   headers: Headers;
 };
@@ -319,6 +444,7 @@ export type replyToDiscussionResponseError = (
   | replyToDiscussionResponse400
   | replyToDiscussionResponse401
   | replyToDiscussionResponse403
+  | replyToDiscussionResponse429
 ) & {
   headers: Headers;
 };
@@ -395,14 +521,18 @@ export type updateDiscussionReplyResponseError = (
 export type updateDiscussionReplyResponse =
   updateDiscussionReplyResponseSuccess | updateDiscussionReplyResponseError;
 
-export const getUpdateDiscussionReplyUrl = (replyId: string) => {
-  return `/replies/${replyId}`;
+export const getUpdateDiscussionReplyUrl = (
+  discussionId: string,
+  replyId: string,
+) => {
+  return `/discussions/${discussionId}/replies/${replyId}`;
 };
 
 /**
  * @summary Edit or soft-delete a reply (author or moderator)
  */
 export const updateDiscussionReply = async (
+  discussionId: string,
   replyId: string,
   updateDiscussionReplyBody: UpdateDiscussionReplyBody,
   options?: Parameters<typeof coreverseFetch>[1],
@@ -416,7 +546,7 @@ export const updateDiscussionReply = async (
     return h;
   };
   return coreverseFetch<updateDiscussionReplyResponse>(
-    getUpdateDiscussionReplyUrl(replyId),
+    getUpdateDiscussionReplyUrl(discussionId, replyId),
     {
       ...options,
       method: "PATCH",

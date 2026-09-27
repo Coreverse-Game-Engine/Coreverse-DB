@@ -10,4 +10,5 @@
 - **Edge Function** — a Deno-based serverless HTTP handler deployed via Supabase, one per API resource/tag.
 - **Contract-first** — the practice of defining `openapi/` before/alongside implementation and generating the TypeScript client from it, rather than hand-writing client code against whatever the API happens to do.
 - **Drift (client codegen)** — a mismatch between the committed `src/generated/` and what `pnpm generate` would currently produce from `openapi/`; caught by `pnpm verify`.
-- **Rate limiting (fixed-window)** — `identity.hit_rate_limit()`'s strategy: count hits for a key within a trailing time window and refuse once a cap is reached, rather than a token-bucket or sliding-log approach. Currently backs `POST /auth/password-reset` only.
+- **Username** — a unique (case-insensitive), alphanumeric/underscore `identity.profiles` handle, 3–24 chars, auto-derived and de-duplicated at signup. Distinct from `full_name`, which is a free-text display name with no format or uniqueness constraint.
+- **Rate limiting** — the generic `identity.rate_limit_hits` / `identity.hit_rate_limit()` fixed-window primitive, currently backing `POST /auth/password-reset`; reusable by any future public, abuse-prone endpoint.

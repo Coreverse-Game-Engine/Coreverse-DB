@@ -24,7 +24,8 @@ Coreverse applications such as the **Coreverse Launcher** and **Coreverse Websit
 Coreverse DB provides the shared backend capabilities required by the Coreverse platform:
 
 - Coreverse Engine release metadata and downloadable artifacts
-- User profiles, teams, roles, projects, and membership workflows
+- User profiles (including unique usernames), teams, roles, projects, and membership workflows
+- Unauthenticated, rate-limited password-reset requests
 - Platform news, polls, discussions, and replies
 - Documentation source registration and full-text search indexing
 - Secure project archive access through Supabase Storage
@@ -52,8 +53,8 @@ At a high level, the system follows this flow:
 ┌───────────────────────────────────────────────────────────────┐
 │                    Supabase Edge Functions                    │
 │                                                               │
-│  releases  teams  requests  profiles  projects  news         │
-│  polls     discussions  docs                                 │
+│  auth      releases  teams  requests  profiles  projects     │
+│  news      polls     discussions  docs                       │
 │                                                               │
 │  ┌─────────────────────────────────────────────────────────┐  │
 │  │ Shared HTTP / Supabase / service-role infrastructure   │  │
@@ -196,6 +197,7 @@ The API is organized into the following resources:
 
 | Resource      | Purpose                                                    |
 |---------------|------------------------------------------------------------|
+| `auth`        | Unauthenticated, rate-limited password-reset request       |
 | `releases`    | Engine release metadata and artifacts                      |
 | `teams`       | Teams, roles, members, and membership operations           |
 | `requests`    | Accepting, rejecting, and cancelling membership requests   |
@@ -273,6 +275,7 @@ The repository enforces this in CI by regenerating the client and failing when t
 ├── supabase/
 │   ├── functions/              # Edge Functions + Zod schemas/tests
 │   │   ├── _shared/
+│   │   ├── auth/
 │   │   ├── discussions/
 │   │   ├── docs/
 │   │   ├── news/
@@ -281,6 +284,7 @@ The repository enforces this in CI by regenerating the client and failing when t
 │   │   ├── projects/
 │   │   ├── releases/
 │   │   ├── requests/
+│   │   ├── send-email/         # Supabase Auth "Send Email" hook, not part of the OpenAPI contract
 │   │   └── teams/
 │   │
 │   ├── migrations/             # Versioned PostgreSQL migrations

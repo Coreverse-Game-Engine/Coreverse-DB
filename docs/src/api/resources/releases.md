@@ -1,10 +1,10 @@
 # Releases
 
-| Method | Path | Auth | Does |
-|---|---|---|---|
-| `GET` | `/releases` | Public | List releases, optionally filtered by `status`, paginated |
-| `GET` | `/releases/latest` | Public | The latest release for a given `status` (default `stable`) |
-| `GET` | `/releases/{version}` | Public | One release by exact version string |
+| Method | Path                  | Auth   | Does                                                       |
+|--------|-----------------------|--------|------------------------------------------------------------|
+| `GET`  | `/releases`           | Public | List releases, optionally filtered by `status`, paginated  |
+| `GET`  | `/releases/latest`    | Public | The latest release for a given `status` (default `stable`) |
+| `GET`  | `/releases/{version}` | Public | One release by exact version string                        |
 
 Every response nests a release's platform artifacts as an `artifacts[]` array (see `Release.yaml` / `Artifact.yaml`), matching `releases.get_by_version` / `get_latest` / `list_releases` 1:1 (see [Database › Functions › Releases](../../database/functions/releases.md)).
 

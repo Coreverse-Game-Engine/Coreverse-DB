@@ -4,9 +4,12 @@
  * Coreverse DB API
  * Centralized data-access API for the Coreverse ecosystem. Coreverse DB defines and serves all data operations; Coreverse Launcher and Coreverse Website consume this API and never access Postgres/Supabase directly.
  *
- * OpenAPI spec version: 0.2.0
+ * OpenAPI spec version: 0.4.2
  */
 import type {
+  DeleteMyAvatar200,
+  DeleteMyAvatar401,
+  DeleteMyAvatar404,
   GetMyProfile200,
   GetMyProfile401,
   GetMyProfile404,
@@ -198,5 +201,49 @@ export const uploadMyAvatar = async (
     ...options,
     method: "POST",
     body: formData,
+  });
+};
+
+export type deleteMyAvatarResponse200 = {
+  data: DeleteMyAvatar200;
+  status: 200;
+};
+
+export type deleteMyAvatarResponse401 = {
+  data: DeleteMyAvatar401;
+  status: 401;
+};
+
+export type deleteMyAvatarResponse404 = {
+  data: DeleteMyAvatar404;
+  status: 404;
+};
+
+export type deleteMyAvatarResponseSuccess = deleteMyAvatarResponse200 & {
+  headers: Headers;
+};
+export type deleteMyAvatarResponseError = (
+  deleteMyAvatarResponse401 | deleteMyAvatarResponse404
+) & {
+  headers: Headers;
+};
+
+export type deleteMyAvatarResponse =
+  deleteMyAvatarResponseSuccess | deleteMyAvatarResponseError;
+
+export const getDeleteMyAvatarUrl = () => {
+  return `/profiles/me/avatar`;
+};
+
+/**
+ * Clears avatar_path and best-effort removes the underlying object from the avatars bucket. 404 if the profile has no avatar set.
+ * @summary Remove the caller's own avatar
+ */
+export const deleteMyAvatar = async (
+  options?: Parameters<typeof coreverseFetch>[1],
+): Promise<deleteMyAvatarResponse> => {
+  return coreverseFetch<deleteMyAvatarResponse>(getDeleteMyAvatarUrl(), {
+    ...options,
+    method: "DELETE",
   });
 };

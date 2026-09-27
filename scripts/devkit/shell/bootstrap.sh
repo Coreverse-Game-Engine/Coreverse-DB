@@ -4,8 +4,8 @@
 # Automates toolchain detection/installation and project dependency
 # resolution in a single command. Independent tools/workflows run in
 # parallel; dependents within a workflow (Deno->its subtools, Node->pnpm,
-# Rustup->Cargo->mdBook) run inline as a task-graph layer chain. Mirrors the
-# powershell/bootstrap.ps1 design.
+# Rustup->Cargo->mdBook, pnpm Deps->Vitest) run inline as a task-graph layer
+# chain. Mirrors the powershell/bootstrap.ps1 design.
 #
 # Usage:
 #   ./bootstrap.sh
@@ -217,7 +217,8 @@ fi
 
 run_task_graph "$RESULTS_DIR" "${TOOLCHAIN_TASKS[@]}"
 
-# --- 8. Phase 2/2: project dependencies (independent workflows, parallel) ---
+# --- 8. Phase 2/2: project dependencies (Deno Deps / pnpm Deps run in
+#        parallel; Vitest is a single-task chain off pnpm Deps) ---
 log_banner "2/2 - Project Dependencies"
 
 DEP_DIR="$SCRIPT_DIR/scripts/dependencies"
@@ -234,9 +235,14 @@ DEP_TASKS=(
     "Deno Deps|$DEP_DIR/parse-deno.sh|$DENO_DEPS_ARGS|"
     # src/ (React + pnpm) - existing package.json/pnpm-lock.yaml/tsconfig.json/orval.config.ts are left untouched.
     "pnpm Deps|$DEP_DIR/parse-pnpm.sh|$PNPM_DEPS_ARGS|"
+    # tests/ (Vitest) - only confirms Vitest resolves via pnpm exec; needs
+    # 'pnpm Deps' (node_modules) to have landed first, so this runs in its
+    # own layer right after it rather than in the same parallel batch (see
+    # parse-vitest.sh's own NOTE).
+    "Vitest|$DEP_DIR/parse-vitest.sh|$PNPM_DEPS_ARGS|pnpm Deps"
 )
 
-run_parallel_tasks "$RESULTS_DIR" "${DEP_TASKS[@]}"
+run_task_graph "$RESULTS_DIR" "${DEP_TASKS[@]}"
 
 # --- 9. Summary table ---
 show_summary_table "$RESULTS_DIR"

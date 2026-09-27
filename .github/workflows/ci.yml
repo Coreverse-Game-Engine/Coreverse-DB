@@ -107,6 +107,39 @@ jobs:
           git diff -- src/generated | head -c 20000
 
   # ---------------------------------------------------------------------
+  # Vitest unit tests for the hand-written src/ files (src/client/http.ts,
+  # src/react.ts, src/index.ts). src/generated/** itself is NOT unit-tested
+  # here -- it's Orval output, already covered by client-verify's
+  # generate -> git diff -> typecheck above. src/index.ts and src/react.ts
+  # are pure `export * from "./generated/..."` barrels though, so they
+  # still need `pnpm run generate` to have run before they can even be
+  # imported -- see tests/index.test.ts and tests/react.test.ts.
+  # ---------------------------------------------------------------------
+  vitest-unit:
+    name: Vitest unit tests (client/http, react, index)
+    runs-on: ubuntu-latest
+    needs: openapi-lint
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: pnpm/action-setup@v6
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate client (src/index.ts / src/react.ts import from src/generated/**)
+        run: pnpm run generate
+
+      - name: Run vitest
+        run: pnpm run test
+
+  # ---------------------------------------------------------------------
   # Pure Deno unit tests for Edge Function Zod schemas.
   # No Supabase/PostgreSQL dependency.
   # ---------------------------------------------------------------------
@@ -168,6 +201,7 @@ jobs:
     needs:
       - openapi-lint
       - client-verify
+      - vitest-unit
       - deno-unit
       - supabase-pgtap
 

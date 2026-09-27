@@ -4,11 +4,11 @@
  * Coreverse DB API
  * Centralized data-access API for the Coreverse ecosystem. Coreverse DB defines and serves all data operations; Coreverse Launcher and Coreverse Website consume this API and never access Postgres/Supabase directly.
  *
- * OpenAPI spec version: 0.2.0
+ * OpenAPI spec version: 0.4.2
  */
 
 /**
- * At least one of full_name, username or avatar_path must be provided.
+ * At least one of full_name or username must be provided.
  */
 export type UpdateMyProfileBody = {
   /**
@@ -23,9 +23,4 @@ export type UpdateMyProfileBody = {
    * @pattern ^[a-zA-Z0-9_]+$
    */
   username?: string;
-  /**
-   * Storage path in the avatars bucket. Set this directly only if you already know a valid path (e.g. clearing the avatar with null); to upload a new image, use POST /profiles/me/avatar instead, which uploads the file and sets this for you.
-   * @minLength 1
-   */
-  avatar_path?: string | null;
 };

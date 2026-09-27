@@ -4,13 +4,15 @@
  * Coreverse DB API
  * Centralized data-access API for the Coreverse ecosystem. Coreverse DB defines and serves all data operations; Coreverse Launcher and Coreverse Website consume this API and never access Postgres/Supabase directly.
  *
- * OpenAPI spec version: 0.2.0
+ * OpenAPI spec version: 0.4.2
  */
 import type {
   CastVote201,
   CastVote400,
   CastVote401,
+  CastVote404,
   CastVote409,
+  CastVote429,
   CastVoteBody,
   CreatePoll201,
   CreatePoll400,
@@ -18,32 +20,58 @@ import type {
   CreatePollBody,
   GetPollResults200Item,
   GetPollResults400,
-  ListPolls200Item,
+  ListPolls200,
+  ListPolls400,
+  ListPollsParams,
 } from "../../models";
 
 import { coreverseFetch } from "../../../client/http";
 
 export type listPollsResponse200 = {
-  data: ListPolls200Item[];
+  data: ListPolls200;
   status: 200;
+};
+
+export type listPollsResponse400 = {
+  data: ListPolls400;
+  status: 400;
 };
 
 export type listPollsResponseSuccess = listPollsResponse200 & {
   headers: Headers;
 };
-export type listPollsResponse = listPollsResponseSuccess;
+export type listPollsResponseError = listPollsResponse400 & {
+  headers: Headers;
+};
 
-export const getListPollsUrl = () => {
-  return `/polls`;
+export type listPollsResponse =
+  listPollsResponseSuccess | listPollsResponseError;
+
+export const getListPollsUrl = (params?: ListPollsParams) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : String(value));
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/polls?${stringifiedParams}`
+    : `/polls`;
 };
 
 /**
+ * my_option_id is only ever the caller's own vote -- pass a bearer token to get it populated, omit it to always get null (never another user's vote).
  * @summary List polls (with their options)
  */
 export const listPolls = async (
+  params?: ListPollsParams,
   options?: Parameters<typeof coreverseFetch>[1],
 ): Promise<listPollsResponse> => {
-  return coreverseFetch<listPollsResponse>(getListPollsUrl(), {
+  return coreverseFetch<listPollsResponse>(getListPollsUrl(params), {
     ...options,
     method: "GET",
   });
@@ -121,16 +149,30 @@ export type castVoteResponse401 = {
   status: 401;
 };
 
+export type castVoteResponse404 = {
+  data: CastVote404;
+  status: 404;
+};
+
 export type castVoteResponse409 = {
   data: CastVote409;
   status: 409;
+};
+
+export type castVoteResponse429 = {
+  data: CastVote429;
+  status: 429;
 };
 
 export type castVoteResponseSuccess = castVoteResponse201 & {
   headers: Headers;
 };
 export type castVoteResponseError = (
-  castVoteResponse400 | castVoteResponse401 | castVoteResponse409
+  | castVoteResponse400
+  | castVoteResponse401
+  | castVoteResponse404
+  | castVoteResponse409
+  | castVoteResponse429
 ) & {
   headers: Headers;
 };

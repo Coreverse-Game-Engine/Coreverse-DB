@@ -5,7 +5,48 @@ required:
 properties:
   error:
     type: string
-    description: Short machine-readable error code, e.g. "invalid_version".
+    description: >
+      Short machine-readable error code. This is a closed set -- every
+      value an Edge Function can actually return is listed below. When
+      a function starts returning a new code, add it here in the same
+      PR (nothing enforces this automatically yet; it's a review-time
+      check).
+    enum:
+      - already_decided
+      - already_voted
+      - internal_error
+      - invalid_body
+      - invalid_discussion_id
+      - invalid_news_id
+      - invalid_poll_id
+      - invalid_project_id
+      - invalid_query
+      - invalid_redirect
+      - invalid_reply_id
+      - invalid_request_id
+      - invalid_team_id
+      - invalid_user_id
+      - invalid_version
+      - method_not_allowed
+      - misconfigured
+      - missing_file
+      - not_found
+      - poll_closed
+      - poll_not_found
+      - query_error
+      - rate_limited
+      - rpc_error
+      - storage_error
+      - too_large
+      - unauthorized
+      - unsupported_type
+      - username_taken
+      - vote_rejected
   message:
     type: string
-    description: Human-readable explanation.
+    description: >
+      Human-readable detail, for logging/debugging. Never contains raw
+      Postgres/PostgREST error text (constraint names, column names,
+      internal query shape) -- see safeDbErrorMessage() in
+      supabase/functions/_shared/http.ts. Not meant to be shown
+      verbatim to end users; Website should key UI copy off `error`.

@@ -4,7 +4,7 @@
  * Coreverse DB API
  * Centralized data-access API for the Coreverse ecosystem. Coreverse DB defines and serves all data operations; Coreverse Launcher and Coreverse Website consume this API and never access Postgres/Supabase directly.
  *
- * OpenAPI spec version: 0.2.0
+ * OpenAPI spec version: 0.4.2
  */
 import { useQuery } from "@tanstack/react-query";
 import type {
@@ -28,7 +28,9 @@ import type {
   CreateNewsBody,
   DeleteNews400,
   DeleteNews404,
-  ListNews200Item,
+  GetNews200,
+  GetNews404,
+  ListNews200,
   ListNews400,
   ListNewsParams,
   UpdateNews200,
@@ -61,7 +63,7 @@ const withQueryKey = <T extends object, K>(
 };
 
 export type listNewsResponse200 = {
-  data: ListNews200Item[];
+  data: ListNews200;
   status: 200;
 };
 
@@ -422,6 +424,172 @@ export function useCreateNews<
   queryKey: DataTag<QueryKey, TData, TError>;
 } {
   const queryOptions = getCreateNewsQueryOptions(createNewsBody, options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<
+    TData,
+    TError
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+export type getNewsResponse200 = {
+  data: GetNews200;
+  status: 200;
+};
+
+export type getNewsResponse404 = {
+  data: GetNews404;
+  status: 404;
+};
+
+export type getNewsResponseSuccess = getNewsResponse200 & {
+  headers: Headers;
+};
+export type getNewsResponseError = getNewsResponse404 & {
+  headers: Headers;
+};
+
+export type getNewsResponse = getNewsResponseSuccess | getNewsResponseError;
+
+export const getGetNewsUrl = (newsId: string) => {
+  return `/news/${newsId}`;
+};
+
+/**
+ * Same visibility as the list endpoint (RLS: published is public; a draft is visible to its author or a moderator/admin).
+ * @summary Fetch one news item, by id or by slug
+ */
+export const getNews = async (
+  newsId: string,
+  options?: Parameters<typeof coreverseFetch>[1],
+): Promise<getNewsResponse> => {
+  return coreverseFetch<getNewsResponse>(getGetNewsUrl(newsId), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetNewsQueryKey = (newsId: string) => {
+  return [`/news/${newsId}`] as const;
+};
+
+export const getGetNewsQueryOptions = <
+  TData = Awaited<ReturnType<typeof getNews>>,
+  TError = GetNews404,
+>(
+  newsId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getNews>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof coreverseFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetNewsQueryKey(newsId);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getNews>>> = ({
+    signal,
+  }) => getNews(newsId, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: newsId !== null && newsId !== undefined,
+    ...queryOptions,
+  } as UseQueryOptions<Awaited<ReturnType<typeof getNews>>, TError, TData> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+};
+
+export type GetNewsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getNews>>
+>;
+export type GetNewsQueryError = GetNews404;
+
+export function useGetNews<
+  TData = Awaited<ReturnType<typeof getNews>>,
+  TError = GetNews404,
+>(
+  newsId: string,
+  options: {
+    query: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getNews>>, TError, TData>
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getNews>>,
+          TError,
+          Awaited<ReturnType<typeof getNews>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof coreverseFetch>;
+  },
+  queryClient?: QueryClient,
+): DefinedUseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+export function useGetNews<
+  TData = Awaited<ReturnType<typeof getNews>>,
+  TError = GetNews404,
+>(
+  newsId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getNews>>, TError, TData>
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getNews>>,
+          TError,
+          Awaited<ReturnType<typeof getNews>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof coreverseFetch>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+export function useGetNews<
+  TData = Awaited<ReturnType<typeof getNews>>,
+  TError = GetNews404,
+>(
+  newsId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getNews>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof coreverseFetch>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+/**
+ * @summary Fetch one news item, by id or by slug
+ */
+
+export function useGetNews<
+  TData = Awaited<ReturnType<typeof getNews>>,
+  TError = GetNews404,
+>(
+  newsId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getNews>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof coreverseFetch>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+} {
+  const queryOptions = getGetNewsQueryOptions(newsId, options);
 
   const query = useQuery(queryOptions, queryClient) as UseQueryResult<
     TData,

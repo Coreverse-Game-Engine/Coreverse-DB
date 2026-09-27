@@ -15,12 +15,13 @@ Deno.test('UpdateProfileSchema accepts full_name only', () => {
   assert(UpdateProfileSchema.safeParse({ full_name: 'Alice', },).success,);
 });
 
-Deno.test('UpdateProfileSchema accepts avatar_path only', () => {
-  assert(UpdateProfileSchema.safeParse({ avatar_path: 'avatars/x.png', },).success,);
-});
-
-Deno.test('UpdateProfileSchema accepts null avatar_path (clearing it)', () => {
-  assert(UpdateProfileSchema.safeParse({ avatar_path: null, },).success,);
+Deno.test('UpdateProfileSchema strips avatar_path rather than accepting it', () => {
+  // avatar_path must never be settable through this schema -- it's not
+  // just ignored as an unknown key, the whole point is that a client
+  // can't point their profile at an arbitrary storage object. A
+  // request with *only* avatar_path (no full_name/username) should
+  // therefore fail the "at least one of" refinement.
+  assertFalse(UpdateProfileSchema.safeParse({ avatar_path: 'avatars/x.png', },).success,);
 });
 
 Deno.test('UpdateProfileSchema rejects an empty body', () => {

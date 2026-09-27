@@ -70,6 +70,7 @@
 
 ## Resources
 
+- [Auth](api/resources/auth.md)
 - [Profiles](api/resources/profiles.md)
 - [Teams](api/resources/teams.md)
 - [Projects](api/resources/projects.md)
@@ -78,7 +79,6 @@
 - [Polls](api/resources/polls.md)
 - [News](api/resources/news.md)
 - [Requests](api/resources/requests.md)
-- [Auth](api/resources/auth.md)
 
 # OpenAPI
 

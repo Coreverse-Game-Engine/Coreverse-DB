@@ -2,21 +2,17 @@
 
 | Method | Path | Auth | Does |
 |---|---|---|---|
-| `GET` | `/profiles/me` | Required | The caller's own profile, with `avatar_path` resolved to a public `avatar_url` |
-| `PATCH` | `/profiles/me` | Required | Update the caller's own profile |
-| `POST` | `/profiles/me/avatar` | Required | Upload a new avatar (multipart), replacing the caller's current one |
+| `GET` | `/profiles/me` | Required | The caller's own profile, with `avatar_path` resolved to a public, cache-busted `avatar_url`, plus `platform_role` |
+| `PATCH` | `/profiles/me` | Required | Update the caller's own profile — `full_name` and/or `username` (at least one required) |
+| `POST` | `/profiles/me/avatar` | Required | Upload a new avatar (multipart, PNG or WebP, up to 5 MB) |
+| `DELETE` | `/profiles/me/avatar` | Required | Remove the caller's avatar (`404` if none is set) |
 
 There is no endpoint to fetch or list *other* users' profiles by ID — `identity.profiles` is publicly readable at the RLS level (for joins from other domains, e.g. showing an author's name on a news article), but the API deliberately exposes only the "me" shape rather than a general `/profiles/{id}` lookup.
 
-## Avatar upload
+**Username.** A unique (case-insensitive), alphanumeric/underscore handle, 3–24 chars, distinct from `full_name`. A taken username on `PATCH /profiles/me` returns `409` (`username_taken`). Every user is assigned a collision-free username automatically at signup — see [Database › Triggers](../../database/triggers.md).
 
-As of the `20260912085602_avatar_upload_and_rate_limit.sql` migration, avatar upload is **server-controlled**, not a direct client write to Storage:
+**Avatar upload.** As of `20260912085602_avatar_upload_and_rate_limit.sql`, clients no longer write to the `avatars` bucket directly — `POST /profiles/me/avatar` validates the file server-side and writes it to Storage with the service role, then updates `avatar_path`, returning the updated profile including the new `avatar_url`. Switching between PNG and WebP removes the previous object rather than leaving it orphaned. `DELETE /profiles/me/avatar` clears `avatar_path` and best-effort removes the object. `avatar_path` is **not** settable through `PATCH /profiles/me` — it never went through that schema on the server side either, so exposing it there only let a client point their profile at an arbitrary storage object; avatars are set/unset exclusively via these two routes. See [Security › Storage Security](../../security/storage-security.md).
 
-1. The client sends the image as `multipart/form-data` (field name `file`) to `POST /profiles/me/avatar` — PNG or WebP, up to 5 MB.
-2. The `profiles` Edge Function validates the file server-side, derives the storage extension from the validated content type (never from anything the client names), and uploads it to the `avatars` bucket using a **service-role** client.
-3. It updates `avatar_path` on the caller's profile and, if the previous avatar was at a different path (e.g. switching PNG ↔ WebP), best-effort deletes the old object so nothing orphaned is left behind.
-4. It returns the updated profile with `avatar_url` resolved.
+**Avatar caching.** Because a re-upload overwrites the same `{user_id}.<ext>` object, the public URL by itself never changes — so `avatar_url` has a `?v=<updated_at>` query parameter appended, which busts browser/CDN caching on every write without renaming the underlying object.
 
-This replaced an earlier design where the client uploaded directly to the `avatars` bucket and then just told the API the resulting path — see [Security › Storage Security](../../security/storage-security.md) for why that changed and [Database › Domains › Storage](../../database/domains/storage.md) for the current bucket policy.
-
-`PATCH /profiles/me` can still set `avatar_path` directly (e.g. to `null`, to clear an avatar), but the documented way to *upload* a new image is `POST /profiles/me/avatar` — not a raw Storage write plus a `PATCH`.
+**Platform role.** `platform_role` (`"admin"`, `"moderator"`, or `null`) comes from `identity.platform_roles`, a separate self-only-RLS table (`platform_roles_self_read`) — it's only ever the caller's own role, never visible on another user's profile (there is no other user's profile endpoint anyway, see above). `null` means no elevated role, which is most users.
