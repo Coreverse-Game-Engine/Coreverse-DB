@@ -32,7 +32,9 @@ import type {
   CreatePollBody,
   GetPollResults200Item,
   GetPollResults400,
-  ListPolls200Item,
+  ListPolls200,
+  ListPolls400,
+  ListPollsParams,
 } from "../coreverseDBAPI.schemas";
 
 import { coreverseFetch } from "../../../client/http";
@@ -58,51 +60,77 @@ const withQueryKey = <T extends object, K>(
 };
 
 export type listPollsResponse200 = {
-  data: ListPolls200Item[];
+  data: ListPolls200;
   status: 200;
+};
+
+export type listPollsResponse400 = {
+  data: ListPolls400;
+  status: 400;
 };
 
 export type listPollsResponseSuccess = listPollsResponse200 & {
   headers: Headers;
 };
-export type listPollsResponse = listPollsResponseSuccess;
+export type listPollsResponseError = listPollsResponse400 & {
+  headers: Headers;
+};
 
-export const getListPollsUrl = () => {
-  return `/polls`;
+export type listPollsResponse =
+  listPollsResponseSuccess | listPollsResponseError;
+
+export const getListPollsUrl = (params?: ListPollsParams) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : String(value));
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/polls?${stringifiedParams}`
+    : `/polls`;
 };
 
 /**
  * @summary List polls (with their options)
  */
 export const listPolls = async (
+  params?: ListPollsParams,
   options?: Parameters<typeof coreverseFetch>[1],
 ): Promise<listPollsResponse> => {
-  return coreverseFetch<listPollsResponse>(getListPollsUrl(), {
+  return coreverseFetch<listPollsResponse>(getListPollsUrl(params), {
     ...options,
     method: "GET",
   });
 };
 
-export const getListPollsQueryKey = () => {
-  return [`/polls`] as const;
+export const getListPollsQueryKey = (params?: ListPollsParams) => {
+  return [`/polls`, ...(params ? [params] : [])] as const;
 };
 
 export const getListPollsQueryOptions = <
   TData = Awaited<ReturnType<typeof listPolls>>,
-  TError = unknown,
->(options?: {
-  query?: Partial<
-    UseQueryOptions<Awaited<ReturnType<typeof listPolls>>, TError, TData>
-  >;
-  request?: SecondParameter<typeof coreverseFetch>;
-}) => {
+  TError = ListPolls400,
+>(
+  params?: ListPollsParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof listPolls>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof coreverseFetch>;
+  },
+) => {
   const { query: queryOptions, request: requestOptions } = options ?? {};
 
-  const queryKey = queryOptions?.queryKey ?? getListPollsQueryKey();
+  const queryKey = queryOptions?.queryKey ?? getListPollsQueryKey(params);
 
   const queryFn: QueryFunction<Awaited<ReturnType<typeof listPolls>>> = ({
     signal,
-  }) => listPolls({ signal, ...requestOptions });
+  }) => listPolls(params, { signal, ...requestOptions });
 
   return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
     Awaited<ReturnType<typeof listPolls>>,
@@ -114,12 +142,13 @@ export const getListPollsQueryOptions = <
 export type ListPollsQueryResult = NonNullable<
   Awaited<ReturnType<typeof listPolls>>
 >;
-export type ListPollsQueryError = unknown;
+export type ListPollsQueryError = ListPolls400;
 
 export function useListPolls<
   TData = Awaited<ReturnType<typeof listPolls>>,
-  TError = unknown,
+  TError = ListPolls400,
 >(
+  params: undefined | ListPollsParams,
   options: {
     query: Partial<
       UseQueryOptions<Awaited<ReturnType<typeof listPolls>>, TError, TData>
@@ -140,8 +169,9 @@ export function useListPolls<
 };
 export function useListPolls<
   TData = Awaited<ReturnType<typeof listPolls>>,
-  TError = unknown,
+  TError = ListPolls400,
 >(
+  params?: ListPollsParams,
   options?: {
     query?: Partial<
       UseQueryOptions<Awaited<ReturnType<typeof listPolls>>, TError, TData>
@@ -162,8 +192,9 @@ export function useListPolls<
 };
 export function useListPolls<
   TData = Awaited<ReturnType<typeof listPolls>>,
-  TError = unknown,
+  TError = ListPolls400,
 >(
+  params?: ListPollsParams,
   options?: {
     query?: Partial<
       UseQueryOptions<Awaited<ReturnType<typeof listPolls>>, TError, TData>
@@ -180,8 +211,9 @@ export function useListPolls<
 
 export function useListPolls<
   TData = Awaited<ReturnType<typeof listPolls>>,
-  TError = unknown,
+  TError = ListPolls400,
 >(
+  params?: ListPollsParams,
   options?: {
     query?: Partial<
       UseQueryOptions<Awaited<ReturnType<typeof listPolls>>, TError, TData>
@@ -192,7 +224,7 @@ export function useListPolls<
 ): UseQueryResult<TData, TError> & {
   queryKey: DataTag<QueryKey, TData, TError>;
 } {
-  const queryOptions = getListPollsQueryOptions(options);
+  const queryOptions = getListPollsQueryOptions(params, options);
 
   const query = useQuery(queryOptions, queryClient) as UseQueryResult<
     TData,

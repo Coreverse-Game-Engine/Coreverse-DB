@@ -7,8 +7,7 @@
  * OpenAPI spec version: 0.4.2
  */
 
-export type ListDiscussionsParams = {
-  category?: string;
+export type ListDiscussionRepliesParams = {
   /**
    * Max items to return (1-100, default 20).
    * @minimum 1

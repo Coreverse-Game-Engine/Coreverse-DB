@@ -3892,6 +3892,16 @@ export type GetProjectDownloadUrl404 = {
 
 export type ListNewsParams = {
   status?: ListNewsStatus;
+  /**
+   * Max items to return (1-100, default 20).
+   * @minimum 1
+   * @maximum 100
+   */
+  limit?: number;
+  /**
+   * Opaque token from a previous page's next_cursor. Omit for the first page. Treat as opaque -- its encoding is an implementation detail and may change.
+   */
+  cursor?: string;
 };
 
 export type ListNewsStatus =
@@ -3902,22 +3912,28 @@ export const ListNewsStatus = {
   published: "published",
 } as const;
 
-export type ListNews200ItemStatus =
-  (typeof ListNews200ItemStatus)[keyof typeof ListNews200ItemStatus];
+export type ListNews200ItemsItemStatus =
+  (typeof ListNews200ItemsItemStatus)[keyof typeof ListNews200ItemsItemStatus];
 
-export const ListNews200ItemStatus = {
+export const ListNews200ItemsItemStatus = {
   draft: "draft",
   published: "published",
 } as const;
 
-export type ListNews200Item = {
+export type ListNews200ItemsItem = {
   id: string;
   title: string;
   slug: string;
   body?: string;
   author_id?: string;
-  status: ListNews200ItemStatus;
+  status: ListNews200ItemsItemStatus;
   published_at?: string | null;
+};
+
+export type ListNews200 = {
+  items: ListNews200ItemsItem[];
+  /** Pass as ?cursor= to fetch the next page. null once there are no more. */
+  next_cursor: string | null;
 };
 
 /**
@@ -4436,17 +4452,82 @@ export type DeleteNews404 = {
   message: string;
 };
 
-export type ListPolls200ItemOptionsItem = {
+export type ListPollsParams = {
+  /**
+   * Max items to return (1-100, default 20).
+   * @minimum 1
+   * @maximum 100
+   */
+  limit?: number;
+  /**
+   * Opaque token from a previous page's next_cursor. Omit for the first page. Treat as opaque -- its encoding is an implementation detail and may change.
+   */
+  cursor?: string;
+};
+
+export type ListPolls200ItemsItemOptionsItem = {
   id: string;
   label: string;
   display_order?: number;
 };
 
-export type ListPolls200Item = {
+export type ListPolls200ItemsItem = {
   id: string;
   question: string;
   closes_at?: string | null;
-  options: ListPolls200ItemOptionsItem[];
+  options: ListPolls200ItemsItemOptionsItem[];
+};
+
+export type ListPolls200 = {
+  items: ListPolls200ItemsItem[];
+  /** Pass as ?cursor= to fetch the next page. null once there are no more. */
+  next_cursor: string | null;
+};
+
+/**
+ * Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check).
+ */
+export type ListPolls400Error =
+  (typeof ListPolls400Error)[keyof typeof ListPolls400Error];
+
+export const ListPolls400Error = {
+  already_decided: "already_decided",
+  already_voted: "already_voted",
+  internal_error: "internal_error",
+  invalid_body: "invalid_body",
+  invalid_discussion_id: "invalid_discussion_id",
+  invalid_news_id: "invalid_news_id",
+  invalid_poll_id: "invalid_poll_id",
+  invalid_project_id: "invalid_project_id",
+  invalid_query: "invalid_query",
+  invalid_redirect: "invalid_redirect",
+  invalid_reply_id: "invalid_reply_id",
+  invalid_request_id: "invalid_request_id",
+  invalid_team_id: "invalid_team_id",
+  invalid_user_id: "invalid_user_id",
+  invalid_version: "invalid_version",
+  method_not_allowed: "method_not_allowed",
+  misconfigured: "misconfigured",
+  missing_file: "missing_file",
+  not_found: "not_found",
+  poll_closed: "poll_closed",
+  poll_not_found: "poll_not_found",
+  query_error: "query_error",
+  rate_limited: "rate_limited",
+  rpc_error: "rpc_error",
+  storage_error: "storage_error",
+  too_large: "too_large",
+  unauthorized: "unauthorized",
+  unsupported_type: "unsupported_type",
+  username_taken: "username_taken",
+  vote_rejected: "vote_rejected",
+} as const;
+
+export type ListPolls400 = {
+  /** Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check). */
+  error: ListPolls400Error;
+  /** Human-readable detail, for logging/debugging. Never contains raw Postgres/PostgREST error text (constraint names, column names, internal query shape) -- see safeDbErrorMessage() in supabase/functions/_shared/http.ts. Not meant to be shown verbatim to end users; Website should key UI copy off `error`. */
+  message: string;
 };
 
 export type CreatePollBody = {
@@ -4810,9 +4891,19 @@ export type GetPollResults400 = {
 
 export type ListDiscussionsParams = {
   category?: string;
+  /**
+   * Max items to return (1-100, default 20).
+   * @minimum 1
+   * @maximum 100
+   */
+  limit?: number;
+  /**
+   * Opaque token from a previous page's next_cursor. Omit for the first page. Treat as opaque -- its encoding is an implementation detail and may change.
+   */
+  cursor?: string;
 };
 
-export type ListDiscussions200Item = {
+export type ListDiscussions200ItemsItem = {
   id: string;
   title: string;
   body?: string;
@@ -4820,6 +4911,58 @@ export type ListDiscussions200Item = {
   category?: string | null;
   is_locked: boolean;
   created_at?: string;
+};
+
+export type ListDiscussions200 = {
+  items: ListDiscussions200ItemsItem[];
+  /** Pass as ?cursor= to fetch the next page. null once there are no more. */
+  next_cursor: string | null;
+};
+
+/**
+ * Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check).
+ */
+export type ListDiscussions400Error =
+  (typeof ListDiscussions400Error)[keyof typeof ListDiscussions400Error];
+
+export const ListDiscussions400Error = {
+  already_decided: "already_decided",
+  already_voted: "already_voted",
+  internal_error: "internal_error",
+  invalid_body: "invalid_body",
+  invalid_discussion_id: "invalid_discussion_id",
+  invalid_news_id: "invalid_news_id",
+  invalid_poll_id: "invalid_poll_id",
+  invalid_project_id: "invalid_project_id",
+  invalid_query: "invalid_query",
+  invalid_redirect: "invalid_redirect",
+  invalid_reply_id: "invalid_reply_id",
+  invalid_request_id: "invalid_request_id",
+  invalid_team_id: "invalid_team_id",
+  invalid_user_id: "invalid_user_id",
+  invalid_version: "invalid_version",
+  method_not_allowed: "method_not_allowed",
+  misconfigured: "misconfigured",
+  missing_file: "missing_file",
+  not_found: "not_found",
+  poll_closed: "poll_closed",
+  poll_not_found: "poll_not_found",
+  query_error: "query_error",
+  rate_limited: "rate_limited",
+  rpc_error: "rpc_error",
+  storage_error: "storage_error",
+  too_large: "too_large",
+  unauthorized: "unauthorized",
+  unsupported_type: "unsupported_type",
+  username_taken: "username_taken",
+  vote_rejected: "vote_rejected",
+} as const;
+
+export type ListDiscussions400 = {
+  /** Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check). */
+  error: ListDiscussions400Error;
+  /** Human-readable detail, for logging/debugging. Never contains raw Postgres/PostgREST error text (constraint names, column names, internal query shape) -- see safeDbErrorMessage() in supabase/functions/_shared/http.ts. Not meant to be shown verbatim to end users; Website should key UI copy off `error`. */
+  message: string;
 };
 
 export type CreateDiscussionBody = {
@@ -5176,7 +5319,20 @@ export type DeleteDiscussion404 = {
   message: string;
 };
 
-export type ListDiscussionReplies200Item = {
+export type ListDiscussionRepliesParams = {
+  /**
+   * Max items to return (1-100, default 20).
+   * @minimum 1
+   * @maximum 100
+   */
+  limit?: number;
+  /**
+   * Opaque token from a previous page's next_cursor. Omit for the first page. Treat as opaque -- its encoding is an implementation detail and may change.
+   */
+  cursor?: string;
+};
+
+export type ListDiscussionReplies200ItemsItem = {
   id: string;
   discussion_id: string;
   author_id: string;
@@ -5184,6 +5340,12 @@ export type ListDiscussionReplies200Item = {
   body?: string | null;
   deleted_at?: string | null;
   created_at?: string;
+};
+
+export type ListDiscussionReplies200 = {
+  items: ListDiscussionReplies200ItemsItem[];
+  /** Pass as ?cursor= to fetch the next page. null once there are no more. */
+  next_cursor: string | null;
 };
 
 /**

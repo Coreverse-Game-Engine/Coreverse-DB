@@ -26,9 +26,11 @@ import type {
   CreateDiscussionBody,
   DeleteDiscussion400,
   DeleteDiscussion404,
-  ListDiscussionReplies200Item,
+  ListDiscussionReplies200,
   ListDiscussionReplies400,
-  ListDiscussions200Item,
+  ListDiscussionRepliesParams,
+  ListDiscussions200,
+  ListDiscussions400,
   ListDiscussionsParams,
   ReplyToDiscussion201,
   ReplyToDiscussion400,
@@ -70,14 +72,24 @@ const withQueryKey = <T extends object, K>(
 };
 
 export type listDiscussionsResponse200 = {
-  data: ListDiscussions200Item[];
+  data: ListDiscussions200;
   status: 200;
+};
+
+export type listDiscussionsResponse400 = {
+  data: ListDiscussions400;
+  status: 400;
 };
 
 export type listDiscussionsResponseSuccess = listDiscussionsResponse200 & {
   headers: Headers;
 };
-export type listDiscussionsResponse = listDiscussionsResponseSuccess;
+export type listDiscussionsResponseError = listDiscussionsResponse400 & {
+  headers: Headers;
+};
+
+export type listDiscussionsResponse =
+  listDiscussionsResponseSuccess | listDiscussionsResponseError;
 
 export const getListDiscussionsUrl = (params?: ListDiscussionsParams) => {
   const normalizedParams = new URLSearchParams();
@@ -117,7 +129,7 @@ export const getListDiscussionsQueryKey = (params?: ListDiscussionsParams) => {
 
 export const getListDiscussionsQueryOptions = <
   TData = Awaited<ReturnType<typeof listDiscussions>>,
-  TError = unknown,
+  TError = ListDiscussions400,
 >(
   params?: ListDiscussionsParams,
   options?: {
@@ -149,11 +161,11 @@ export const getListDiscussionsQueryOptions = <
 export type ListDiscussionsQueryResult = NonNullable<
   Awaited<ReturnType<typeof listDiscussions>>
 >;
-export type ListDiscussionsQueryError = unknown;
+export type ListDiscussionsQueryError = ListDiscussions400;
 
 export function useListDiscussions<
   TData = Awaited<ReturnType<typeof listDiscussions>>,
-  TError = unknown,
+  TError = ListDiscussions400,
 >(
   params: undefined | ListDiscussionsParams,
   options: {
@@ -180,7 +192,7 @@ export function useListDiscussions<
 };
 export function useListDiscussions<
   TData = Awaited<ReturnType<typeof listDiscussions>>,
-  TError = unknown,
+  TError = ListDiscussions400,
 >(
   params?: ListDiscussionsParams,
   options?: {
@@ -207,7 +219,7 @@ export function useListDiscussions<
 };
 export function useListDiscussions<
   TData = Awaited<ReturnType<typeof listDiscussions>>,
-  TError = unknown,
+  TError = ListDiscussions400,
 >(
   params?: ListDiscussionsParams,
   options?: {
@@ -230,7 +242,7 @@ export function useListDiscussions<
 
 export function useListDiscussions<
   TData = Awaited<ReturnType<typeof listDiscussions>>,
-  TError = unknown,
+  TError = ListDiscussions400,
 >(
   params?: ListDiscussionsParams,
   options?: {
@@ -912,7 +924,7 @@ export function useDeleteDiscussion<
 }
 
 export type listDiscussionRepliesResponse200 = {
-  data: ListDiscussionReplies200Item[];
+  data: ListDiscussionReplies200;
   status: 200;
 };
 
@@ -933,8 +945,23 @@ export type listDiscussionRepliesResponseError =
 export type listDiscussionRepliesResponse =
   listDiscussionRepliesResponseSuccess | listDiscussionRepliesResponseError;
 
-export const getListDiscussionRepliesUrl = (discussionId: string) => {
-  return `/discussions/${discussionId}/replies`;
+export const getListDiscussionRepliesUrl = (
+  discussionId: string,
+  params?: ListDiscussionRepliesParams,
+) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : String(value));
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/discussions/${discussionId}/replies?${stringifiedParams}`
+    : `/discussions/${discussionId}/replies`;
 };
 
 /**
@@ -942,10 +969,11 @@ export const getListDiscussionRepliesUrl = (discussionId: string) => {
  */
 export const listDiscussionReplies = async (
   discussionId: string,
+  params?: ListDiscussionRepliesParams,
   options?: Parameters<typeof coreverseFetch>[1],
 ): Promise<listDiscussionRepliesResponse> => {
   return coreverseFetch<listDiscussionRepliesResponse>(
-    getListDiscussionRepliesUrl(discussionId),
+    getListDiscussionRepliesUrl(discussionId, params),
     {
       ...options,
       method: "GET",
@@ -953,8 +981,14 @@ export const listDiscussionReplies = async (
   );
 };
 
-export const getListDiscussionRepliesQueryKey = (discussionId: string) => {
-  return [`/discussions/${discussionId}/replies`] as const;
+export const getListDiscussionRepliesQueryKey = (
+  discussionId: string,
+  params?: ListDiscussionRepliesParams,
+) => {
+  return [
+    `/discussions/${discussionId}/replies`,
+    ...(params ? [params] : []),
+  ] as const;
 };
 
 export const getListDiscussionRepliesQueryOptions = <
@@ -962,6 +996,7 @@ export const getListDiscussionRepliesQueryOptions = <
   TError = ListDiscussionReplies400,
 >(
   discussionId: string,
+  params?: ListDiscussionRepliesParams,
   options?: {
     query?: Partial<
       UseQueryOptions<
@@ -976,12 +1011,13 @@ export const getListDiscussionRepliesQueryOptions = <
   const { query: queryOptions, request: requestOptions } = options ?? {};
 
   const queryKey =
-    queryOptions?.queryKey ?? getListDiscussionRepliesQueryKey(discussionId);
+    queryOptions?.queryKey ??
+    getListDiscussionRepliesQueryKey(discussionId, params);
 
   const queryFn: QueryFunction<
     Awaited<ReturnType<typeof listDiscussionReplies>>
   > = ({ signal }) =>
-    listDiscussionReplies(discussionId, { signal, ...requestOptions });
+    listDiscussionReplies(discussionId, params, { signal, ...requestOptions });
 
   return {
     queryKey,
@@ -1005,6 +1041,7 @@ export function useListDiscussionReplies<
   TError = ListDiscussionReplies400,
 >(
   discussionId: string,
+  params: undefined | ListDiscussionRepliesParams,
   options: {
     query: Partial<
       UseQueryOptions<
@@ -1032,6 +1069,7 @@ export function useListDiscussionReplies<
   TError = ListDiscussionReplies400,
 >(
   discussionId: string,
+  params?: ListDiscussionRepliesParams,
   options?: {
     query?: Partial<
       UseQueryOptions<
@@ -1059,6 +1097,7 @@ export function useListDiscussionReplies<
   TError = ListDiscussionReplies400,
 >(
   discussionId: string,
+  params?: ListDiscussionRepliesParams,
   options?: {
     query?: Partial<
       UseQueryOptions<
@@ -1082,6 +1121,7 @@ export function useListDiscussionReplies<
   TError = ListDiscussionReplies400,
 >(
   discussionId: string,
+  params?: ListDiscussionRepliesParams,
   options?: {
     query?: Partial<
       UseQueryOptions<
@@ -1098,6 +1138,7 @@ export function useListDiscussionReplies<
 } {
   const queryOptions = getListDiscussionRepliesQueryOptions(
     discussionId,
+    params,
     options,
   );
 

@@ -19,6 +19,7 @@
 import { serve, } from '@std/http/server';
 import { createUserClient, } from '../_shared/supabase-client.ts';
 import { createServiceClient, } from '../_shared/service-client.ts';
+import { publicUrlWithCacheBust, } from '../_shared/storage.ts';
 import {
   errorResponse,
   jsonResponse,
@@ -38,17 +39,12 @@ function withAvatarUrl(
   row: { avatar_path: string | null; updated_at?: string; [key: string]: unknown },
 ) {
   const { avatar_path, ...rest } = row;
-  // The storage path is stable across re-uploads (upsert to the same
-  // `{user_id}.<ext>` object), so the public URL never changes -- which
-  // means browsers and any CDN in front of Storage keep serving the old
-  // image after a new upload. Appending a `v=<updated_at>` query param
-  // busts that cache on every write without renaming the underlying
-  // object or touching the avatars bucket's RLS/policies.
-  const avatar_url = avatar_path
-    ? `${supabase.storage.from('avatars',).getPublicUrl(avatar_path,).data.publicUrl}${
-      rest.updated_at ? `?v=${encodeURIComponent(rest.updated_at as string,)}` : ''
-    }`
-    : null;
+  const avatar_url = publicUrlWithCacheBust(
+    supabase.storage,
+    'avatars',
+    avatar_path,
+    rest.updated_at ?? null,
+  );
   return { ...rest, avatar_url, };
 }
 
@@ -193,7 +189,23 @@ serve(withCors(async (req,) => {
 
       if (error) return errorResponse('query_error', safeDbErrorMessage(500,), 500,);
       if (!data) return errorResponse('not_found', 'No profile found for this user.', 404,);
-      return jsonResponse(withAvatarUrl(supabase, data,),);
+
+      // Separate query, not a join: platform_roles is its own table
+      // (identity.platform_roles) with its own self-only RLS
+      // (platform_roles_self_read) -- there's no row for most users
+      // (not every profile has a role), so maybeSingle() returning null
+      // just means "no elevated role", not an error.
+      const { data: roleRow, } = await supabase
+        .schema('identity',)
+        .from('platform_roles',)
+        .select('role',)
+        .eq('user_id', userId,)
+        .maybeSingle();
+
+      return jsonResponse({
+        ...withAvatarUrl(supabase, data,),
+        platform_role: roleRow?.role ?? null,
+      },);
     }
 
     if (req.method === 'PATCH') {

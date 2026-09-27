@@ -7,10 +7,8 @@
  * OpenAPI spec version: 0.4.2
  */
 
-export type ListNews200ItemStatus =
-  (typeof ListNews200ItemStatus)[keyof typeof ListNews200ItemStatus];
-
-export const ListNews200ItemStatus = {
-  draft: "draft",
-  published: "published",
-} as const;
+export type ListPolls200ItemsItemOptionsItem = {
+  id: string;
+  label: string;
+  display_order?: number;
+};
