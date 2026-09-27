@@ -19,32 +19,57 @@ import type {
   CreatePollBody,
   GetPollResults200Item,
   GetPollResults400,
-  ListPolls200Item,
+  ListPolls200,
+  ListPolls400,
+  ListPollsParams,
 } from "../../models";
 
 import { coreverseFetch } from "../../../client/http";
 
 export type listPollsResponse200 = {
-  data: ListPolls200Item[];
+  data: ListPolls200;
   status: 200;
+};
+
+export type listPollsResponse400 = {
+  data: ListPolls400;
+  status: 400;
 };
 
 export type listPollsResponseSuccess = listPollsResponse200 & {
   headers: Headers;
 };
-export type listPollsResponse = listPollsResponseSuccess;
+export type listPollsResponseError = listPollsResponse400 & {
+  headers: Headers;
+};
 
-export const getListPollsUrl = () => {
-  return `/polls`;
+export type listPollsResponse =
+  listPollsResponseSuccess | listPollsResponseError;
+
+export const getListPollsUrl = (params?: ListPollsParams) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : String(value));
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/polls?${stringifiedParams}`
+    : `/polls`;
 };
 
 /**
  * @summary List polls (with their options)
  */
 export const listPolls = async (
+  params?: ListPollsParams,
   options?: Parameters<typeof coreverseFetch>[1],
 ): Promise<listPollsResponse> => {
-  return coreverseFetch<listPollsResponse>(getListPollsUrl(), {
+  return coreverseFetch<listPollsResponse>(getListPollsUrl(params), {
     ...options,
     method: "GET",
   });
