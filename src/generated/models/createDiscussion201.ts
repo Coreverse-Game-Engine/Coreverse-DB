@@ -6,13 +6,20 @@
  *
  * OpenAPI spec version: 0.4.2
  */
+import type { CreateDiscussion201Author } from "./createDiscussion201Author";
 
 export type CreateDiscussion201 = {
   id: string;
   title: string;
-  body?: string;
+  body: string;
   author_id: string;
+  author: CreateDiscussion201Author;
   category?: string | null;
   is_locked: boolean;
-  created_at?: string;
+  /** Count of non-deleted replies. Denormalized -- see the Faz 3 migration. */
+  reply_count: number;
+  /** Bumped when a new reply is posted. NOT bumped by reply edits or soft-deletes, or by editing the discussion itself. */
+  last_activity_at: string;
+  created_at: string;
+  updated_at: string;
 };

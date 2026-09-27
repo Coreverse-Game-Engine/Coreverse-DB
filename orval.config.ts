@@ -14,12 +14,11 @@ import { defineConfig } from "orval";
 // $refs (paths/*.yaml, schemas/*.yaml, parameters/*.yaml) itself, directly
 // against openapi/openapi.yaml -- no separate bundle step needed here.
 //
-// Orval v8 disallows external $ref targets by default (a v7->v8 breaking
-// change, not something we did wrong) -- every file our multi-file spec
-// pulls in via $ref has to be allow-listed explicitly. This is every
-// paths/*.yaml, schemas/*.yaml, and parameters/*.yaml file that exists
-// today; add new ones here when a future external ref file is added to
-// openapi/.
+// Orval v8 disallows external $ref targets by default -- every file our
+// multi-file spec pulls in via $ref has to be allow-listed explicitly.
+// This is every paths/*.yaml, schemas/*.yaml, and parameters/*.yaml file
+// that exists today; add new ones here when a future external ref file is
+// added to openapi/.
 
 const externalRefsAllow = [
   "./paths/releases.yaml",
@@ -45,10 +44,12 @@ const externalRefsAllow = [
   "./schemas/Poll.yaml",
   "./schemas/PollResult.yaml",
   "./schemas/Discussion.yaml",
+  "./schemas/DiscussionSummary.yaml",
   "./schemas/DiscussionReply.yaml",
   "./schemas/DocSource.yaml",
   "./schemas/DocSearchResult.yaml",
   "./schemas/Error.yaml",
+  "./schemas/Author.yaml",
 
   "./parameters/Pagination.yaml",
 ];
