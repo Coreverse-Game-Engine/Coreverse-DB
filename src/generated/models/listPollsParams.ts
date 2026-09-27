@@ -6,8 +6,15 @@
  *
  * OpenAPI spec version: 0.4.2
  */
+import type { ListPollsInclude } from "./listPollsInclude";
+import type { ListPollsStatus } from "./listPollsStatus";
 
 export type ListPollsParams = {
+  status?: ListPollsStatus;
+  /**
+   * include=results embeds full per-option counts (one extra call per poll on the page -- keep limit modest when using this).
+   */
+  include?: ListPollsInclude;
   /**
    * Max items to return (1-100, default 20).
    * @minimum 1

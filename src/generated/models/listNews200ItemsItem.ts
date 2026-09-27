@@ -6,6 +6,7 @@
  *
  * OpenAPI spec version: 0.4.2
  */
+import type { ListNews200ItemsItemAuthor } from "./listNews200ItemsItemAuthor";
 import type { ListNews200ItemsItemStatus } from "./listNews200ItemsItemStatus";
 
 export type ListNews200ItemsItem = {
@@ -13,7 +14,13 @@ export type ListNews200ItemsItem = {
   title: string;
   slug: string;
   body?: string;
-  author_id?: string;
+  /** Optional short standalone summary, distinct from body -- for list views/link previews. */
+  summary?: string | null;
+  cover_image_url?: string | null;
+  author_id: string;
+  author: ListNews200ItemsItemAuthor;
   status: ListNews200ItemsItemStatus;
   published_at?: string | null;
+  created_at: string;
+  updated_at: string;
 };

@@ -12,6 +12,7 @@ import type {
   CastVote401,
   CastVote404,
   CastVote409,
+  CastVote429,
   CastVoteBody,
   CreatePoll201,
   CreatePoll400,
@@ -63,6 +64,7 @@ export const getListPollsUrl = (params?: ListPollsParams) => {
 };
 
 /**
+ * my_option_id is only ever the caller's own vote -- pass a bearer token to get it populated, omit it to always get null (never another user's vote).
  * @summary List polls (with their options)
  */
 export const listPolls = async (
@@ -157,6 +159,11 @@ export type castVoteResponse409 = {
   status: 409;
 };
 
+export type castVoteResponse429 = {
+  data: CastVote429;
+  status: 429;
+};
+
 export type castVoteResponseSuccess = castVoteResponse201 & {
   headers: Headers;
 };
@@ -165,6 +172,7 @@ export type castVoteResponseError = (
   | castVoteResponse401
   | castVoteResponse404
   | castVoteResponse409
+  | castVoteResponse429
 ) & {
   headers: Headers;
 };

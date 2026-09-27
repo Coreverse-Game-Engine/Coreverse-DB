@@ -125,6 +125,17 @@ export interface Artifact {
   compiler: ArtifactCompiler;
 }
 
+/**
+ * Only present on GET /profiles/me (never on another user's profile) -- identity.platform_roles is self-only RLS. null means no elevated role.
+ */
+export type ProfilePlatformRole =
+  (typeof ProfilePlatformRole)[keyof typeof ProfilePlatformRole] | null;
+
+export const ProfilePlatformRole = {
+  admin: "admin",
+  moderator: "moderator",
+} as const;
+
 export interface Profile {
   id: string;
   /** Free-text display name, no format or uniqueness constraint. Distinct from username. */
@@ -133,6 +144,10 @@ export interface Profile {
   username?: string | null;
   /** Public/signed URL resolved from the stored avatar_path, not the raw path itself. */
   avatar_url?: string | null;
+  /** Only present on GET /profiles/me (never on another user's profile) -- identity.platform_roles is self-only RLS. null means no elevated role. */
+  platform_role?: ProfilePlatformRole;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface Team {
@@ -200,6 +215,12 @@ export interface Project {
   archive_sha256: string;
 }
 
+export type NewsAuthor = {
+  id: string;
+  username: string;
+  avatar_url: string | null;
+};
+
 export type NewsStatus = (typeof NewsStatus)[keyof typeof NewsStatus];
 
 export const NewsStatus = {
@@ -212,10 +233,22 @@ export interface News {
   title: string;
   slug: string;
   body?: string;
-  author_id?: string;
+  /** Optional short standalone summary, distinct from body -- for list views/link previews. */
+  summary?: string | null;
+  cover_image_url?: string | null;
+  author_id: string;
+  author: NewsAuthor;
   status: NewsStatus;
   published_at?: string | null;
+  created_at: string;
+  updated_at: string;
 }
+
+export type PollResultsItem = {
+  option_id: string;
+  label: string;
+  vote_count: number;
+};
 
 export type PollOptionsItem = {
   id: string;
@@ -227,7 +260,16 @@ export interface Poll {
   id: string;
   question: string;
   closes_at?: string | null;
+  /** Computed from closes_at at read time (closes_at !== null && closes_at <= now). */
+  is_closed: boolean;
+  /** Aggregate across all users (content.poll_vote_totals()) -- always present, 0 on a brand-new poll. */
+  total_votes: number;
+  /** The caller's own vote, if any. Always null for an anonymous caller or one who hasn't voted -- never another user's vote (poll_votes_self_read RLS). */
+  my_option_id: string | null;
+  /** Only present when the request used ?include=results. */
+  results?: PollResultsItem[];
   options: PollOptionsItem[];
+  created_at: string;
 }
 
 export interface PollResult {
@@ -236,24 +278,46 @@ export interface PollResult {
   vote_count: number;
 }
 
+export type DiscussionAuthor = {
+  id: string;
+  username: string;
+  avatar_url: string | null;
+};
+
 export interface Discussion {
   id: string;
   title: string;
-  body?: string;
+  body: string;
   author_id: string;
+  author: DiscussionAuthor;
   category?: string | null;
   is_locked: boolean;
-  created_at?: string;
+  /** Count of non-deleted replies. Denormalized -- see the Faz 3 migration. */
+  reply_count: number;
+  /** Bumped when a new reply is posted. NOT bumped by reply edits or soft-deletes, or by editing the discussion itself. */
+  last_activity_at: string;
+  created_at: string;
+  updated_at: string;
 }
+
+export type DiscussionReplyAuthor = {
+  id: string;
+  username: string;
+  avatar_url: string | null;
+};
 
 export interface DiscussionReply {
   id: string;
   discussion_id: string;
   author_id: string;
+  author: DiscussionReplyAuthor;
   /** null/omitted when deleted_at is set -- render as "[deleted]". */
   body?: string | null;
   deleted_at?: string | null;
-  created_at?: string;
+  /** Set when body is edited. Distinct from deleted_at/updated_at -- see the Faz 3 migration. */
+  edited_at?: string | null;
+  created_at: string;
+  updated_at: string;
 }
 
 export type DocSourceKind = (typeof DocSourceKind)[keyof typeof DocSourceKind];
@@ -2698,6 +2762,18 @@ export type CancelMembershipRequest403 = {
   message: string;
 };
 
+/**
+ * Only present on GET /profiles/me (never on another user's profile) -- identity.platform_roles is self-only RLS. null means no elevated role.
+ */
+export type GetMyProfile200PlatformRole =
+  | (typeof GetMyProfile200PlatformRole)[keyof typeof GetMyProfile200PlatformRole]
+  | null;
+
+export const GetMyProfile200PlatformRole = {
+  admin: "admin",
+  moderator: "moderator",
+} as const;
+
 export type GetMyProfile200 = {
   id: string;
   /** Free-text display name, no format or uniqueness constraint. Distinct from username. */
@@ -2706,6 +2782,10 @@ export type GetMyProfile200 = {
   username?: string | null;
   /** Public/signed URL resolved from the stored avatar_path, not the raw path itself. */
   avatar_url?: string | null;
+  /** Only present on GET /profiles/me (never on another user's profile) -- identity.platform_roles is self-only RLS. null means no elevated role. */
+  platform_role?: GetMyProfile200PlatformRole;
+  created_at: string;
+  updated_at: string;
 };
 
 /**
@@ -2818,6 +2898,18 @@ export type UpdateMyProfileBody = {
   username?: string;
 };
 
+/**
+ * Only present on GET /profiles/me (never on another user's profile) -- identity.platform_roles is self-only RLS. null means no elevated role.
+ */
+export type UpdateMyProfile200PlatformRole =
+  | (typeof UpdateMyProfile200PlatformRole)[keyof typeof UpdateMyProfile200PlatformRole]
+  | null;
+
+export const UpdateMyProfile200PlatformRole = {
+  admin: "admin",
+  moderator: "moderator",
+} as const;
+
 export type UpdateMyProfile200 = {
   id: string;
   /** Free-text display name, no format or uniqueness constraint. Distinct from username. */
@@ -2826,6 +2918,10 @@ export type UpdateMyProfile200 = {
   username?: string | null;
   /** Public/signed URL resolved from the stored avatar_path, not the raw path itself. */
   avatar_url?: string | null;
+  /** Only present on GET /profiles/me (never on another user's profile) -- identity.platform_roles is self-only RLS. null means no elevated role. */
+  platform_role?: UpdateMyProfile200PlatformRole;
+  created_at: string;
+  updated_at: string;
 };
 
 /**
@@ -3017,6 +3113,18 @@ export type UploadMyAvatarBody = {
   file: Blob;
 };
 
+/**
+ * Only present on GET /profiles/me (never on another user's profile) -- identity.platform_roles is self-only RLS. null means no elevated role.
+ */
+export type UploadMyAvatar200PlatformRole =
+  | (typeof UploadMyAvatar200PlatformRole)[keyof typeof UploadMyAvatar200PlatformRole]
+  | null;
+
+export const UploadMyAvatar200PlatformRole = {
+  admin: "admin",
+  moderator: "moderator",
+} as const;
+
 export type UploadMyAvatar200 = {
   id: string;
   /** Free-text display name, no format or uniqueness constraint. Distinct from username. */
@@ -3025,6 +3133,10 @@ export type UploadMyAvatar200 = {
   username?: string | null;
   /** Public/signed URL resolved from the stored avatar_path, not the raw path itself. */
   avatar_url?: string | null;
+  /** Only present on GET /profiles/me (never on another user's profile) -- identity.platform_roles is self-only RLS. null means no elevated role. */
+  platform_role?: UploadMyAvatar200PlatformRole;
+  created_at: string;
+  updated_at: string;
 };
 
 /**
@@ -3211,6 +3323,18 @@ export type UploadMyAvatar413 = {
   message: string;
 };
 
+/**
+ * Only present on GET /profiles/me (never on another user's profile) -- identity.platform_roles is self-only RLS. null means no elevated role.
+ */
+export type DeleteMyAvatar200PlatformRole =
+  | (typeof DeleteMyAvatar200PlatformRole)[keyof typeof DeleteMyAvatar200PlatformRole]
+  | null;
+
+export const DeleteMyAvatar200PlatformRole = {
+  admin: "admin",
+  moderator: "moderator",
+} as const;
+
 export type DeleteMyAvatar200 = {
   id: string;
   /** Free-text display name, no format or uniqueness constraint. Distinct from username. */
@@ -3219,6 +3343,10 @@ export type DeleteMyAvatar200 = {
   username?: string | null;
   /** Public/signed URL resolved from the stored avatar_path, not the raw path itself. */
   avatar_url?: string | null;
+  /** Only present on GET /profiles/me (never on another user's profile) -- identity.platform_roles is self-only RLS. null means no elevated role. */
+  platform_role?: DeleteMyAvatar200PlatformRole;
+  created_at: string;
+  updated_at: string;
 };
 
 /**
@@ -3912,6 +4040,12 @@ export const ListNewsStatus = {
   published: "published",
 } as const;
 
+export type ListNews200ItemsItemAuthor = {
+  id: string;
+  username: string;
+  avatar_url: string | null;
+};
+
 export type ListNews200ItemsItemStatus =
   (typeof ListNews200ItemsItemStatus)[keyof typeof ListNews200ItemsItemStatus];
 
@@ -3925,9 +4059,15 @@ export type ListNews200ItemsItem = {
   title: string;
   slug: string;
   body?: string;
-  author_id?: string;
+  /** Optional short standalone summary, distinct from body -- for list views/link previews. */
+  summary?: string | null;
+  cover_image_url?: string | null;
+  author_id: string;
+  author: ListNews200ItemsItemAuthor;
   status: ListNews200ItemsItemStatus;
   published_at?: string | null;
+  created_at: string;
+  updated_at: string;
 };
 
 export type ListNews200 = {
@@ -3986,6 +4126,15 @@ export type CreateNewsBody = {
   title: string;
   slug: string;
   body: string;
+  summary?: string | null;
+  /** Storage path in the news-covers bucket (moderator/admin-write only). Resolved to cover_image_url in the response. */
+  cover_image_path?: string | null;
+};
+
+export type CreateNews201Author = {
+  id: string;
+  username: string;
+  avatar_url: string | null;
 };
 
 export type CreateNews201Status =
@@ -4001,9 +4150,15 @@ export type CreateNews201 = {
   title: string;
   slug: string;
   body?: string;
-  author_id?: string;
+  /** Optional short standalone summary, distinct from body -- for list views/link previews. */
+  summary?: string | null;
+  cover_image_url?: string | null;
+  author_id: string;
+  author: CreateNews201Author;
   status: CreateNews201Status;
   published_at?: string | null;
+  created_at: string;
+  updated_at: string;
 };
 
 /**
@@ -4190,6 +4345,82 @@ export type CreateNews409 = {
   message: string;
 };
 
+export type GetNews200Author = {
+  id: string;
+  username: string;
+  avatar_url: string | null;
+};
+
+export type GetNews200Status =
+  (typeof GetNews200Status)[keyof typeof GetNews200Status];
+
+export const GetNews200Status = {
+  draft: "draft",
+  published: "published",
+} as const;
+
+export type GetNews200 = {
+  id: string;
+  title: string;
+  slug: string;
+  body?: string;
+  /** Optional short standalone summary, distinct from body -- for list views/link previews. */
+  summary?: string | null;
+  cover_image_url?: string | null;
+  author_id: string;
+  author: GetNews200Author;
+  status: GetNews200Status;
+  published_at?: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+/**
+ * Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check).
+ */
+export type GetNews404Error =
+  (typeof GetNews404Error)[keyof typeof GetNews404Error];
+
+export const GetNews404Error = {
+  already_decided: "already_decided",
+  already_voted: "already_voted",
+  internal_error: "internal_error",
+  invalid_body: "invalid_body",
+  invalid_discussion_id: "invalid_discussion_id",
+  invalid_news_id: "invalid_news_id",
+  invalid_poll_id: "invalid_poll_id",
+  invalid_project_id: "invalid_project_id",
+  invalid_query: "invalid_query",
+  invalid_redirect: "invalid_redirect",
+  invalid_reply_id: "invalid_reply_id",
+  invalid_request_id: "invalid_request_id",
+  invalid_team_id: "invalid_team_id",
+  invalid_user_id: "invalid_user_id",
+  invalid_version: "invalid_version",
+  method_not_allowed: "method_not_allowed",
+  misconfigured: "misconfigured",
+  missing_file: "missing_file",
+  not_found: "not_found",
+  poll_closed: "poll_closed",
+  poll_not_found: "poll_not_found",
+  query_error: "query_error",
+  rate_limited: "rate_limited",
+  rpc_error: "rpc_error",
+  storage_error: "storage_error",
+  too_large: "too_large",
+  unauthorized: "unauthorized",
+  unsupported_type: "unsupported_type",
+  username_taken: "username_taken",
+  vote_rejected: "vote_rejected",
+} as const;
+
+export type GetNews404 = {
+  /** Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check). */
+  error: GetNews404Error;
+  /** Human-readable detail, for logging/debugging. Never contains raw Postgres/PostgREST error text (constraint names, column names, internal query shape) -- see safeDbErrorMessage() in supabase/functions/_shared/http.ts. Not meant to be shown verbatim to end users; Website should key UI copy off `error`. */
+  message: string;
+};
+
 export type UpdateNewsBodyStatus =
   (typeof UpdateNewsBodyStatus)[keyof typeof UpdateNewsBodyStatus];
 
@@ -4201,7 +4432,15 @@ export const UpdateNewsBodyStatus = {
 export type UpdateNewsBody = {
   title?: string;
   body?: string;
+  summary?: string | null;
+  cover_image_path?: string | null;
   status?: UpdateNewsBodyStatus;
+};
+
+export type UpdateNews200Author = {
+  id: string;
+  username: string;
+  avatar_url: string | null;
 };
 
 export type UpdateNews200Status =
@@ -4217,9 +4456,15 @@ export type UpdateNews200 = {
   title: string;
   slug: string;
   body?: string;
-  author_id?: string;
+  /** Optional short standalone summary, distinct from body -- for list views/link previews. */
+  summary?: string | null;
+  cover_image_url?: string | null;
+  author_id: string;
+  author: UpdateNews200Author;
   status: UpdateNews200Status;
   published_at?: string | null;
+  created_at: string;
+  updated_at: string;
 };
 
 /**
@@ -4453,6 +4698,11 @@ export type DeleteNews404 = {
 };
 
 export type ListPollsParams = {
+  status?: ListPollsStatus;
+  /**
+   * include=results embeds full per-option counts (one extra call per poll on the page -- keep limit modest when using this).
+   */
+  include?: ListPollsInclude;
   /**
    * Max items to return (1-100, default 20).
    * @minimum 1
@@ -4465,6 +4715,27 @@ export type ListPollsParams = {
   cursor?: string;
 };
 
+export type ListPollsStatus =
+  (typeof ListPollsStatus)[keyof typeof ListPollsStatus];
+
+export const ListPollsStatus = {
+  open: "open",
+  closed: "closed",
+} as const;
+
+export type ListPollsInclude =
+  (typeof ListPollsInclude)[keyof typeof ListPollsInclude];
+
+export const ListPollsInclude = {
+  results: "results",
+} as const;
+
+export type ListPolls200ItemsItemResultsItem = {
+  option_id: string;
+  label: string;
+  vote_count: number;
+};
+
 export type ListPolls200ItemsItemOptionsItem = {
   id: string;
   label: string;
@@ -4475,7 +4746,16 @@ export type ListPolls200ItemsItem = {
   id: string;
   question: string;
   closes_at?: string | null;
+  /** Computed from closes_at at read time (closes_at !== null && closes_at <= now). */
+  is_closed: boolean;
+  /** Aggregate across all users (content.poll_vote_totals()) -- always present, 0 on a brand-new poll. */
+  total_votes: number;
+  /** The caller's own vote, if any. Always null for an anonymous caller or one who hasn't voted -- never another user's vote (poll_votes_self_read RLS). */
+  my_option_id: string | null;
+  /** Only present when the request used ?include=results. */
+  results?: ListPolls200ItemsItemResultsItem[];
   options: ListPolls200ItemsItemOptionsItem[];
+  created_at: string;
 };
 
 export type ListPolls200 = {
@@ -4537,6 +4817,12 @@ export type CreatePollBody = {
   options: string[];
 };
 
+export type CreatePoll201ResultsItem = {
+  option_id: string;
+  label: string;
+  vote_count: number;
+};
+
 export type CreatePoll201OptionsItem = {
   id: string;
   label: string;
@@ -4547,7 +4833,16 @@ export type CreatePoll201 = {
   id: string;
   question: string;
   closes_at?: string | null;
+  /** Computed from closes_at at read time (closes_at !== null && closes_at <= now). */
+  is_closed: boolean;
+  /** Aggregate across all users (content.poll_vote_totals()) -- always present, 0 on a brand-new poll. */
+  total_votes: number;
+  /** The caller's own vote, if any. Always null for an anonymous caller or one who hasn't voted -- never another user's vote (poll_votes_self_read RLS). */
+  my_option_id: string | null;
+  /** Only present when the request used ?include=results. */
+  results?: CreatePoll201ResultsItem[];
   options: CreatePoll201OptionsItem[];
+  created_at: string;
 };
 
 /**
@@ -4837,6 +5132,52 @@ export type CastVote409 = {
   message: string;
 };
 
+/**
+ * Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check).
+ */
+export type CastVote429Error =
+  (typeof CastVote429Error)[keyof typeof CastVote429Error];
+
+export const CastVote429Error = {
+  already_decided: "already_decided",
+  already_voted: "already_voted",
+  internal_error: "internal_error",
+  invalid_body: "invalid_body",
+  invalid_discussion_id: "invalid_discussion_id",
+  invalid_news_id: "invalid_news_id",
+  invalid_poll_id: "invalid_poll_id",
+  invalid_project_id: "invalid_project_id",
+  invalid_query: "invalid_query",
+  invalid_redirect: "invalid_redirect",
+  invalid_reply_id: "invalid_reply_id",
+  invalid_request_id: "invalid_request_id",
+  invalid_team_id: "invalid_team_id",
+  invalid_user_id: "invalid_user_id",
+  invalid_version: "invalid_version",
+  method_not_allowed: "method_not_allowed",
+  misconfigured: "misconfigured",
+  missing_file: "missing_file",
+  not_found: "not_found",
+  poll_closed: "poll_closed",
+  poll_not_found: "poll_not_found",
+  query_error: "query_error",
+  rate_limited: "rate_limited",
+  rpc_error: "rpc_error",
+  storage_error: "storage_error",
+  too_large: "too_large",
+  unauthorized: "unauthorized",
+  unsupported_type: "unsupported_type",
+  username_taken: "username_taken",
+  vote_rejected: "vote_rejected",
+} as const;
+
+export type CastVote429 = {
+  /** Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check). */
+  error: CastVote429Error;
+  /** Human-readable detail, for logging/debugging. Never contains raw Postgres/PostgREST error text (constraint names, column names, internal query shape) -- see safeDbErrorMessage() in supabase/functions/_shared/http.ts. Not meant to be shown verbatim to end users; Website should key UI copy off `error`. */
+  message: string;
+};
+
 export type GetPollResults200Item = {
   option_id: string;
   label: string;
@@ -4892,6 +5233,14 @@ export type GetPollResults400 = {
 export type ListDiscussionsParams = {
   category?: string;
   /**
+   * Full-text search over title + body ('simple' config, plain query -- same convention as docs search). Combines with category if both are given.
+   */
+  q?: string;
+  /**
+   * recent = created_at desc (default, cursor-paginated). active = last_activity_at desc. replies = reply_count desc. active/replies are single-page only for now -- next_cursor is always null, and passing cursor with either of them is a 400.
+   */
+  sort?: ListDiscussionsSort;
+  /**
    * Max items to return (1-100, default 20).
    * @minimum 1
    * @maximum 100
@@ -4903,14 +5252,34 @@ export type ListDiscussionsParams = {
   cursor?: string;
 };
 
+export type ListDiscussionsSort =
+  (typeof ListDiscussionsSort)[keyof typeof ListDiscussionsSort];
+
+export const ListDiscussionsSort = {
+  recent: "recent",
+  active: "active",
+  replies: "replies",
+} as const;
+
+export type ListDiscussions200ItemsItemAuthor = {
+  id: string;
+  username: string;
+  avatar_url: string | null;
+};
+
 export type ListDiscussions200ItemsItem = {
   id: string;
   title: string;
-  body?: string;
+  /** body truncated to ~280 chars, word-boundary aware. Fetch GET /discussions/{id} for the full body. */
+  excerpt: string;
   author_id: string;
+  author: ListDiscussions200ItemsItemAuthor;
   category?: string | null;
   is_locked: boolean;
-  created_at?: string;
+  reply_count: number;
+  last_activity_at: string;
+  created_at: string;
+  updated_at: string;
 };
 
 export type ListDiscussions200 = {
@@ -4971,14 +5340,26 @@ export type CreateDiscussionBody = {
   category?: string | null;
 };
 
+export type CreateDiscussion201Author = {
+  id: string;
+  username: string;
+  avatar_url: string | null;
+};
+
 export type CreateDiscussion201 = {
   id: string;
   title: string;
-  body?: string;
+  body: string;
   author_id: string;
+  author: CreateDiscussion201Author;
   category?: string | null;
   is_locked: boolean;
-  created_at?: string;
+  /** Count of non-deleted replies. Denormalized -- see the Faz 3 migration. */
+  reply_count: number;
+  /** Bumped when a new reply is posted. NOT bumped by reply edits or soft-deletes, or by editing the discussion itself. */
+  last_activity_at: string;
+  created_at: string;
+  updated_at: string;
 };
 
 /**
@@ -5073,20 +5454,197 @@ export type CreateDiscussion401 = {
   message: string;
 };
 
+/**
+ * Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check).
+ */
+export type CreateDiscussion429Error =
+  (typeof CreateDiscussion429Error)[keyof typeof CreateDiscussion429Error];
+
+export const CreateDiscussion429Error = {
+  already_decided: "already_decided",
+  already_voted: "already_voted",
+  internal_error: "internal_error",
+  invalid_body: "invalid_body",
+  invalid_discussion_id: "invalid_discussion_id",
+  invalid_news_id: "invalid_news_id",
+  invalid_poll_id: "invalid_poll_id",
+  invalid_project_id: "invalid_project_id",
+  invalid_query: "invalid_query",
+  invalid_redirect: "invalid_redirect",
+  invalid_reply_id: "invalid_reply_id",
+  invalid_request_id: "invalid_request_id",
+  invalid_team_id: "invalid_team_id",
+  invalid_user_id: "invalid_user_id",
+  invalid_version: "invalid_version",
+  method_not_allowed: "method_not_allowed",
+  misconfigured: "misconfigured",
+  missing_file: "missing_file",
+  not_found: "not_found",
+  poll_closed: "poll_closed",
+  poll_not_found: "poll_not_found",
+  query_error: "query_error",
+  rate_limited: "rate_limited",
+  rpc_error: "rpc_error",
+  storage_error: "storage_error",
+  too_large: "too_large",
+  unauthorized: "unauthorized",
+  unsupported_type: "unsupported_type",
+  username_taken: "username_taken",
+  vote_rejected: "vote_rejected",
+} as const;
+
+export type CreateDiscussion429 = {
+  /** Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check). */
+  error: CreateDiscussion429Error;
+  /** Human-readable detail, for logging/debugging. Never contains raw Postgres/PostgREST error text (constraint names, column names, internal query shape) -- see safeDbErrorMessage() in supabase/functions/_shared/http.ts. Not meant to be shown verbatim to end users; Website should key UI copy off `error`. */
+  message: string;
+};
+
+export type ListDiscussionCategories200Item = {
+  category: string;
+  count: number;
+};
+
+export type GetDiscussion200Author = {
+  id: string;
+  username: string;
+  avatar_url: string | null;
+};
+
+export type GetDiscussion200 = {
+  id: string;
+  title: string;
+  body: string;
+  author_id: string;
+  author: GetDiscussion200Author;
+  category?: string | null;
+  is_locked: boolean;
+  /** Count of non-deleted replies. Denormalized -- see the Faz 3 migration. */
+  reply_count: number;
+  /** Bumped when a new reply is posted. NOT bumped by reply edits or soft-deletes, or by editing the discussion itself. */
+  last_activity_at: string;
+  created_at: string;
+  updated_at: string;
+};
+
+/**
+ * Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check).
+ */
+export type GetDiscussion400Error =
+  (typeof GetDiscussion400Error)[keyof typeof GetDiscussion400Error];
+
+export const GetDiscussion400Error = {
+  already_decided: "already_decided",
+  already_voted: "already_voted",
+  internal_error: "internal_error",
+  invalid_body: "invalid_body",
+  invalid_discussion_id: "invalid_discussion_id",
+  invalid_news_id: "invalid_news_id",
+  invalid_poll_id: "invalid_poll_id",
+  invalid_project_id: "invalid_project_id",
+  invalid_query: "invalid_query",
+  invalid_redirect: "invalid_redirect",
+  invalid_reply_id: "invalid_reply_id",
+  invalid_request_id: "invalid_request_id",
+  invalid_team_id: "invalid_team_id",
+  invalid_user_id: "invalid_user_id",
+  invalid_version: "invalid_version",
+  method_not_allowed: "method_not_allowed",
+  misconfigured: "misconfigured",
+  missing_file: "missing_file",
+  not_found: "not_found",
+  poll_closed: "poll_closed",
+  poll_not_found: "poll_not_found",
+  query_error: "query_error",
+  rate_limited: "rate_limited",
+  rpc_error: "rpc_error",
+  storage_error: "storage_error",
+  too_large: "too_large",
+  unauthorized: "unauthorized",
+  unsupported_type: "unsupported_type",
+  username_taken: "username_taken",
+  vote_rejected: "vote_rejected",
+} as const;
+
+export type GetDiscussion400 = {
+  /** Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check). */
+  error: GetDiscussion400Error;
+  /** Human-readable detail, for logging/debugging. Never contains raw Postgres/PostgREST error text (constraint names, column names, internal query shape) -- see safeDbErrorMessage() in supabase/functions/_shared/http.ts. Not meant to be shown verbatim to end users; Website should key UI copy off `error`. */
+  message: string;
+};
+
+/**
+ * Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check).
+ */
+export type GetDiscussion404Error =
+  (typeof GetDiscussion404Error)[keyof typeof GetDiscussion404Error];
+
+export const GetDiscussion404Error = {
+  already_decided: "already_decided",
+  already_voted: "already_voted",
+  internal_error: "internal_error",
+  invalid_body: "invalid_body",
+  invalid_discussion_id: "invalid_discussion_id",
+  invalid_news_id: "invalid_news_id",
+  invalid_poll_id: "invalid_poll_id",
+  invalid_project_id: "invalid_project_id",
+  invalid_query: "invalid_query",
+  invalid_redirect: "invalid_redirect",
+  invalid_reply_id: "invalid_reply_id",
+  invalid_request_id: "invalid_request_id",
+  invalid_team_id: "invalid_team_id",
+  invalid_user_id: "invalid_user_id",
+  invalid_version: "invalid_version",
+  method_not_allowed: "method_not_allowed",
+  misconfigured: "misconfigured",
+  missing_file: "missing_file",
+  not_found: "not_found",
+  poll_closed: "poll_closed",
+  poll_not_found: "poll_not_found",
+  query_error: "query_error",
+  rate_limited: "rate_limited",
+  rpc_error: "rpc_error",
+  storage_error: "storage_error",
+  too_large: "too_large",
+  unauthorized: "unauthorized",
+  unsupported_type: "unsupported_type",
+  username_taken: "username_taken",
+  vote_rejected: "vote_rejected",
+} as const;
+
+export type GetDiscussion404 = {
+  /** Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check). */
+  error: GetDiscussion404Error;
+  /** Human-readable detail, for logging/debugging. Never contains raw Postgres/PostgREST error text (constraint names, column names, internal query shape) -- see safeDbErrorMessage() in supabase/functions/_shared/http.ts. Not meant to be shown verbatim to end users; Website should key UI copy off `error`. */
+  message: string;
+};
+
 export type UpdateDiscussionBody = {
   title?: string;
   body?: string;
   is_locked?: boolean;
 };
 
+export type UpdateDiscussion200Author = {
+  id: string;
+  username: string;
+  avatar_url: string | null;
+};
+
 export type UpdateDiscussion200 = {
   id: string;
   title: string;
-  body?: string;
+  body: string;
   author_id: string;
+  author: UpdateDiscussion200Author;
   category?: string | null;
   is_locked: boolean;
-  created_at?: string;
+  /** Count of non-deleted replies. Denormalized -- see the Faz 3 migration. */
+  reply_count: number;
+  /** Bumped when a new reply is posted. NOT bumped by reply edits or soft-deletes, or by editing the discussion itself. */
+  last_activity_at: string;
+  created_at: string;
+  updated_at: string;
 };
 
 /**
@@ -5332,14 +5890,24 @@ export type ListDiscussionRepliesParams = {
   cursor?: string;
 };
 
+export type ListDiscussionReplies200ItemsItemAuthor = {
+  id: string;
+  username: string;
+  avatar_url: string | null;
+};
+
 export type ListDiscussionReplies200ItemsItem = {
   id: string;
   discussion_id: string;
   author_id: string;
+  author: ListDiscussionReplies200ItemsItemAuthor;
   /** null/omitted when deleted_at is set -- render as "[deleted]". */
   body?: string | null;
   deleted_at?: string | null;
-  created_at?: string;
+  /** Set when body is edited. Distinct from deleted_at/updated_at -- see the Faz 3 migration. */
+  edited_at?: string | null;
+  created_at: string;
+  updated_at: string;
 };
 
 export type ListDiscussionReplies200 = {
@@ -5398,14 +5966,24 @@ export type ReplyToDiscussionBody = {
   body: string;
 };
 
+export type ReplyToDiscussion201Author = {
+  id: string;
+  username: string;
+  avatar_url: string | null;
+};
+
 export type ReplyToDiscussion201 = {
   id: string;
   discussion_id: string;
   author_id: string;
+  author: ReplyToDiscussion201Author;
   /** null/omitted when deleted_at is set -- render as "[deleted]". */
   body?: string | null;
   deleted_at?: string | null;
-  created_at?: string;
+  /** Set when body is edited. Distinct from deleted_at/updated_at -- see the Faz 3 migration. */
+  edited_at?: string | null;
+  created_at: string;
+  updated_at: string;
 };
 
 /**
@@ -5546,20 +6124,76 @@ export type ReplyToDiscussion403 = {
   message: string;
 };
 
+/**
+ * Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check).
+ */
+export type ReplyToDiscussion429Error =
+  (typeof ReplyToDiscussion429Error)[keyof typeof ReplyToDiscussion429Error];
+
+export const ReplyToDiscussion429Error = {
+  already_decided: "already_decided",
+  already_voted: "already_voted",
+  internal_error: "internal_error",
+  invalid_body: "invalid_body",
+  invalid_discussion_id: "invalid_discussion_id",
+  invalid_news_id: "invalid_news_id",
+  invalid_poll_id: "invalid_poll_id",
+  invalid_project_id: "invalid_project_id",
+  invalid_query: "invalid_query",
+  invalid_redirect: "invalid_redirect",
+  invalid_reply_id: "invalid_reply_id",
+  invalid_request_id: "invalid_request_id",
+  invalid_team_id: "invalid_team_id",
+  invalid_user_id: "invalid_user_id",
+  invalid_version: "invalid_version",
+  method_not_allowed: "method_not_allowed",
+  misconfigured: "misconfigured",
+  missing_file: "missing_file",
+  not_found: "not_found",
+  poll_closed: "poll_closed",
+  poll_not_found: "poll_not_found",
+  query_error: "query_error",
+  rate_limited: "rate_limited",
+  rpc_error: "rpc_error",
+  storage_error: "storage_error",
+  too_large: "too_large",
+  unauthorized: "unauthorized",
+  unsupported_type: "unsupported_type",
+  username_taken: "username_taken",
+  vote_rejected: "vote_rejected",
+} as const;
+
+export type ReplyToDiscussion429 = {
+  /** Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check). */
+  error: ReplyToDiscussion429Error;
+  /** Human-readable detail, for logging/debugging. Never contains raw Postgres/PostgREST error text (constraint names, column names, internal query shape) -- see safeDbErrorMessage() in supabase/functions/_shared/http.ts. Not meant to be shown verbatim to end users; Website should key UI copy off `error`. */
+  message: string;
+};
+
 export type UpdateDiscussionReplyBody = {
   body?: string;
   /** Set true to soft-delete. */
   deleted?: boolean;
 };
 
+export type UpdateDiscussionReply200Author = {
+  id: string;
+  username: string;
+  avatar_url: string | null;
+};
+
 export type UpdateDiscussionReply200 = {
   id: string;
   discussion_id: string;
   author_id: string;
+  author: UpdateDiscussionReply200Author;
   /** null/omitted when deleted_at is set -- render as "[deleted]". */
   body?: string | null;
   deleted_at?: string | null;
-  created_at?: string;
+  /** Set when body is edited. Distinct from deleted_at/updated_at -- see the Faz 3 migration. */
+  edited_at?: string | null;
+  created_at: string;
+  updated_at: string;
 };
 
 /**
