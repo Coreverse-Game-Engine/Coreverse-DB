@@ -189,6 +189,8 @@
 <li><strong>Every other list endpoint</strong> (<code>discussions</code>, a discussion's <code>replies</code>, <code>polls</code>, <code>news</code>) uses keyset ("cursor") pagination: <code>?limit=</code> (1-100, default 20) and <code>?cursor=</code>, and the response is <code>{ items: [...], next_cursor: string | null }</code> instead of a bare array. Fetch the next page by passing the previous page's <code>next_cursor</code> back as <code>?cursor=</code>; <code>next_cursor: null</code> means there is no next page. <code>cursor</code> is an opaque token — its encoding is an implementation detail (currently base64 of the last row's <code>created_at</code> and <code>id</code>) and shouldn't be parsed or constructed by clients. See <code>supabase/functions/_shared/pagination.ts</code> for the implementation.</li>
 </ul>
 <p>See <a href="../openapi/schemas.html">OpenAPI › Schemas</a> for the schema files these conventions are expressed in.</p>
+<h2 id="rate-limiting"><a class="header" href="#rate-limiting">Rate limiting</a></h2>
+<p>Write endpoints that any authenticated user (not just moderator/admin) can call are rate limited per-user, via <code>identity.hit_rate_limit()</code> (see <code>supabase/functions/_shared/rate-limit.ts</code>): creating a discussion (10/hour), posting a reply (30/hour), and casting a poll vote (60/hour). A 429 response includes a <code>Retry-After</code> header (seconds). Endpoints already gated to moderator/admin by RLS (<code>POST /polls</code>, <code>POST /news</code>) are not separately rate limited -- that's a much smaller spam surface than "any signed-in user."</p>
 
                     </main>
 
