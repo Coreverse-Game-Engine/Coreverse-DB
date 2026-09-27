@@ -6,11 +6,9 @@
  *
  * OpenAPI spec version: 0.4.2
  */
-import type { ListPolls200ItemOptionsItem } from "./listPolls200ItemOptionsItem";
 
-export type ListPolls200Item = {
+export type DiscussionReplyAuthor = {
   id: string;
-  question: string;
-  closes_at?: string | null;
-  options: ListPolls200ItemOptionsItem[];
+  username: string;
+  avatar_url: string | null;
 };

@@ -6,13 +6,18 @@
  *
  * OpenAPI spec version: 0.4.2
  */
+import type { ListDiscussionReplies200ItemsItemAuthor } from "./listDiscussionReplies200ItemsItemAuthor";
 
-export type ListDiscussionReplies200Item = {
+export type ListDiscussionReplies200ItemsItem = {
   id: string;
   discussion_id: string;
   author_id: string;
+  author: ListDiscussionReplies200ItemsItemAuthor;
   /** null/omitted when deleted_at is set -- render as "[deleted]". */
   body?: string | null;
   deleted_at?: string | null;
-  created_at?: string;
+  /** Set when body is edited. Distinct from deleted_at/updated_at -- see the Faz 3 migration. */
+  edited_at?: string | null;
+  created_at: string;
+  updated_at: string;
 };

@@ -11,5 +11,7 @@ import type { UpdateNewsBodyStatus } from "./updateNewsBodyStatus";
 export type UpdateNewsBody = {
   title?: string;
   body?: string;
+  summary?: string | null;
+  cover_image_path?: string | null;
   status?: UpdateNewsBodyStatus;
 };

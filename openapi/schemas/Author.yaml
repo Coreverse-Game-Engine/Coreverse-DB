@@ -1,0 +1,14 @@
+type: object
+required:
+  - id
+  - username
+  - avatar_url
+properties:
+  id:
+    type: string
+    format: uuid
+  username:
+    type: string
+  avatar_url:
+    type: string
+    nullable: true

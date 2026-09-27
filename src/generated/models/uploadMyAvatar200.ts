@@ -6,6 +6,7 @@
  *
  * OpenAPI spec version: 0.4.2
  */
+import type { UploadMyAvatar200PlatformRole } from "./uploadMyAvatar200PlatformRole";
 
 export type UploadMyAvatar200 = {
   id: string;
@@ -15,4 +16,8 @@ export type UploadMyAvatar200 = {
   username?: string | null;
   /** Public/signed URL resolved from the stored avatar_path, not the raw path itself. */
   avatar_url?: string | null;
+  /** Only present on GET /profiles/me (never on another user's profile) -- identity.platform_roles is self-only RLS. null means no elevated role. */
+  platform_role?: UploadMyAvatar200PlatformRole;
+  created_at: string;
+  updated_at: string;
 };

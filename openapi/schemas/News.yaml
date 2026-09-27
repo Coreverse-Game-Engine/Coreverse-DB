@@ -3,7 +3,11 @@ required:
   - id
   - title
   - slug
+  - author_id
+  - author
   - status
+  - created_at
+  - updated_at
 properties:
   id:
     type: string
@@ -14,9 +18,18 @@ properties:
     type: string
   body:
     type: string
+  summary:
+    type: string
+    nullable: true
+    description: Optional short standalone summary, distinct from body -- for list views/link previews.
+  cover_image_url:
+    type: string
+    nullable: true
   author_id:
     type: string
     format: uuid
+  author:
+    $ref: './Author.yaml'
   status:
     type: string
     enum: [draft, published]
@@ -24,3 +37,9 @@ properties:
     type: string
     format: date-time
     nullable: true
+  created_at:
+    type: string
+    format: date-time
+  updated_at:
+    type: string
+    format: date-time

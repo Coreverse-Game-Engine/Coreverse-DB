@@ -3,6 +3,10 @@ required:
   - id
   - question
   - options
+  - is_closed
+  - total_votes
+  - my_option_id
+  - created_at
 properties:
   id:
     type: string
@@ -13,6 +17,30 @@ properties:
     type: string
     format: date-time
     nullable: true
+  is_closed:
+    type: boolean
+    description: Computed from closes_at at read time (closes_at !== null && closes_at <= now).
+  total_votes:
+    type: integer
+    description: Aggregate across all users (content.poll_vote_totals()) -- always present, 0 on a brand-new poll.
+  my_option_id:
+    type: string
+    format: uuid
+    nullable: true
+    description: >
+      The caller's own vote, if any. Always null for an anonymous
+      caller or one who hasn't voted -- never another user's vote
+      (poll_votes_self_read RLS).
+  results:
+    type: array
+    description: Only present when the request used ?include=results.
+    items:
+      type: object
+      required: [option_id, label, vote_count]
+      properties:
+        option_id: { type: string, format: uuid }
+        label: { type: string }
+        vote_count: { type: integer }
   options:
     type: array
     items:
@@ -22,3 +50,6 @@ properties:
         id: { type: string, format: uuid }
         label: { type: string }
         display_order: { type: integer }
+  created_at:
+    type: string
+    format: date-time

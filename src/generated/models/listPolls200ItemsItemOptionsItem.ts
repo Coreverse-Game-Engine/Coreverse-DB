@@ -7,12 +7,8 @@
  * OpenAPI spec version: 0.4.2
  */
 
-export type ListDiscussions200Item = {
+export type ListPolls200ItemsItemOptionsItem = {
   id: string;
-  title: string;
-  body?: string;
-  author_id: string;
-  category?: string | null;
-  is_locked: boolean;
-  created_at?: string;
+  label: string;
+  display_order?: number;
 };

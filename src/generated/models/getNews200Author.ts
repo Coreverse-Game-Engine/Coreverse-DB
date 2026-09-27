@@ -7,8 +7,8 @@
  * OpenAPI spec version: 0.4.2
  */
 
-export type ListPolls200ItemOptionsItem = {
+export type GetNews200Author = {
   id: string;
-  label: string;
-  display_order?: number;
+  username: string;
+  avatar_url: string | null;
 };

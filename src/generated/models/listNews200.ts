@@ -6,14 +6,10 @@
  *
  * OpenAPI spec version: 0.4.2
  */
-import type { ListNews200ItemStatus } from "./listNews200ItemStatus";
+import type { ListNews200ItemsItem } from "./listNews200ItemsItem";
 
-export type ListNews200Item = {
-  id: string;
-  title: string;
-  slug: string;
-  body?: string;
-  author_id?: string;
-  status: ListNews200ItemStatus;
-  published_at?: string | null;
+export type ListNews200 = {
+  items: ListNews200ItemsItem[];
+  /** Pass as ?cursor= to fetch the next page. null once there are no more. */
+  next_cursor: string | null;
 };

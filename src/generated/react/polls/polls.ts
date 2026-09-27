@@ -25,6 +25,7 @@ import type {
   CastVote401,
   CastVote404,
   CastVote409,
+  CastVote429,
   CastVoteBody,
   CreatePoll201,
   CreatePoll400,
@@ -32,7 +33,9 @@ import type {
   CreatePollBody,
   GetPollResults200Item,
   GetPollResults400,
-  ListPolls200Item,
+  ListPolls200,
+  ListPolls400,
+  ListPollsParams,
 } from "../coreverseDBAPI.schemas";
 
 import { coreverseFetch } from "../../../client/http";
@@ -58,51 +61,78 @@ const withQueryKey = <T extends object, K>(
 };
 
 export type listPollsResponse200 = {
-  data: ListPolls200Item[];
+  data: ListPolls200;
   status: 200;
+};
+
+export type listPollsResponse400 = {
+  data: ListPolls400;
+  status: 400;
 };
 
 export type listPollsResponseSuccess = listPollsResponse200 & {
   headers: Headers;
 };
-export type listPollsResponse = listPollsResponseSuccess;
+export type listPollsResponseError = listPollsResponse400 & {
+  headers: Headers;
+};
 
-export const getListPollsUrl = () => {
-  return `/polls`;
+export type listPollsResponse =
+  listPollsResponseSuccess | listPollsResponseError;
+
+export const getListPollsUrl = (params?: ListPollsParams) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : String(value));
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/polls?${stringifiedParams}`
+    : `/polls`;
 };
 
 /**
+ * my_option_id is only ever the caller's own vote -- pass a bearer token to get it populated, omit it to always get null (never another user's vote).
  * @summary List polls (with their options)
  */
 export const listPolls = async (
+  params?: ListPollsParams,
   options?: Parameters<typeof coreverseFetch>[1],
 ): Promise<listPollsResponse> => {
-  return coreverseFetch<listPollsResponse>(getListPollsUrl(), {
+  return coreverseFetch<listPollsResponse>(getListPollsUrl(params), {
     ...options,
     method: "GET",
   });
 };
 
-export const getListPollsQueryKey = () => {
-  return [`/polls`] as const;
+export const getListPollsQueryKey = (params?: ListPollsParams) => {
+  return [`/polls`, ...(params ? [params] : [])] as const;
 };
 
 export const getListPollsQueryOptions = <
   TData = Awaited<ReturnType<typeof listPolls>>,
-  TError = unknown,
->(options?: {
-  query?: Partial<
-    UseQueryOptions<Awaited<ReturnType<typeof listPolls>>, TError, TData>
-  >;
-  request?: SecondParameter<typeof coreverseFetch>;
-}) => {
+  TError = ListPolls400,
+>(
+  params?: ListPollsParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof listPolls>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof coreverseFetch>;
+  },
+) => {
   const { query: queryOptions, request: requestOptions } = options ?? {};
 
-  const queryKey = queryOptions?.queryKey ?? getListPollsQueryKey();
+  const queryKey = queryOptions?.queryKey ?? getListPollsQueryKey(params);
 
   const queryFn: QueryFunction<Awaited<ReturnType<typeof listPolls>>> = ({
     signal,
-  }) => listPolls({ signal, ...requestOptions });
+  }) => listPolls(params, { signal, ...requestOptions });
 
   return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
     Awaited<ReturnType<typeof listPolls>>,
@@ -114,12 +144,13 @@ export const getListPollsQueryOptions = <
 export type ListPollsQueryResult = NonNullable<
   Awaited<ReturnType<typeof listPolls>>
 >;
-export type ListPollsQueryError = unknown;
+export type ListPollsQueryError = ListPolls400;
 
 export function useListPolls<
   TData = Awaited<ReturnType<typeof listPolls>>,
-  TError = unknown,
+  TError = ListPolls400,
 >(
+  params: undefined | ListPollsParams,
   options: {
     query: Partial<
       UseQueryOptions<Awaited<ReturnType<typeof listPolls>>, TError, TData>
@@ -140,8 +171,9 @@ export function useListPolls<
 };
 export function useListPolls<
   TData = Awaited<ReturnType<typeof listPolls>>,
-  TError = unknown,
+  TError = ListPolls400,
 >(
+  params?: ListPollsParams,
   options?: {
     query?: Partial<
       UseQueryOptions<Awaited<ReturnType<typeof listPolls>>, TError, TData>
@@ -162,8 +194,9 @@ export function useListPolls<
 };
 export function useListPolls<
   TData = Awaited<ReturnType<typeof listPolls>>,
-  TError = unknown,
+  TError = ListPolls400,
 >(
+  params?: ListPollsParams,
   options?: {
     query?: Partial<
       UseQueryOptions<Awaited<ReturnType<typeof listPolls>>, TError, TData>
@@ -180,8 +213,9 @@ export function useListPolls<
 
 export function useListPolls<
   TData = Awaited<ReturnType<typeof listPolls>>,
-  TError = unknown,
+  TError = ListPolls400,
 >(
+  params?: ListPollsParams,
   options?: {
     query?: Partial<
       UseQueryOptions<Awaited<ReturnType<typeof listPolls>>, TError, TData>
@@ -192,7 +226,7 @@ export function useListPolls<
 ): UseQueryResult<TData, TError> & {
   queryKey: DataTag<QueryKey, TData, TError>;
 } {
-  const queryOptions = getListPollsQueryOptions(options);
+  const queryOptions = getListPollsQueryOptions(params, options);
 
   const query = useQuery(queryOptions, queryClient) as UseQueryResult<
     TData,
@@ -411,6 +445,11 @@ export type castVoteResponse409 = {
   status: 409;
 };
 
+export type castVoteResponse429 = {
+  data: CastVote429;
+  status: 429;
+};
+
 export type castVoteResponseSuccess = castVoteResponse201 & {
   headers: Headers;
 };
@@ -419,6 +458,7 @@ export type castVoteResponseError = (
   | castVoteResponse401
   | castVoteResponse404
   | castVoteResponse409
+  | castVoteResponse429
 ) & {
   headers: Headers;
 };
@@ -465,7 +505,7 @@ export const getCastVoteQueryKey = (
 
 export const getCastVoteQueryOptions = <
   TData = Awaited<ReturnType<typeof castVote>>,
-  TError = CastVote400 | CastVote401 | CastVote404 | CastVote409,
+  TError = CastVote400 | CastVote401 | CastVote404 | CastVote409 | CastVote429,
 >(
   pollId: string,
   castVoteBody: CastVoteBody,
@@ -499,11 +539,11 @@ export type CastVoteQueryResult = NonNullable<
   Awaited<ReturnType<typeof castVote>>
 >;
 export type CastVoteQueryError =
-  CastVote400 | CastVote401 | CastVote404 | CastVote409;
+  CastVote400 | CastVote401 | CastVote404 | CastVote409 | CastVote429;
 
 export function useCastVote<
   TData = Awaited<ReturnType<typeof castVote>>,
-  TError = CastVote400 | CastVote401 | CastVote404 | CastVote409,
+  TError = CastVote400 | CastVote401 | CastVote404 | CastVote409 | CastVote429,
 >(
   pollId: string,
   castVoteBody: CastVoteBody,
@@ -527,7 +567,7 @@ export function useCastVote<
 };
 export function useCastVote<
   TData = Awaited<ReturnType<typeof castVote>>,
-  TError = CastVote400 | CastVote401 | CastVote404 | CastVote409,
+  TError = CastVote400 | CastVote401 | CastVote404 | CastVote409 | CastVote429,
 >(
   pollId: string,
   castVoteBody: CastVoteBody,
@@ -551,7 +591,7 @@ export function useCastVote<
 };
 export function useCastVote<
   TData = Awaited<ReturnType<typeof castVote>>,
-  TError = CastVote400 | CastVote401 | CastVote404 | CastVote409,
+  TError = CastVote400 | CastVote401 | CastVote404 | CastVote409 | CastVote429,
 >(
   pollId: string,
   castVoteBody: CastVoteBody,
@@ -571,7 +611,7 @@ export function useCastVote<
 
 export function useCastVote<
   TData = Awaited<ReturnType<typeof castVote>>,
-  TError = CastVote400 | CastVote401 | CastVote404 | CastVote409,
+  TError = CastVote400 | CastVote401 | CastVote404 | CastVote409 | CastVote429,
 >(
   pollId: string,
   castVoteBody: CastVoteBody,
