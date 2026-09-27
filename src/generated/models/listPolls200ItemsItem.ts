@@ -7,10 +7,20 @@
  * OpenAPI spec version: 0.4.2
  */
 import type { ListPolls200ItemsItemOptionsItem } from "./listPolls200ItemsItemOptionsItem";
+import type { ListPolls200ItemsItemResultsItem } from "./listPolls200ItemsItemResultsItem";
 
 export type ListPolls200ItemsItem = {
   id: string;
   question: string;
   closes_at?: string | null;
+  /** Computed from closes_at at read time (closes_at !== null && closes_at <= now). */
+  is_closed: boolean;
+  /** Aggregate across all users (content.poll_vote_totals()) -- always present, 0 on a brand-new poll. */
+  total_votes: number;
+  /** The caller's own vote, if any. Always null for an anonymous caller or one who hasn't voted -- never another user's vote (poll_votes_self_read RLS). */
+  my_option_id: string | null;
+  /** Only present when the request used ?include=results. */
+  results?: ListPolls200ItemsItemResultsItem[];
   options: ListPolls200ItemsItemOptionsItem[];
+  created_at: string;
 };

@@ -3,8 +3,23 @@ list:
     summary: List polls (with their options)
     operationId: listPolls
     tags: [polls]
-    security: []
+    security:
+      - {}
+      - bearerAuth: []
+    description: >
+      my_option_id is only ever the caller's own vote -- pass a bearer
+      token to get it populated, omit it to always get null (never
+      another user's vote).
     parameters:
+      - name: status
+        in: query
+        required: false
+        schema: { type: string, enum: [open, closed] }
+      - name: include
+        in: query
+        required: false
+        schema: { type: string, enum: [results] }
+        description: include=results embeds full per-option counts (one extra call per poll on the page -- keep limit modest when using this).
       - $ref: '../parameters/Pagination.yaml#/limit'
       - $ref: '../parameters/Pagination.yaml#/cursor'
     responses:
@@ -25,7 +40,7 @@ list:
                   nullable: true
                   description: Pass as ?cursor= to fetch the next page. null once there are no more.
       '400':
-        description: Invalid limit or cursor.
+        description: Invalid status, include, limit, or cursor.
         content:
           application/json:
             schema:
@@ -121,6 +136,12 @@ vote:
         description: >
           Already voted (error is "already_voted") or the poll is
           closed (error is "poll_closed").
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/Error.yaml'
+      '429':
+        description: Rate limited (60 votes/hour per user). Retry-After header is seconds.
         content:
           application/json:
             schema:

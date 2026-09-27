@@ -15,6 +15,8 @@ import type {
   CreateNewsBody,
   DeleteNews400,
   DeleteNews404,
+  GetNews200,
+  GetNews404,
   ListNews200,
   ListNews400,
   ListNewsParams,
@@ -141,6 +143,43 @@ export const createNews = async (
       ...getHeaders(options?.headers),
     },
     body: JSON.stringify(createNewsBody),
+  });
+};
+
+export type getNewsResponse200 = {
+  data: GetNews200;
+  status: 200;
+};
+
+export type getNewsResponse404 = {
+  data: GetNews404;
+  status: 404;
+};
+
+export type getNewsResponseSuccess = getNewsResponse200 & {
+  headers: Headers;
+};
+export type getNewsResponseError = getNewsResponse404 & {
+  headers: Headers;
+};
+
+export type getNewsResponse = getNewsResponseSuccess | getNewsResponseError;
+
+export const getGetNewsUrl = (newsId: string) => {
+  return `/news/${newsId}`;
+};
+
+/**
+ * Same visibility as the list endpoint (RLS: published is public; a draft is visible to its author or a moderator/admin).
+ * @summary Fetch one news item, by id or by slug
+ */
+export const getNews = async (
+  newsId: string,
+  options?: Parameters<typeof coreverseFetch>[1],
+): Promise<getNewsResponse> => {
+  return coreverseFetch<getNewsResponse>(getGetNewsUrl(newsId), {
+    ...options,
+    method: "GET",
   });
 };
 

@@ -38,9 +38,23 @@ export const ListNewsResponse = zod.object({
       title: zod.string(),
       slug: zod.string(),
       body: zod.string().optional(),
-      author_id: zod.uuid().optional(),
+      summary: zod
+        .string()
+        .nullish()
+        .describe(
+          "Optional short standalone summary, distinct from body -- for list views\/link previews.",
+        ),
+      cover_image_url: zod.string().nullish(),
+      author_id: zod.uuid(),
+      author: zod.object({
+        id: zod.uuid(),
+        username: zod.string(),
+        avatar_url: zod.string().nullable(),
+      }),
       status: zod.enum(["draft", "published"]),
       published_at: zod.iso.datetime({ offset: true }).nullish(),
+      created_at: zod.iso.datetime({ offset: true }),
+      updated_at: zod.iso.datetime({ offset: true }),
     }),
   ),
   next_cursor: zod
@@ -58,6 +72,13 @@ export const CreateNewsBody = zod.object({
   title: zod.string(),
   slug: zod.string(),
   body: zod.string(),
+  summary: zod.string().nullish(),
+  cover_image_path: zod
+    .string()
+    .nullish()
+    .describe(
+      "Storage path in the news-covers bucket (moderator\/admin-write only). Resolved to cover_image_url in the response.\n",
+    ),
 });
 
 export const CreateNewsResponse = zod.object({
@@ -65,9 +86,59 @@ export const CreateNewsResponse = zod.object({
   title: zod.string(),
   slug: zod.string(),
   body: zod.string().optional(),
-  author_id: zod.uuid().optional(),
+  summary: zod
+    .string()
+    .nullish()
+    .describe(
+      "Optional short standalone summary, distinct from body -- for list views\/link previews.",
+    ),
+  cover_image_url: zod.string().nullish(),
+  author_id: zod.uuid(),
+  author: zod.object({
+    id: zod.uuid(),
+    username: zod.string(),
+    avatar_url: zod.string().nullable(),
+  }),
   status: zod.enum(["draft", "published"]),
   published_at: zod.iso.datetime({ offset: true }).nullish(),
+  created_at: zod.iso.datetime({ offset: true }),
+  updated_at: zod.iso.datetime({ offset: true }),
+});
+
+/**
+ * Same visibility as the list endpoint (RLS: published is public; a draft is visible to its author or a moderator/admin).
+ * @summary Fetch one news item, by id or by slug
+ */
+export const GetNewsParams = zod.object({
+  newsId: zod
+    .string()
+    .describe(
+      "Either the item's uuid id, or its slug (Website's article URLs are slug-based). PATCH\/DELETE below only accept the uuid id.\n",
+    ),
+});
+
+export const GetNewsResponse = zod.object({
+  id: zod.uuid(),
+  title: zod.string(),
+  slug: zod.string(),
+  body: zod.string().optional(),
+  summary: zod
+    .string()
+    .nullish()
+    .describe(
+      "Optional short standalone summary, distinct from body -- for list views\/link previews.",
+    ),
+  cover_image_url: zod.string().nullish(),
+  author_id: zod.uuid(),
+  author: zod.object({
+    id: zod.uuid(),
+    username: zod.string(),
+    avatar_url: zod.string().nullable(),
+  }),
+  status: zod.enum(["draft", "published"]),
+  published_at: zod.iso.datetime({ offset: true }).nullish(),
+  created_at: zod.iso.datetime({ offset: true }),
+  updated_at: zod.iso.datetime({ offset: true }),
 });
 
 /**
@@ -80,6 +151,8 @@ export const UpdateNewsParams = zod.object({
 export const UpdateNewsBody = zod.object({
   title: zod.string().optional(),
   body: zod.string().optional(),
+  summary: zod.string().nullish(),
+  cover_image_path: zod.string().nullish(),
   status: zod.enum(["draft", "published"]).optional(),
 });
 
@@ -88,9 +161,23 @@ export const UpdateNewsResponse = zod.object({
   title: zod.string(),
   slug: zod.string(),
   body: zod.string().optional(),
-  author_id: zod.uuid().optional(),
+  summary: zod
+    .string()
+    .nullish()
+    .describe(
+      "Optional short standalone summary, distinct from body -- for list views\/link previews.",
+    ),
+  cover_image_url: zod.string().nullish(),
+  author_id: zod.uuid(),
+  author: zod.object({
+    id: zod.uuid(),
+    username: zod.string(),
+    avatar_url: zod.string().nullable(),
+  }),
   status: zod.enum(["draft", "published"]),
   published_at: zod.iso.datetime({ offset: true }).nullish(),
+  created_at: zod.iso.datetime({ offset: true }),
+  updated_at: zod.iso.datetime({ offset: true }),
 });
 
 /**

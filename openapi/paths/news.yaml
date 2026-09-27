@@ -57,6 +57,14 @@ list:
               title: { type: string }
               slug: { type: string }
               body: { type: string }
+              summary: { type: string, nullable: true }
+              cover_image_path:
+                type: string
+                nullable: true
+                description: >
+                  Storage path in the news-covers bucket
+                  (moderator/admin-write only). Resolved to
+                  cover_image_url in the response.
     responses:
       '201':
         description: Created (draft) news item.
@@ -90,6 +98,37 @@ list:
               $ref: '../schemas/Error.yaml'
 
 byId:
+  get:
+    summary: Fetch one news item, by id or by slug
+    operationId: getNews
+    tags: [news]
+    security:
+      - {}
+      - bearerAuth: []
+    description: >
+      Same visibility as the list endpoint (RLS: published is public; a
+      draft is visible to its author or a moderator/admin).
+    parameters:
+      - name: newsId
+        in: path
+        required: true
+        schema: { type: string }
+        description: >
+          Either the item's uuid id, or its slug (Website's article URLs
+          are slug-based). PATCH/DELETE below only accept the uuid id.
+    responses:
+      '200':
+        description: The news item.
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/News.yaml'
+      '404':
+        description: No news item with that id or slug (or not authorized to see it).
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/Error.yaml'
   patch:
     summary: Update a news item, e.g. to publish it (moderator/admin only)
     operationId: updateNews
@@ -110,6 +149,8 @@ byId:
             properties:
               title: { type: string }
               body: { type: string }
+              summary: { type: string, nullable: true }
+              cover_image_path: { type: string, nullable: true }
               status: { type: string, enum: [draft, published] }
     responses:
       '200':

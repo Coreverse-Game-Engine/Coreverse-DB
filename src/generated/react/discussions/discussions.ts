@@ -23,9 +23,14 @@ import type {
   CreateDiscussion201,
   CreateDiscussion400,
   CreateDiscussion401,
+  CreateDiscussion429,
   CreateDiscussionBody,
   DeleteDiscussion400,
   DeleteDiscussion404,
+  GetDiscussion200,
+  GetDiscussion400,
+  GetDiscussion404,
+  ListDiscussionCategories200Item,
   ListDiscussionReplies200,
   ListDiscussionReplies400,
   ListDiscussionRepliesParams,
@@ -36,6 +41,7 @@ import type {
   ReplyToDiscussion400,
   ReplyToDiscussion401,
   ReplyToDiscussion403,
+  ReplyToDiscussion429,
   ReplyToDiscussionBody,
   UpdateDiscussion200,
   UpdateDiscussion400,
@@ -284,11 +290,18 @@ export type createDiscussionResponse401 = {
   status: 401;
 };
 
+export type createDiscussionResponse429 = {
+  data: CreateDiscussion429;
+  status: 429;
+};
+
 export type createDiscussionResponseSuccess = createDiscussionResponse201 & {
   headers: Headers;
 };
 export type createDiscussionResponseError = (
-  createDiscussionResponse400 | createDiscussionResponse401
+  | createDiscussionResponse400
+  | createDiscussionResponse401
+  | createDiscussionResponse429
 ) & {
   headers: Headers;
 };
@@ -334,7 +347,7 @@ export const getCreateDiscussionQueryKey = (
 
 export const getCreateDiscussionQueryOptions = <
   TData = Awaited<ReturnType<typeof createDiscussion>>,
-  TError = CreateDiscussion400 | CreateDiscussion401,
+  TError = CreateDiscussion400 | CreateDiscussion401 | CreateDiscussion429,
 >(
   createDiscussionBody: CreateDiscussionBody,
   options?: {
@@ -369,11 +382,11 @@ export type CreateDiscussionQueryResult = NonNullable<
   Awaited<ReturnType<typeof createDiscussion>>
 >;
 export type CreateDiscussionQueryError =
-  CreateDiscussion400 | CreateDiscussion401;
+  CreateDiscussion400 | CreateDiscussion401 | CreateDiscussion429;
 
 export function useCreateDiscussion<
   TData = Awaited<ReturnType<typeof createDiscussion>>,
-  TError = CreateDiscussion400 | CreateDiscussion401,
+  TError = CreateDiscussion400 | CreateDiscussion401 | CreateDiscussion429,
 >(
   createDiscussionBody: CreateDiscussionBody,
   options: {
@@ -400,7 +413,7 @@ export function useCreateDiscussion<
 };
 export function useCreateDiscussion<
   TData = Awaited<ReturnType<typeof createDiscussion>>,
-  TError = CreateDiscussion400 | CreateDiscussion401,
+  TError = CreateDiscussion400 | CreateDiscussion401 | CreateDiscussion429,
 >(
   createDiscussionBody: CreateDiscussionBody,
   options?: {
@@ -427,7 +440,7 @@ export function useCreateDiscussion<
 };
 export function useCreateDiscussion<
   TData = Awaited<ReturnType<typeof createDiscussion>>,
-  TError = CreateDiscussion400 | CreateDiscussion401,
+  TError = CreateDiscussion400 | CreateDiscussion401 | CreateDiscussion429,
 >(
   createDiscussionBody: CreateDiscussionBody,
   options?: {
@@ -450,7 +463,7 @@ export function useCreateDiscussion<
 
 export function useCreateDiscussion<
   TData = Awaited<ReturnType<typeof createDiscussion>>,
-  TError = CreateDiscussion400 | CreateDiscussion401,
+  TError = CreateDiscussion400 | CreateDiscussion401 | CreateDiscussion429,
 >(
   createDiscussionBody: CreateDiscussionBody,
   options?: {
@@ -471,6 +484,357 @@ export function useCreateDiscussion<
     createDiscussionBody,
     options,
   );
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<
+    TData,
+    TError
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+export type listDiscussionCategoriesResponse200 = {
+  data: ListDiscussionCategories200Item[];
+  status: 200;
+};
+
+export type listDiscussionCategoriesResponseSuccess =
+  listDiscussionCategoriesResponse200 & {
+    headers: Headers;
+  };
+export type listDiscussionCategoriesResponse =
+  listDiscussionCategoriesResponseSuccess;
+
+export const getListDiscussionCategoriesUrl = () => {
+  return `/discussions/categories`;
+};
+
+/**
+ * For a filter UI. Categories are free text (trimmed + lowercased at write time), not a fixed/localized set -- see the Faz 3 plan notes.
+ * @summary Distinct discussion categories with counts
+ */
+export const listDiscussionCategories = async (
+  options?: Parameters<typeof coreverseFetch>[1],
+): Promise<listDiscussionCategoriesResponse> => {
+  return coreverseFetch<listDiscussionCategoriesResponse>(
+    getListDiscussionCategoriesUrl(),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getListDiscussionCategoriesQueryKey = () => {
+  return [`/discussions/categories`] as const;
+};
+
+export const getListDiscussionCategoriesQueryOptions = <
+  TData = Awaited<ReturnType<typeof listDiscussionCategories>>,
+  TError = unknown,
+>(options?: {
+  query?: Partial<
+    UseQueryOptions<
+      Awaited<ReturnType<typeof listDiscussionCategories>>,
+      TError,
+      TData
+    >
+  >;
+  request?: SecondParameter<typeof coreverseFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getListDiscussionCategoriesQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof listDiscussionCategories>>
+  > = ({ signal }) => listDiscussionCategories({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listDiscussionCategories>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type ListDiscussionCategoriesQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listDiscussionCategories>>
+>;
+export type ListDiscussionCategoriesQueryError = unknown;
+
+export function useListDiscussionCategories<
+  TData = Awaited<ReturnType<typeof listDiscussionCategories>>,
+  TError = unknown,
+>(
+  options: {
+    query: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof listDiscussionCategories>>,
+        TError,
+        TData
+      >
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listDiscussionCategories>>,
+          TError,
+          Awaited<ReturnType<typeof listDiscussionCategories>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof coreverseFetch>;
+  },
+  queryClient?: QueryClient,
+): DefinedUseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+export function useListDiscussionCategories<
+  TData = Awaited<ReturnType<typeof listDiscussionCategories>>,
+  TError = unknown,
+>(
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof listDiscussionCategories>>,
+        TError,
+        TData
+      >
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listDiscussionCategories>>,
+          TError,
+          Awaited<ReturnType<typeof listDiscussionCategories>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof coreverseFetch>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+export function useListDiscussionCategories<
+  TData = Awaited<ReturnType<typeof listDiscussionCategories>>,
+  TError = unknown,
+>(
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof listDiscussionCategories>>,
+        TError,
+        TData
+      >
+    >;
+    request?: SecondParameter<typeof coreverseFetch>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+/**
+ * @summary Distinct discussion categories with counts
+ */
+
+export function useListDiscussionCategories<
+  TData = Awaited<ReturnType<typeof listDiscussionCategories>>,
+  TError = unknown,
+>(
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof listDiscussionCategories>>,
+        TError,
+        TData
+      >
+    >;
+    request?: SecondParameter<typeof coreverseFetch>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+} {
+  const queryOptions = getListDiscussionCategoriesQueryOptions(options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<
+    TData,
+    TError
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+export type getDiscussionResponse200 = {
+  data: GetDiscussion200;
+  status: 200;
+};
+
+export type getDiscussionResponse400 = {
+  data: GetDiscussion400;
+  status: 400;
+};
+
+export type getDiscussionResponse404 = {
+  data: GetDiscussion404;
+  status: 404;
+};
+
+export type getDiscussionResponseSuccess = getDiscussionResponse200 & {
+  headers: Headers;
+};
+export type getDiscussionResponseError = (
+  getDiscussionResponse400 | getDiscussionResponse404
+) & {
+  headers: Headers;
+};
+
+export type getDiscussionResponse =
+  getDiscussionResponseSuccess | getDiscussionResponseError;
+
+export const getGetDiscussionUrl = (discussionId: string) => {
+  return `/discussions/${discussionId}`;
+};
+
+/**
+ * @summary Fetch one discussion (full body)
+ */
+export const getDiscussion = async (
+  discussionId: string,
+  options?: Parameters<typeof coreverseFetch>[1],
+): Promise<getDiscussionResponse> => {
+  return coreverseFetch<getDiscussionResponse>(
+    getGetDiscussionUrl(discussionId),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getGetDiscussionQueryKey = (discussionId: string) => {
+  return [`/discussions/${discussionId}`] as const;
+};
+
+export const getGetDiscussionQueryOptions = <
+  TData = Awaited<ReturnType<typeof getDiscussion>>,
+  TError = GetDiscussion400 | GetDiscussion404,
+>(
+  discussionId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getDiscussion>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof coreverseFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGetDiscussionQueryKey(discussionId);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getDiscussion>>> = ({
+    signal,
+  }) => getDiscussion(discussionId, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: discussionId !== null && discussionId !== undefined,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getDiscussion>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type GetDiscussionQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getDiscussion>>
+>;
+export type GetDiscussionQueryError = GetDiscussion400 | GetDiscussion404;
+
+export function useGetDiscussion<
+  TData = Awaited<ReturnType<typeof getDiscussion>>,
+  TError = GetDiscussion400 | GetDiscussion404,
+>(
+  discussionId: string,
+  options: {
+    query: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getDiscussion>>, TError, TData>
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getDiscussion>>,
+          TError,
+          Awaited<ReturnType<typeof getDiscussion>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof coreverseFetch>;
+  },
+  queryClient?: QueryClient,
+): DefinedUseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+export function useGetDiscussion<
+  TData = Awaited<ReturnType<typeof getDiscussion>>,
+  TError = GetDiscussion400 | GetDiscussion404,
+>(
+  discussionId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getDiscussion>>, TError, TData>
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getDiscussion>>,
+          TError,
+          Awaited<ReturnType<typeof getDiscussion>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof coreverseFetch>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+export function useGetDiscussion<
+  TData = Awaited<ReturnType<typeof getDiscussion>>,
+  TError = GetDiscussion400 | GetDiscussion404,
+>(
+  discussionId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getDiscussion>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof coreverseFetch>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+/**
+ * @summary Fetch one discussion (full body)
+ */
+
+export function useGetDiscussion<
+  TData = Awaited<ReturnType<typeof getDiscussion>>,
+  TError = GetDiscussion400 | GetDiscussion404,
+>(
+  discussionId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getDiscussion>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof coreverseFetch>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+} {
+  const queryOptions = getGetDiscussionQueryOptions(discussionId, options);
 
   const query = useQuery(queryOptions, queryClient) as UseQueryResult<
     TData,
@@ -1170,6 +1534,11 @@ export type replyToDiscussionResponse403 = {
   status: 403;
 };
 
+export type replyToDiscussionResponse429 = {
+  data: ReplyToDiscussion429;
+  status: 429;
+};
+
 export type replyToDiscussionResponseSuccess = replyToDiscussionResponse201 & {
   headers: Headers;
 };
@@ -1177,6 +1546,7 @@ export type replyToDiscussionResponseError = (
   | replyToDiscussionResponse400
   | replyToDiscussionResponse401
   | replyToDiscussionResponse403
+  | replyToDiscussionResponse429
 ) & {
   headers: Headers;
 };
@@ -1231,7 +1601,11 @@ export const getReplyToDiscussionQueryKey = (
 
 export const getReplyToDiscussionQueryOptions = <
   TData = Awaited<ReturnType<typeof replyToDiscussion>>,
-  TError = ReplyToDiscussion400 | ReplyToDiscussion401 | ReplyToDiscussion403,
+  TError =
+    | ReplyToDiscussion400
+    | ReplyToDiscussion401
+    | ReplyToDiscussion403
+    | ReplyToDiscussion429,
 >(
   discussionId: string,
   replyToDiscussionBody: ReplyToDiscussionBody,
@@ -1276,11 +1650,18 @@ export type ReplyToDiscussionQueryResult = NonNullable<
   Awaited<ReturnType<typeof replyToDiscussion>>
 >;
 export type ReplyToDiscussionQueryError =
-  ReplyToDiscussion400 | ReplyToDiscussion401 | ReplyToDiscussion403;
+  | ReplyToDiscussion400
+  | ReplyToDiscussion401
+  | ReplyToDiscussion403
+  | ReplyToDiscussion429;
 
 export function useReplyToDiscussion<
   TData = Awaited<ReturnType<typeof replyToDiscussion>>,
-  TError = ReplyToDiscussion400 | ReplyToDiscussion401 | ReplyToDiscussion403,
+  TError =
+    | ReplyToDiscussion400
+    | ReplyToDiscussion401
+    | ReplyToDiscussion403
+    | ReplyToDiscussion429,
 >(
   discussionId: string,
   replyToDiscussionBody: ReplyToDiscussionBody,
@@ -1308,7 +1689,11 @@ export function useReplyToDiscussion<
 };
 export function useReplyToDiscussion<
   TData = Awaited<ReturnType<typeof replyToDiscussion>>,
-  TError = ReplyToDiscussion400 | ReplyToDiscussion401 | ReplyToDiscussion403,
+  TError =
+    | ReplyToDiscussion400
+    | ReplyToDiscussion401
+    | ReplyToDiscussion403
+    | ReplyToDiscussion429,
 >(
   discussionId: string,
   replyToDiscussionBody: ReplyToDiscussionBody,
@@ -1336,7 +1721,11 @@ export function useReplyToDiscussion<
 };
 export function useReplyToDiscussion<
   TData = Awaited<ReturnType<typeof replyToDiscussion>>,
-  TError = ReplyToDiscussion400 | ReplyToDiscussion401 | ReplyToDiscussion403,
+  TError =
+    | ReplyToDiscussion400
+    | ReplyToDiscussion401
+    | ReplyToDiscussion403
+    | ReplyToDiscussion429,
 >(
   discussionId: string,
   replyToDiscussionBody: ReplyToDiscussionBody,
@@ -1360,7 +1749,11 @@ export function useReplyToDiscussion<
 
 export function useReplyToDiscussion<
   TData = Awaited<ReturnType<typeof replyToDiscussion>>,
-  TError = ReplyToDiscussion400 | ReplyToDiscussion401 | ReplyToDiscussion403,
+  TError =
+    | ReplyToDiscussion400
+    | ReplyToDiscussion401
+    | ReplyToDiscussion403
+    | ReplyToDiscussion429,
 >(
   discussionId: string,
   replyToDiscussionBody: ReplyToDiscussionBody,

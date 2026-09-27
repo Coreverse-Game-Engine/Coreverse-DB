@@ -11,4 +11,7 @@ export type CreateNewsBody = {
   title: string;
   slug: string;
   body: string;
+  summary?: string | null;
+  /** Storage path in the news-covers bucket (moderator/admin-write only). Resolved to cover_image_url in the response. */
+  cover_image_path?: string | null;
 };
