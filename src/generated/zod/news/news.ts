@@ -12,20 +12,44 @@ import * as zod from "zod";
  * Anonymous and unrelated callers only see status=published. An authenticated caller who is the item's author or a platform moderator/admin also sees their own drafts (RLS: news_authenticated_read).
  * @summary List news (published only, unless moderator or author)
  */
+export const listNewsQueryLimitDefault = 20;
+export const listNewsQueryLimitMax = 100;
+
 export const ListNewsQueryParams = zod.object({
   status: zod.enum(["draft", "published"]).optional(),
+  limit: zod
+    .int()
+    .min(1)
+    .max(listNewsQueryLimitMax)
+    .default(listNewsQueryLimitDefault)
+    .describe("Max items to return (1-100, default 20)."),
+  cursor: zod
+    .string()
+    .optional()
+    .describe(
+      "Opaque token from a previous page's next_cursor. Omit for the first page. Treat as opaque -- its encoding is an implementation detail and may change.\n",
+    ),
 });
 
-export const ListNewsResponseItem = zod.object({
-  id: zod.uuid(),
-  title: zod.string(),
-  slug: zod.string(),
-  body: zod.string().optional(),
-  author_id: zod.uuid().optional(),
-  status: zod.enum(["draft", "published"]),
-  published_at: zod.iso.datetime({ offset: true }).nullish(),
+export const ListNewsResponse = zod.object({
+  items: zod.array(
+    zod.object({
+      id: zod.uuid(),
+      title: zod.string(),
+      slug: zod.string(),
+      body: zod.string().optional(),
+      author_id: zod.uuid().optional(),
+      status: zod.enum(["draft", "published"]),
+      published_at: zod.iso.datetime({ offset: true }).nullish(),
+    }),
+  ),
+  next_cursor: zod
+    .string()
+    .nullable()
+    .describe(
+      "Pass as ?cursor= to fetch the next page. null once there are no more.",
+    ),
 });
-export const ListNewsResponse = zod.array(ListNewsResponseItem);
 
 /**
  * @summary Create a news item as a draft (moderator/admin only)

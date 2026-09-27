@@ -11,20 +11,44 @@ import * as zod from "zod";
 /**
  * @summary List discussions
  */
+export const listDiscussionsQueryLimitDefault = 20;
+export const listDiscussionsQueryLimitMax = 100;
+
 export const ListDiscussionsQueryParams = zod.object({
   category: zod.string().optional(),
+  limit: zod
+    .int()
+    .min(1)
+    .max(listDiscussionsQueryLimitMax)
+    .default(listDiscussionsQueryLimitDefault)
+    .describe("Max items to return (1-100, default 20)."),
+  cursor: zod
+    .string()
+    .optional()
+    .describe(
+      "Opaque token from a previous page's next_cursor. Omit for the first page. Treat as opaque -- its encoding is an implementation detail and may change.\n",
+    ),
 });
 
-export const ListDiscussionsResponseItem = zod.object({
-  id: zod.uuid(),
-  title: zod.string(),
-  body: zod.string().optional(),
-  author_id: zod.uuid(),
-  category: zod.string().nullish(),
-  is_locked: zod.boolean(),
-  created_at: zod.iso.datetime({ offset: true }).optional(),
+export const ListDiscussionsResponse = zod.object({
+  items: zod.array(
+    zod.object({
+      id: zod.uuid(),
+      title: zod.string(),
+      body: zod.string().optional(),
+      author_id: zod.uuid(),
+      category: zod.string().nullish(),
+      is_locked: zod.boolean(),
+      created_at: zod.iso.datetime({ offset: true }).optional(),
+    }),
+  ),
+  next_cursor: zod
+    .string()
+    .nullable()
+    .describe(
+      "Pass as ?cursor= to fetch the next page. null once there are no more.",
+    ),
 });
-export const ListDiscussionsResponse = zod.array(ListDiscussionsResponseItem);
 
 /**
  * @summary Start a discussion
@@ -84,22 +108,47 @@ export const ListDiscussionRepliesParams = zod.object({
   discussionId: zod.uuid(),
 });
 
-export const ListDiscussionRepliesResponseItem = zod.object({
-  id: zod.uuid(),
-  discussion_id: zod.uuid(),
-  author_id: zod.uuid(),
-  body: zod
+export const listDiscussionRepliesQueryLimitDefault = 20;
+export const listDiscussionRepliesQueryLimitMax = 100;
+
+export const ListDiscussionRepliesQueryParams = zod.object({
+  limit: zod
+    .int()
+    .min(1)
+    .max(listDiscussionRepliesQueryLimitMax)
+    .default(listDiscussionRepliesQueryLimitDefault)
+    .describe("Max items to return (1-100, default 20)."),
+  cursor: zod
     .string()
-    .nullish()
+    .optional()
     .describe(
-      'null\/omitted when deleted_at is set -- render as \"[deleted]\".',
+      "Opaque token from a previous page's next_cursor. Omit for the first page. Treat as opaque -- its encoding is an implementation detail and may change.\n",
     ),
-  deleted_at: zod.iso.datetime({ offset: true }).nullish(),
-  created_at: zod.iso.datetime({ offset: true }).optional(),
 });
-export const ListDiscussionRepliesResponse = zod.array(
-  ListDiscussionRepliesResponseItem,
-);
+
+export const ListDiscussionRepliesResponse = zod.object({
+  items: zod.array(
+    zod.object({
+      id: zod.uuid(),
+      discussion_id: zod.uuid(),
+      author_id: zod.uuid(),
+      body: zod
+        .string()
+        .nullish()
+        .describe(
+          'null\/omitted when deleted_at is set -- render as \"[deleted]\".',
+        ),
+      deleted_at: zod.iso.datetime({ offset: true }).nullish(),
+      created_at: zod.iso.datetime({ offset: true }).optional(),
+    }),
+  ),
+  next_cursor: zod
+    .string()
+    .nullable()
+    .describe(
+      "Pass as ?cursor= to fetch the next page. null once there are no more.",
+    ),
+});
 
 /**
  * @summary Reply to a discussion (rejected if the discussion is locked)

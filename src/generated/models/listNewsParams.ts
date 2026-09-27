@@ -10,4 +10,14 @@ import type { ListNewsStatus } from "./listNewsStatus";
 
 export type ListNewsParams = {
   status?: ListNewsStatus;
+  /**
+   * Max items to return (1-100, default 20).
+   * @minimum 1
+   * @maximum 100
+   */
+  limit?: number;
+  /**
+   * Opaque token from a previous page's next_cursor. Omit for the first page. Treat as opaque -- its encoding is an implementation detail and may change.
+   */
+  cursor?: string;
 };
