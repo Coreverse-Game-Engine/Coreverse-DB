@@ -6,13 +6,19 @@
  *
  * OpenAPI spec version: 0.4.2
  */
+import type { ListDiscussions200ItemsItemAuthor } from "./listDiscussions200ItemsItemAuthor";
 
 export type ListDiscussions200ItemsItem = {
   id: string;
   title: string;
-  body?: string;
+  /** body truncated to ~280 chars, word-boundary aware. Fetch GET /discussions/{id} for the full body. */
+  excerpt: string;
   author_id: string;
+  author: ListDiscussions200ItemsItemAuthor;
   category?: string | null;
   is_locked: boolean;
-  created_at?: string;
+  reply_count: number;
+  last_activity_at: string;
+  created_at: string;
+  updated_at: string;
 };

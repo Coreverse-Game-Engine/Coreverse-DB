@@ -2,8 +2,14 @@ type: object
 required:
   - id
   - title
+  - body
   - author_id
+  - author
   - is_locked
+  - reply_count
+  - last_activity_at
+  - created_at
+  - updated_at
 properties:
   id:
     type: string
@@ -15,11 +21,25 @@ properties:
   author_id:
     type: string
     format: uuid
+  author:
+    $ref: './Author.yaml'
   category:
     type: string
     nullable: true
   is_locked:
     type: boolean
+  reply_count:
+    type: integer
+    description: Count of non-deleted replies. Denormalized -- see the Faz 3 migration.
+  last_activity_at:
+    type: string
+    format: date-time
+    description: >
+      Bumped when a new reply is posted. NOT bumped by reply edits or
+      soft-deletes, or by editing the discussion itself.
   created_at:
+    type: string
+    format: date-time
+  updated_at:
     type: string
     format: date-time

@@ -90,6 +90,8 @@ paths:
     $ref: './paths/polls.yaml#/results'
   /discussions:
     $ref: './paths/discussions.yaml#/list'
+  /discussions/categories:
+    $ref: './paths/discussions.yaml#/categories'
   /discussions/{discussionId}:
     $ref: './paths/discussions.yaml#/byId'
   /discussions/{discussionId}/replies:

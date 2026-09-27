@@ -6,6 +6,7 @@
  *
  * OpenAPI spec version: 0.4.2
  */
+import type { ProfilePlatformRole } from "./profilePlatformRole";
 
 export interface Profile {
   id: string;
@@ -15,4 +16,8 @@ export interface Profile {
   username?: string | null;
   /** Public/signed URL resolved from the stored avatar_path, not the raw path itself. */
   avatar_url?: string | null;
+  /** Only present on GET /profiles/me (never on another user's profile) -- identity.platform_roles is self-only RLS. null means no elevated role. */
+  platform_role?: ProfilePlatformRole;
+  created_at: string;
+  updated_at: string;
 }

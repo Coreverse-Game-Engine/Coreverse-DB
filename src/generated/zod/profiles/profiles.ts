@@ -30,6 +30,14 @@ export const GetMyProfileResponse = zod.object({
     .describe(
       "Public\/signed URL resolved from the stored avatar_path, not the raw path itself.",
     ),
+  platform_role: zod
+    .union([zod.literal("admin"), zod.literal("moderator"), zod.literal(null)])
+    .nullish()
+    .describe(
+      "Only present on GET \/profiles\/me (never on another user's profile) -- identity.platform_roles is self-only RLS. null means no elevated role.\n",
+    ),
+  created_at: zod.iso.datetime({ offset: true }),
+  updated_at: zod.iso.datetime({ offset: true }),
 });
 
 /**
@@ -80,6 +88,14 @@ export const UpdateMyProfileResponse = zod.object({
     .describe(
       "Public\/signed URL resolved from the stored avatar_path, not the raw path itself.",
     ),
+  platform_role: zod
+    .union([zod.literal("admin"), zod.literal("moderator"), zod.literal(null)])
+    .nullish()
+    .describe(
+      "Only present on GET \/profiles\/me (never on another user's profile) -- identity.platform_roles is self-only RLS. null means no elevated role.\n",
+    ),
+  created_at: zod.iso.datetime({ offset: true }),
+  updated_at: zod.iso.datetime({ offset: true }),
 });
 
 /**
@@ -109,6 +125,14 @@ export const UploadMyAvatarResponse = zod.object({
     .describe(
       "Public\/signed URL resolved from the stored avatar_path, not the raw path itself.",
     ),
+  platform_role: zod
+    .union([zod.literal("admin"), zod.literal("moderator"), zod.literal(null)])
+    .nullish()
+    .describe(
+      "Only present on GET \/profiles\/me (never on another user's profile) -- identity.platform_roles is self-only RLS. null means no elevated role.\n",
+    ),
+  created_at: zod.iso.datetime({ offset: true }),
+  updated_at: zod.iso.datetime({ offset: true }),
 });
 
 /**
@@ -134,4 +158,12 @@ export const DeleteMyAvatarResponse = zod.object({
     .describe(
       "Public\/signed URL resolved from the stored avatar_path, not the raw path itself.",
     ),
+  platform_role: zod
+    .union([zod.literal("admin"), zod.literal("moderator"), zod.literal(null)])
+    .nullish()
+    .describe(
+      "Only present on GET \/profiles\/me (never on another user's profile) -- identity.platform_roles is self-only RLS. null means no elevated role.\n",
+    ),
+  created_at: zod.iso.datetime({ offset: true }),
+  updated_at: zod.iso.datetime({ offset: true }),
 });
