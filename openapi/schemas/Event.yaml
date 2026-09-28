@@ -1,0 +1,57 @@
+type: object
+required:
+  - id
+  - title
+  - slug
+  - description
+  - starts_at
+  - author_id
+  - author
+  - status
+  - created_at
+  - updated_at
+properties:
+  id:
+    type: string
+    format: uuid
+  title:
+    type: string
+  slug:
+    type: string
+  description:
+    type: string
+  location:
+    type: string
+    nullable: true
+    description: Free-text venue or "Online" -- not a structured address.
+  starts_at:
+    type: string
+    format: date-time
+  ends_at:
+    type: string
+    format: date-time
+    nullable: true
+  registration_url:
+    type: string
+    nullable: true
+    description: >
+      External registration link. Coreverse-DB does not track
+      registrations/attendees itself.
+  author_id:
+    type: string
+    format: uuid
+  author:
+    $ref: './Author.yaml'
+  status:
+    type: string
+    enum: [draft, published]
+  published_at:
+    type: string
+    format: date-time
+    nullable: true
+  created_at:
+    type: string
+    format: date-time
+  updated_at:
+    type: string
+    format: date-time

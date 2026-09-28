@@ -26,7 +26,7 @@ Coreverse DB provides the shared backend capabilities required by the Coreverse 
 - Coreverse Engine release metadata and downloadable artifacts
 - User profiles (including unique usernames), teams, roles, projects, and membership workflows
 - Unauthenticated, rate-limited password-reset requests
-- Platform news, polls, discussions, and replies
+- Platform news, events, FAQ, polls, discussions, and replies
 - Documentation source registration and full-text search indexing
 - Secure project archive access through Supabase Storage
 - Authentication-aware API access using Supabase Auth JWTs
@@ -54,7 +54,7 @@ At a high level, the system follows this flow:
 │                    Supabase Edge Functions                    │
 │                                                               │
 │  auth      releases  teams  requests  profiles  projects     │
-│  news      polls     discussions  docs                       │
+│  news      events    faq    polls     discussions  docs      │
 │                                                               │
 │  ┌─────────────────────────────────────────────────────────┐  │
 │  │ Shared HTTP / Supabase / service-role infrastructure   │  │
@@ -124,12 +124,14 @@ Team lifecycle operations such as creating teams, changing membership, promoting
 Contains user-facing platform content:
 
 - news
+- events
+- faq items and their per-locale translations
 - polls and poll options
 - poll votes
 - discussions
 - discussion replies
 
-Poll results are exposed as anonymous aggregates rather than exposing individual vote records. Discussion replies support soft deletion, and locked discussions prevent new replies.
+Poll results are exposed as anonymous aggregates rather than exposing individual vote records. Discussion replies support soft deletion, and locked discussions prevent new replies. Events follow the same moderator-write, draft/published lifecycle as news, with an external registration_url instead of any registration/attendee tracking. FAQ is the domain's only translated content: each faq_item has one faq_translations row per locale (question/answer), rather than a single-locale body like news/events.
 
 ### `docs`
 
@@ -204,6 +206,8 @@ The API is organized into the following resources:
 | `profiles`    | Current user's profile                                     |
 | `projects`    | Project archive metadata and downloads                     |
 | `news`        | Platform news                                              |
+| `events`      | Platform events (date, location, external registration)    |
+| `faq`         | Translated FAQ entries                                     |
 | `polls`       | Polls and anonymous aggregated results                     |
 | `discussions` | Discussions and replies                                    |
 | `docs`        | Documentation catalog, search, and reindexing              |
@@ -278,6 +282,8 @@ The repository enforces this in CI by regenerating the client and failing when t
 │   │   ├── auth/
 │   │   ├── discussions/
 │   │   ├── docs/
+│   │   ├── events/
+│   │   ├── faq/
 │   │   ├── news/
 │   │   ├── polls/
 │   │   ├── profiles/

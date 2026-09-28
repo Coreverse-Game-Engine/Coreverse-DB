@@ -1,0 +1,26 @@
+type: object
+description: >
+  A single FAQ item flattened to one locale, as returned by GET /faq.
+required:
+  - id
+  - category
+  - display_order
+  - locale
+  - question
+  - answer
+properties:
+  id:
+    type: string
+    format: uuid
+  category:
+    type: string
+    nullable: true
+  display_order:
+    type: integer
+  locale:
+    type: string
+    example: en
+  question:
+    type: string
+  answer:
+    type: string
