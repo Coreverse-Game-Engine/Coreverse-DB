@@ -31,6 +31,8 @@ const externalRefsAllow = [
   "./paths/polls.yaml",
   "./paths/discussions.yaml",
   "./paths/docs.yaml",
+  "./paths/events.yaml",
+  "./paths/faq.yaml",
 
   "./schemas/Ok.yaml",
   "./schemas/Release.yaml",
@@ -50,6 +52,9 @@ const externalRefsAllow = [
   "./schemas/DocSearchResult.yaml",
   "./schemas/Error.yaml",
   "./schemas/Author.yaml",
+  "./schemas/Event.yaml",
+  "./schemas/FaqEntry.yaml",
+  "./schemas/FaqItem.yaml",
 
   "./parameters/Pagination.yaml",
 ];

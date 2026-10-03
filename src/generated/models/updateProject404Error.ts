@@ -14,11 +14,15 @@ export type UpdateProject404Error =
   (typeof UpdateProject404Error)[keyof typeof UpdateProject404Error];
 
 export const UpdateProject404Error = {
+  account_has_content: "account_has_content",
   already_decided: "already_decided",
   already_voted: "already_voted",
   internal_error: "internal_error",
   invalid_body: "invalid_body",
   invalid_discussion_id: "invalid_discussion_id",
+  invalid_event_id: "invalid_event_id",
+  invalid_faq_id: "invalid_faq_id",
+  invalid_locale: "invalid_locale",
   invalid_news_id: "invalid_news_id",
   invalid_poll_id: "invalid_poll_id",
   invalid_project_id: "invalid_project_id",

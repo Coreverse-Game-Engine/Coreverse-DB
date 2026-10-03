@@ -99,6 +99,35 @@ export const UpdateMyProfileResponse = zod.object({
 });
 
 /**
+ * Deletes the Auth user and (via cascade) the profile row -- not reversible. Fails with 409 if the account still owns or authored content that isn't safe to silently delete or orphan (a team it sole-owns, news/events/discussions/discussion replies/FAQ items it authored, a project it owns); the response lists exactly which. Resolve each listed blocker (transfer ownership, delete the content, etc.) and retry.
+ * @summary Delete the caller's own account
+ */
+export const DeleteMyAccountResponse = zod.void();
+
+/**
+ * Public (no session required) -- a signed-out user picking a username at signup needs this too. Rate-limited per caller IP (30/min). If the caller does have a session, their own current username counts as available (re-checking the value already in an edit form must not report it as taken).
+ * @summary Check whether a username is available
+ */
+export const checkUsernameAvailabilityQueryUsernameMin = 3;
+export const checkUsernameAvailabilityQueryUsernameMax = 24;
+
+export const checkUsernameAvailabilityQueryUsernameRegExp = new RegExp(
+  "^[a-zA-Z0-9_]+$",
+);
+
+export const CheckUsernameAvailabilityQueryParams = zod.object({
+  username: zod
+    .string()
+    .min(checkUsernameAvailabilityQueryUsernameMin)
+    .max(checkUsernameAvailabilityQueryUsernameMax)
+    .regex(checkUsernameAvailabilityQueryUsernameRegExp),
+});
+
+export const CheckUsernameAvailabilityResponse = zod.object({
+  available: zod.boolean(),
+});
+
+/**
  * Accepts a multipart upload, validates it server-side (PNG or WebP, up to 5 MB), writes it to the avatars bucket with the service role, and updates the caller's avatar_path. Clients no longer write to Storage directly for this -- see 20260912085602_avatar_upload_and_rate_limit.sql.
  * @summary Upload the caller's own avatar
  */

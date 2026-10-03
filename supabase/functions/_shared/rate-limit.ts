@@ -1,7 +1,7 @@
 // Shared wrapper around identity.hit_rate_limit(), extracted out of
 // auth/index.ts so discussions/polls/news can use the same mechanism
 // on their own write endpoints instead of having none at all (see the
-// "yazma işlemlerine hız sınırı yok" gap in the Faz 3 plan).
+// "yazma işlemlerine hız sınırı yok" gap in the Phase 3 plan).
 //
 // identity.hit_rate_limit() is granted only to service_role (see
 // 20260912085602_avatar_upload_and_rate_limit.sql) -- not authenticated,
@@ -37,4 +37,19 @@ export async function hitRateLimit(key: string, limit: RateLimit,): Promise<bool
   // their existing catch-all internal_error handler.
   if (error) throw new Error(`hit_rate_limit RPC failed: ${error.message}`,);
   return data === true;
+}
+
+// Caller's client IP as seen by the Edge Functions gateway, for use as
+// a rate-limit key. Moved here from auth/index.ts so every route that
+// keys a limit by IP shares one implementation.
+//
+// Supabase's gateway sets x-forwarded-for; take the first
+// (client-side) hop. Falls back to a fixed key rather than "unknown"
+// so that -- in the local/dev case where the header is absent -- every
+// request doesn't share a single "unknown" bucket with every other
+// unrelated dev request.
+export function callerIp(req: Request,): string {
+  const forwardedFor = req.headers.get('x-forwarded-for',);
+  const first = forwardedFor?.split(',',)[0]?.trim();
+  return first || 'no-forwarded-for-header';
 }

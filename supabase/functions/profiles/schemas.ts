@@ -33,6 +33,13 @@ export const UpdateProfileSchema = z.object({
   { message: 'at least one of full_name or username must be provided', },
 );
 
+// GET /profiles/username-availability?username=... -- same format rule
+// as PATCH /profiles/me, so "available" never means "available but
+// would then be rejected as malformed".
+export const UsernameAvailabilityQuerySchema = z.object({
+  username: UsernameSchema,
+},);
+
 // ---------------------------------------------------------------------
 // POST /profiles/me/avatar (multipart upload)
 //
