@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Phase 6A -- run every local/CI gate in one go and print a summary.
+# Faz 6A -- run every local/CI gate in one go and print a summary.
 #
 # Mirrors .github/workflows/ci.yml job by job so a green run here means CI
 # will be green. A step whose tool is missing is reported as SKIPPED (never
@@ -21,7 +21,7 @@ skip() { echo; echo "=== $1 -- SKIPPED ($2)"; NAMES+=("$1"); STATUS+=("SKIP"); }
 have() { command -v "$1" >/dev/null 2>&1; }
 
 # 0. repo consistency (Node only) ---------------------------------------
-run "static checks" node scripts/ops/static-checks.mjs
+run "static checks (--strict)" node scripts/ops/static-checks.mjs --strict
 run "version sync" node scripts/check-version-sync.mjs
 
 # 1. openapi-lint / client-verify / vitest-unit jobs ---------------------

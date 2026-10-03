@@ -15,8 +15,8 @@ CI's `ci.yml` workflow validates migrations and functions (lint, pgTAP, Deno tes
 
 Publishing is **tag-triggered, not automatic on every merge**:
 
-1. A maintainer bumps the version locally: `pnpm version <patch|minor|major>`.
-2. They push the resulting git tag.
+1. A maintainer bumps the version locally: `pnpm version <patch|minor|major> --no-git-tag-version`, then sets the same version in `openapi/openapi.yaml` (`info.version`) — `pnpm run check:version-sync` (part of `pnpm run verify`) fails if the two differ — regenerates (`pnpm run generate`), and commits. Tag that commit (`git tag vX.Y.Z`).
+2. They push the tag.
 3. `publish.yml` in `.github/workflows/` runs: verifies the tag matches `package.json`'s version, builds (`pnpm run build`), and publishes to GitHub Packages under the `@Coreverse-Game-Engine` scope.
 
 CI's only responsibility in this flow is the tag/version match check and the build+publish step — it never writes a version bump itself. See [Environments](environments.md) for where each thing is deployed to, and [Troubleshooting](troubleshooting.md) for the first-publish permission issue this pipeline has hit before.

@@ -44,6 +44,8 @@ describe.skipIf(!generatedModelsExist)("src/index.ts barrel", () => {
       "newsSchemas",
       "pollsSchemas",
       "discussionsSchemas",
+      "eventsSchemas",
+      "faqSchemas",
       "docsSchemas",
       "authSchemas",
     ];
@@ -79,11 +81,50 @@ describe.skipIf(!generatedModelsExist)("src/index.ts barrel", () => {
     ).toThrow();
   });
 
+  it("exposes the events and faq domains (new in 0.5.0): endpoint functions and validating schemas", async () => {
+    const index = (await import("../src/index")) as Record<string, unknown>;
+
+    for (const fn of ["listEvents", "getEvent", "createEvent", "listFaq", "createFaqItem"]) {
+      expect(typeof index[fn], `expected src/index.ts to export "${fn}"`).toBe("function");
+    }
+
+    const eventsSchemas = index.eventsSchemas as {
+      CreateEventBody: { parse: (v: unknown) => unknown };
+    };
+    const faqSchemas = index.faqSchemas as {
+      CreateFaqItemBody: { parse: (v: unknown) => unknown };
+    };
+
+    expect(() =>
+      eventsSchemas.CreateEventBody.parse({
+        title: "Community call",
+        slug: "community-call",
+        description: "Monthly sync",
+        starts_at: "2026-11-01T18:00:00Z",
+      }),
+    ).not.toThrow();
+    // starts_at is required.
+    expect(() =>
+      eventsSchemas.CreateEventBody.parse({ title: "t", slug: "s", description: "d" }),
+    ).toThrow();
+
+    expect(() =>
+      faqSchemas.CreateFaqItemBody.parse({
+        translations: { en: { question: "What is Coreverse?", answer: "A game engine." } },
+      }),
+    ).not.toThrow();
+    // translations is required, and each entry needs both question and answer.
+    expect(() => faqSchemas.CreateFaqItemBody.parse({})).toThrow();
+    expect(() =>
+      faqSchemas.CreateFaqItemBody.parse({ translations: { en: { question: "only a question" } } }),
+    ).toThrow();
+  });
+
   it("is not an accidentally-empty or half-flattened barrel", async () => {
     const index = (await import("../src/index")) as Record<string, unknown>;
     const exportNames = Object.keys(index);
 
-    // 2 hand-written exports + >=1 endpoint fn per tag (10 tags) + 10
+    // 2 hand-written exports + >=1 endpoint fn per tag (12 tags) + 12
     // namespaced schema objects + the flattened generated/models/* runtime
     // values (enums etc.) comfortably clears 20.
     expect(exportNames.length).toBeGreaterThan(20);
