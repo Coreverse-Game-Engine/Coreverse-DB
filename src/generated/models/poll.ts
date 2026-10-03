@@ -4,13 +4,23 @@
  * Coreverse DB API
  * Centralized data-access API for the Coreverse ecosystem. Coreverse DB defines and serves all data operations; Coreverse Launcher and Coreverse Website consume this API and never access Postgres/Supabase directly.
  *
- * OpenAPI spec version: 0.2.0
+ * OpenAPI spec version: 0.4.2
  */
 import type { PollOptionsItem } from "./pollOptionsItem";
+import type { PollResultsItem } from "./pollResultsItem";
 
 export interface Poll {
   id: string;
   question: string;
   closes_at?: string | null;
+  /** Computed from closes_at at read time (closes_at !== null && closes_at <= now). */
+  is_closed: boolean;
+  /** Aggregate across all users (content.poll_vote_totals()) -- always present, 0 on a brand-new poll. */
+  total_votes: number;
+  /** The caller's own vote, if any. Always null for an anonymous caller or one who hasn't voted -- never another user's vote (poll_votes_self_read RLS). */
+  my_option_id: string | null;
+  /** Only present when the request used ?include=results. */
+  results?: PollResultsItem[];
   options: PollOptionsItem[];
+  created_at: string;
 }

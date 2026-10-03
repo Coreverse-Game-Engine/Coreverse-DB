@@ -36,7 +36,7 @@ me:
         application/json:
           schema:
             type: object
-            description: At least one of full_name, username or avatar_path must be provided.
+            description: At least one of full_name or username must be provided.
             properties:
               full_name:
                 type: string
@@ -50,16 +50,6 @@ me:
                 description: >
                   Must be unique (case-insensitive) across all profiles.
                   A taken username returns 409.
-              avatar_path:
-                type: string
-                minLength: 1
-                nullable: true
-                description: >
-                  Storage path in the avatars bucket. Set this directly
-                  only if you already know a valid path (e.g. clearing
-                  the avatar with null); to upload a new image, use
-                  POST /profiles/me/avatar instead, which uploads the
-                  file and sets this for you.
     responses:
       '200':
         description: The updated profile.
@@ -86,7 +76,107 @@ me:
             schema:
               $ref: '../schemas/Error.yaml'
       '409':
-        description: username is already taken (case-insensitive).
+        description: Username is already taken, case-insensitive (error is "username_taken").
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/Error.yaml'
+  delete:
+    summary: Delete the caller's own account
+    operationId: deleteMyAccount
+    tags: [profiles]
+    security:
+      - bearerAuth: []
+    description: >
+      Deletes the Auth user and (via cascade) the profile row -- not
+      reversible. Fails with 409 if the account still owns or authored
+      content that isn't safe to silently delete or orphan (a team it
+      sole-owns, news/events/discussions/discussion replies/FAQ items
+      it authored, a project it owns); the response lists exactly which.
+      Resolve each listed blocker (transfer ownership, delete the
+      content, etc.) and retry.
+    responses:
+      '204':
+        description: Deleted.
+      '401':
+        description: A valid session is required.
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/Error.yaml'
+      '409':
+        description: Account still owns or authored content (error is "account_has_content"); see `blockers`.
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [error, message, blockers]
+              properties:
+                error:
+                  type: string
+                  enum: [account_has_content]
+                message:
+                  type: string
+                blockers:
+                  type: array
+                  items:
+                    type: object
+                    required: [reason, count]
+                    properties:
+                      reason:
+                        type: string
+                        enum:
+                          - owns_teams
+                          - owns_projects
+                          - authored_news
+                          - authored_events
+                          - created_faq_items
+                          - authored_discussions
+                          - authored_discussion_replies
+                      count:
+                        type: integer
+usernameAvailability:
+  get:
+    summary: Check whether a username is available
+    operationId: checkUsernameAvailability
+    tags: [profiles]
+    description: >
+      Public (no session required) -- a signed-out user picking a
+      username at signup needs this too. Rate-limited per caller IP
+      (30/min). If the caller does have a session, their own current
+      username counts as available (re-checking the value already in
+      an edit form must not report it as taken).
+    security:
+      - {}
+      - bearerAuth: []
+    parameters:
+      - name: username
+        in: query
+        required: true
+        schema:
+          type: string
+          minLength: 3
+          maxLength: 24
+          pattern: '^[a-zA-Z0-9_]+$'
+    responses:
+      '200':
+        description: Availability result.
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [available]
+              properties:
+                available:
+                  type: boolean
+      '400':
+        description: username is missing or does not match the required format.
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/Error.yaml'
+      '429':
+        description: Too many checks from this IP; retry after Retry-After seconds.
         content:
           application/json:
             schema:
@@ -143,6 +233,34 @@ avatar:
               $ref: '../schemas/Error.yaml'
       '413':
         description: File exceeds the 5 MB limit.
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/Error.yaml'
+  delete:
+    summary: Remove the caller's own avatar
+    description: >
+      Clears avatar_path and best-effort removes the underlying object
+      from the avatars bucket. 404 if the profile has no avatar set.
+    operationId: deleteMyAvatar
+    tags: [profiles]
+    security:
+      - bearerAuth: []
+    responses:
+      '200':
+        description: The updated profile, with avatar_url now null.
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/Profile.yaml'
+      '401':
+        description: A valid session is required.
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/Error.yaml'
+      '404':
+        description: No profile found, or the profile has no avatar to remove.
         content:
           application/json:
             schema:

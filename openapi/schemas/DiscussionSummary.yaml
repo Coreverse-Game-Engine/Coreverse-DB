@@ -1,0 +1,42 @@
+type: object
+required:
+  - id
+  - title
+  - excerpt
+  - author_id
+  - author
+  - is_locked
+  - reply_count
+  - last_activity_at
+  - created_at
+  - updated_at
+properties:
+  id:
+    type: string
+    format: uuid
+  title:
+    type: string
+  excerpt:
+    type: string
+    description: body truncated to ~280 chars, word-boundary aware. Fetch GET /discussions/{id} for the full body.
+  author_id:
+    type: string
+    format: uuid
+  author:
+    $ref: './Author.yaml'
+  category:
+    type: string
+    nullable: true
+  is_locked:
+    type: boolean
+  reply_count:
+    type: integer
+  last_activity_at:
+    type: string
+    format: date-time
+  created_at:
+    type: string
+    format: date-time
+  updated_at:
+    type: string
+    format: date-time

@@ -4,8 +4,9 @@
  * Coreverse DB API
  * Centralized data-access API for the Coreverse ecosystem. Coreverse DB defines and serves all data operations; Coreverse Launcher and Coreverse Website consume this API and never access Postgres/Supabase directly.
  *
- * OpenAPI spec version: 0.2.0
+ * OpenAPI spec version: 0.4.2
  */
+import type { UpdateMyProfile200PlatformRole } from "./updateMyProfile200PlatformRole";
 
 export type UpdateMyProfile200 = {
   id: string;
@@ -15,4 +16,8 @@ export type UpdateMyProfile200 = {
   username?: string | null;
   /** Public/signed URL resolved from the stored avatar_path, not the raw path itself. */
   avatar_url?: string | null;
+  /** Only present on GET /profiles/me (never on another user's profile) -- identity.platform_roles is self-only RLS. null means no elevated role. */
+  platform_role?: UpdateMyProfile200PlatformRole;
+  created_at: string;
+  updated_at: string;
 };

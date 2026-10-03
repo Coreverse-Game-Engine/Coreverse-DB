@@ -4,7 +4,7 @@
  * Coreverse DB API
  * Centralized data-access API for the Coreverse ecosystem. Coreverse DB defines and serves all data operations; Coreverse Launcher and Coreverse Website consume this API and never access Postgres/Supabase directly.
  *
- * OpenAPI spec version: 0.2.0
+ * OpenAPI spec version: 0.4.2
  */
 import { useQuery } from "@tanstack/react-query";
 import type {
@@ -20,6 +20,15 @@ import type {
 } from "@tanstack/react-query";
 
 import type {
+  CheckUsernameAvailability200,
+  CheckUsernameAvailability400,
+  CheckUsernameAvailability429,
+  CheckUsernameAvailabilityParams,
+  DeleteMyAccount401,
+  DeleteMyAccount409,
+  DeleteMyAvatar200,
+  DeleteMyAvatar401,
+  DeleteMyAvatar404,
   GetMyProfile200,
   GetMyProfile401,
   GetMyProfile404,
@@ -467,6 +476,406 @@ export function useUpdateMyProfile<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
+export type deleteMyAccountResponse204 = {
+  data: void;
+  status: 204;
+};
+
+export type deleteMyAccountResponse401 = {
+  data: DeleteMyAccount401;
+  status: 401;
+};
+
+export type deleteMyAccountResponse409 = {
+  data: DeleteMyAccount409;
+  status: 409;
+};
+
+export type deleteMyAccountResponseSuccess = deleteMyAccountResponse204 & {
+  headers: Headers;
+};
+export type deleteMyAccountResponseError = (
+  deleteMyAccountResponse401 | deleteMyAccountResponse409
+) & {
+  headers: Headers;
+};
+
+export type deleteMyAccountResponse =
+  deleteMyAccountResponseSuccess | deleteMyAccountResponseError;
+
+export const getDeleteMyAccountUrl = () => {
+  return `/profiles/me`;
+};
+
+/**
+ * Deletes the Auth user and (via cascade) the profile row -- not reversible. Fails with 409 if the account still owns or authored content that isn't safe to silently delete or orphan (a team it sole-owns, news/events/discussions/discussion replies/FAQ items it authored, a project it owns); the response lists exactly which. Resolve each listed blocker (transfer ownership, delete the content, etc.) and retry.
+ * @summary Delete the caller's own account
+ */
+export const deleteMyAccount = async (
+  options?: Parameters<typeof coreverseFetch>[1],
+): Promise<deleteMyAccountResponse> => {
+  return coreverseFetch<deleteMyAccountResponse>(getDeleteMyAccountUrl(), {
+    ...options,
+    method: "DELETE",
+  });
+};
+
+export const getDeleteMyAccountQueryKey = () => {
+  return ["DELETE", `/profiles/me`] as const;
+};
+
+export const getDeleteMyAccountQueryOptions = <
+  TData = Awaited<ReturnType<typeof deleteMyAccount>>,
+  TError = DeleteMyAccount401 | DeleteMyAccount409,
+>(options?: {
+  query?: Partial<
+    UseQueryOptions<Awaited<ReturnType<typeof deleteMyAccount>>, TError, TData>
+  >;
+  request?: SecondParameter<typeof coreverseFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getDeleteMyAccountQueryKey();
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof deleteMyAccount>>> = ({
+    signal,
+  }) => deleteMyAccount({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof deleteMyAccount>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type DeleteMyAccountQueryResult = NonNullable<
+  Awaited<ReturnType<typeof deleteMyAccount>>
+>;
+export type DeleteMyAccountQueryError = DeleteMyAccount401 | DeleteMyAccount409;
+
+export function useDeleteMyAccount<
+  TData = Awaited<ReturnType<typeof deleteMyAccount>>,
+  TError = DeleteMyAccount401 | DeleteMyAccount409,
+>(
+  options: {
+    query: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof deleteMyAccount>>,
+        TError,
+        TData
+      >
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof deleteMyAccount>>,
+          TError,
+          Awaited<ReturnType<typeof deleteMyAccount>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof coreverseFetch>;
+  },
+  queryClient?: QueryClient,
+): DefinedUseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+export function useDeleteMyAccount<
+  TData = Awaited<ReturnType<typeof deleteMyAccount>>,
+  TError = DeleteMyAccount401 | DeleteMyAccount409,
+>(
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof deleteMyAccount>>,
+        TError,
+        TData
+      >
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof deleteMyAccount>>,
+          TError,
+          Awaited<ReturnType<typeof deleteMyAccount>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof coreverseFetch>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+export function useDeleteMyAccount<
+  TData = Awaited<ReturnType<typeof deleteMyAccount>>,
+  TError = DeleteMyAccount401 | DeleteMyAccount409,
+>(
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof deleteMyAccount>>,
+        TError,
+        TData
+      >
+    >;
+    request?: SecondParameter<typeof coreverseFetch>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+/**
+ * @summary Delete the caller's own account
+ */
+
+export function useDeleteMyAccount<
+  TData = Awaited<ReturnType<typeof deleteMyAccount>>,
+  TError = DeleteMyAccount401 | DeleteMyAccount409,
+>(
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof deleteMyAccount>>,
+        TError,
+        TData
+      >
+    >;
+    request?: SecondParameter<typeof coreverseFetch>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+} {
+  const queryOptions = getDeleteMyAccountQueryOptions(options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<
+    TData,
+    TError
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+export type checkUsernameAvailabilityResponse200 = {
+  data: CheckUsernameAvailability200;
+  status: 200;
+};
+
+export type checkUsernameAvailabilityResponse400 = {
+  data: CheckUsernameAvailability400;
+  status: 400;
+};
+
+export type checkUsernameAvailabilityResponse429 = {
+  data: CheckUsernameAvailability429;
+  status: 429;
+};
+
+export type checkUsernameAvailabilityResponseSuccess =
+  checkUsernameAvailabilityResponse200 & {
+    headers: Headers;
+  };
+export type checkUsernameAvailabilityResponseError = (
+  checkUsernameAvailabilityResponse400 | checkUsernameAvailabilityResponse429
+) & {
+  headers: Headers;
+};
+
+export type checkUsernameAvailabilityResponse =
+  | checkUsernameAvailabilityResponseSuccess
+  | checkUsernameAvailabilityResponseError;
+
+export const getCheckUsernameAvailabilityUrl = (
+  params: CheckUsernameAvailabilityParams,
+) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : String(value));
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/profiles/username-availability?${stringifiedParams}`
+    : `/profiles/username-availability`;
+};
+
+/**
+ * Public (no session required) -- a signed-out user picking a username at signup needs this too. Rate-limited per caller IP (30/min). If the caller does have a session, their own current username counts as available (re-checking the value already in an edit form must not report it as taken).
+ * @summary Check whether a username is available
+ */
+export const checkUsernameAvailability = async (
+  params: CheckUsernameAvailabilityParams,
+  options?: Parameters<typeof coreverseFetch>[1],
+): Promise<checkUsernameAvailabilityResponse> => {
+  return coreverseFetch<checkUsernameAvailabilityResponse>(
+    getCheckUsernameAvailabilityUrl(params),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getCheckUsernameAvailabilityQueryKey = (
+  params?: CheckUsernameAvailabilityParams,
+) => {
+  return [
+    `/profiles/username-availability`,
+    ...(params ? [params] : []),
+  ] as const;
+};
+
+export const getCheckUsernameAvailabilityQueryOptions = <
+  TData = Awaited<ReturnType<typeof checkUsernameAvailability>>,
+  TError = CheckUsernameAvailability400 | CheckUsernameAvailability429,
+>(
+  params: CheckUsernameAvailabilityParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof checkUsernameAvailability>>,
+        TError,
+        TData
+      >
+    >;
+    request?: SecondParameter<typeof coreverseFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getCheckUsernameAvailabilityQueryKey(params);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof checkUsernameAvailability>>
+  > = ({ signal }) =>
+    checkUsernameAvailability(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof checkUsernameAvailability>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type CheckUsernameAvailabilityQueryResult = NonNullable<
+  Awaited<ReturnType<typeof checkUsernameAvailability>>
+>;
+export type CheckUsernameAvailabilityQueryError =
+  CheckUsernameAvailability400 | CheckUsernameAvailability429;
+
+export function useCheckUsernameAvailability<
+  TData = Awaited<ReturnType<typeof checkUsernameAvailability>>,
+  TError = CheckUsernameAvailability400 | CheckUsernameAvailability429,
+>(
+  params: CheckUsernameAvailabilityParams,
+  options: {
+    query: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof checkUsernameAvailability>>,
+        TError,
+        TData
+      >
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof checkUsernameAvailability>>,
+          TError,
+          Awaited<ReturnType<typeof checkUsernameAvailability>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof coreverseFetch>;
+  },
+  queryClient?: QueryClient,
+): DefinedUseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+export function useCheckUsernameAvailability<
+  TData = Awaited<ReturnType<typeof checkUsernameAvailability>>,
+  TError = CheckUsernameAvailability400 | CheckUsernameAvailability429,
+>(
+  params: CheckUsernameAvailabilityParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof checkUsernameAvailability>>,
+        TError,
+        TData
+      >
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof checkUsernameAvailability>>,
+          TError,
+          Awaited<ReturnType<typeof checkUsernameAvailability>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof coreverseFetch>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+export function useCheckUsernameAvailability<
+  TData = Awaited<ReturnType<typeof checkUsernameAvailability>>,
+  TError = CheckUsernameAvailability400 | CheckUsernameAvailability429,
+>(
+  params: CheckUsernameAvailabilityParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof checkUsernameAvailability>>,
+        TError,
+        TData
+      >
+    >;
+    request?: SecondParameter<typeof coreverseFetch>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+/**
+ * @summary Check whether a username is available
+ */
+
+export function useCheckUsernameAvailability<
+  TData = Awaited<ReturnType<typeof checkUsernameAvailability>>,
+  TError = CheckUsernameAvailability400 | CheckUsernameAvailability429,
+>(
+  params: CheckUsernameAvailabilityParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof checkUsernameAvailability>>,
+        TError,
+        TData
+      >
+    >;
+    request?: SecondParameter<typeof coreverseFetch>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+} {
+  const queryOptions = getCheckUsernameAvailabilityQueryOptions(
+    params,
+    options,
+  );
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<
+    TData,
+    TError
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
 export type uploadMyAvatarResponse200 = {
   data: UploadMyAvatar200;
   status: 200;
@@ -673,6 +1082,169 @@ export function useUploadMyAvatar<
     uploadMyAvatarBody,
     options,
   );
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<
+    TData,
+    TError
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+export type deleteMyAvatarResponse200 = {
+  data: DeleteMyAvatar200;
+  status: 200;
+};
+
+export type deleteMyAvatarResponse401 = {
+  data: DeleteMyAvatar401;
+  status: 401;
+};
+
+export type deleteMyAvatarResponse404 = {
+  data: DeleteMyAvatar404;
+  status: 404;
+};
+
+export type deleteMyAvatarResponseSuccess = deleteMyAvatarResponse200 & {
+  headers: Headers;
+};
+export type deleteMyAvatarResponseError = (
+  deleteMyAvatarResponse401 | deleteMyAvatarResponse404
+) & {
+  headers: Headers;
+};
+
+export type deleteMyAvatarResponse =
+  deleteMyAvatarResponseSuccess | deleteMyAvatarResponseError;
+
+export const getDeleteMyAvatarUrl = () => {
+  return `/profiles/me/avatar`;
+};
+
+/**
+ * Clears avatar_path and best-effort removes the underlying object from the avatars bucket. 404 if the profile has no avatar set.
+ * @summary Remove the caller's own avatar
+ */
+export const deleteMyAvatar = async (
+  options?: Parameters<typeof coreverseFetch>[1],
+): Promise<deleteMyAvatarResponse> => {
+  return coreverseFetch<deleteMyAvatarResponse>(getDeleteMyAvatarUrl(), {
+    ...options,
+    method: "DELETE",
+  });
+};
+
+export const getDeleteMyAvatarQueryKey = () => {
+  return ["DELETE", `/profiles/me/avatar`] as const;
+};
+
+export const getDeleteMyAvatarQueryOptions = <
+  TData = Awaited<ReturnType<typeof deleteMyAvatar>>,
+  TError = DeleteMyAvatar401 | DeleteMyAvatar404,
+>(options?: {
+  query?: Partial<
+    UseQueryOptions<Awaited<ReturnType<typeof deleteMyAvatar>>, TError, TData>
+  >;
+  request?: SecondParameter<typeof coreverseFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getDeleteMyAvatarQueryKey();
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof deleteMyAvatar>>> = ({
+    signal,
+  }) => deleteMyAvatar({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof deleteMyAvatar>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type DeleteMyAvatarQueryResult = NonNullable<
+  Awaited<ReturnType<typeof deleteMyAvatar>>
+>;
+export type DeleteMyAvatarQueryError = DeleteMyAvatar401 | DeleteMyAvatar404;
+
+export function useDeleteMyAvatar<
+  TData = Awaited<ReturnType<typeof deleteMyAvatar>>,
+  TError = DeleteMyAvatar401 | DeleteMyAvatar404,
+>(
+  options: {
+    query: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof deleteMyAvatar>>, TError, TData>
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof deleteMyAvatar>>,
+          TError,
+          Awaited<ReturnType<typeof deleteMyAvatar>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof coreverseFetch>;
+  },
+  queryClient?: QueryClient,
+): DefinedUseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+export function useDeleteMyAvatar<
+  TData = Awaited<ReturnType<typeof deleteMyAvatar>>,
+  TError = DeleteMyAvatar401 | DeleteMyAvatar404,
+>(
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof deleteMyAvatar>>, TError, TData>
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof deleteMyAvatar>>,
+          TError,
+          Awaited<ReturnType<typeof deleteMyAvatar>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof coreverseFetch>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+export function useDeleteMyAvatar<
+  TData = Awaited<ReturnType<typeof deleteMyAvatar>>,
+  TError = DeleteMyAvatar401 | DeleteMyAvatar404,
+>(
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof deleteMyAvatar>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof coreverseFetch>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+/**
+ * @summary Remove the caller's own avatar
+ */
+
+export function useDeleteMyAvatar<
+  TData = Awaited<ReturnType<typeof deleteMyAvatar>>,
+  TError = DeleteMyAvatar401 | DeleteMyAvatar404,
+>(
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof deleteMyAvatar>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof coreverseFetch>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+} {
+  const queryOptions = getDeleteMyAvatarQueryOptions(options);
 
   const query = useQuery(queryOptions, queryClient) as UseQueryResult<
     TData,

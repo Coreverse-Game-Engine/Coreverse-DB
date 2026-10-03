@@ -7,7 +7,7 @@
 -- hand (psql / SQL editor), per environment, only after that
 -- environment satisfies the section's precondition.
 --
--- Run 20260912120000_backfill_legacy_identity.sql (a real migration)
+-- Run 20260912190612_backfill_legacy_identity.sql (a real migration)
 -- first, in every environment -- both sections below assume it has
 -- already run there.
 -- =====================================================================
@@ -17,7 +17,7 @@
 -- SECTION 1 -- drop the legacy signup trigger + function
 --
 -- Precondition before running this section in an environment:
---   1. 20260912120000_backfill_legacy_identity.sql has been applied
+--   1. 20260912190612_backfill_legacy_identity.sql has been applied
 --      there (every existing user has an identity.profiles row).
 --   2. public.profiles / public.handle_new_user() / on_auth_user_created
 --      have been audited in *that* environment for consumers beyond

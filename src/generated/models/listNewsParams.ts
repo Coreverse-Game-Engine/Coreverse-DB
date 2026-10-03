@@ -4,10 +4,20 @@
  * Coreverse DB API
  * Centralized data-access API for the Coreverse ecosystem. Coreverse DB defines and serves all data operations; Coreverse Launcher and Coreverse Website consume this API and never access Postgres/Supabase directly.
  *
- * OpenAPI spec version: 0.2.0
+ * OpenAPI spec version: 0.4.2
  */
 import type { ListNewsStatus } from "./listNewsStatus";
 
 export type ListNewsParams = {
   status?: ListNewsStatus;
+  /**
+   * Max items to return (1-100, default 20).
+   * @minimum 1
+   * @maximum 100
+   */
+  limit?: number;
+  /**
+   * Opaque token from a previous page's next_cursor. Omit for the first page. Treat as opaque -- its encoding is an implementation detail and may change.
+   */
+  cursor?: string;
 };

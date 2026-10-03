@@ -1,4 +1,4 @@
-// Barrel for the "@coreverse/db-client/react" subpath export (see
+// Barrel for the "@Coreverse-Game-Engine/db-client/react" subpath export (see
 // package.json `exports`). Pulls in the TanStack Query hooks Orval
 // generates alongside the plain fetch client (see orval.config.ts ->
 // coreverseDbReactQuery), one module per OpenAPI tag, mirroring

@@ -3,6 +3,9 @@ required:
   - id
   - discussion_id
   - author_id
+  - author
+  - created_at
+  - updated_at
 properties:
   id:
     type: string
@@ -13,6 +16,8 @@ properties:
   author_id:
     type: string
     format: uuid
+  author:
+    $ref: './Author.yaml'
   body:
     type: string
     nullable: true
@@ -21,6 +26,14 @@ properties:
     type: string
     format: date-time
     nullable: true
+  edited_at:
+    type: string
+    format: date-time
+    nullable: true
+    description: Set when body is edited. Distinct from deleted_at/updated_at -- see the Phase 3 migration.
   created_at:
+    type: string
+    format: date-time
+  updated_at:
     type: string
     format: date-time

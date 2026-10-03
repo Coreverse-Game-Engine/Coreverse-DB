@@ -1,0 +1,209 @@
+list:
+  get:
+    summary: List events (published only, unless moderator or author)
+    operationId: listEvents
+    tags: [events]
+    security:
+      - {}
+      - bearerAuth: []
+    description: >
+      Same visibility split as news (RLS: events_public_read /
+      events_authenticated_read). Ordered newest-created-first, same as
+      every other keyset-paginated list endpoint -- NOT ordered by
+      starts_at, so this is not "next N upcoming events" out of the
+      box. Combine with ?upcoming=true to filter to events that
+      haven't started yet.
+    parameters:
+      - name: status
+        in: query
+        required: false
+        schema: { type: string, enum: [draft, published] }
+      - name: upcoming
+        in: query
+        required: false
+        schema: { type: boolean }
+        description: When true, only include events whose starts_at is in the future.
+      - $ref: '../parameters/Pagination.yaml#/limit'
+      - $ref: '../parameters/Pagination.yaml#/cursor'
+    responses:
+      '200':
+        description: A page of events, newest-created first.
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [items, next_cursor]
+              properties:
+                items:
+                  type: array
+                  items:
+                    $ref: '../schemas/Event.yaml'
+                next_cursor:
+                  type: string
+                  nullable: true
+                  description: Pass as ?cursor= to fetch the next page. null once there are no more.
+      '400':
+        description: Invalid status/upcoming filter, limit, or cursor.
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/Error.yaml'
+  post:
+    summary: Create an event as a draft (moderator/admin only)
+    operationId: createEvent
+    tags: [events]
+    security:
+      - bearerAuth: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [title, slug, description, starts_at]
+            properties:
+              title: { type: string }
+              slug: { type: string }
+              description: { type: string }
+              location: { type: string, nullable: true }
+              starts_at: { type: string, format: date-time }
+              ends_at: { type: string, format: date-time, nullable: true }
+              registration_url: { type: string, nullable: true }
+    responses:
+      '201':
+        description: Created (draft) event.
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/Event.yaml'
+      '400':
+        description: Invalid request body (including ends_at before starts_at).
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/Error.yaml'
+      '401':
+        description: A valid session is required.
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/Error.yaml'
+      '403':
+        description: Caller is not a moderator/admin.
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/Error.yaml'
+      '409':
+        description: An event with that slug already exists.
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/Error.yaml'
+
+byId:
+  get:
+    summary: Fetch one event, by id or by slug
+    operationId: getEvent
+    tags: [events]
+    security:
+      - {}
+      - bearerAuth: []
+    description: >
+      Same visibility as the list endpoint (RLS: published is public; a
+      draft is visible to its author or a moderator/admin).
+    parameters:
+      - name: eventId
+        in: path
+        required: true
+        schema: { type: string }
+        description: Either the item's uuid id, or its slug. PATCH/DELETE below only accept the uuid id.
+    responses:
+      '200':
+        description: The event.
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/Event.yaml'
+      '404':
+        description: No event with that id or slug (or not authorized to see it).
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/Error.yaml'
+  patch:
+    summary: Update an event, e.g. to publish it (moderator/admin only)
+    operationId: updateEvent
+    tags: [events]
+    security:
+      - bearerAuth: []
+    parameters:
+      - name: eventId
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              title: { type: string }
+              description: { type: string }
+              location: { type: string, nullable: true }
+              starts_at: { type: string, format: date-time }
+              ends_at: { type: string, format: date-time, nullable: true }
+              registration_url: { type: string, nullable: true }
+              status: { type: string, enum: [draft, published] }
+    responses:
+      '200':
+        description: Updated event.
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/Event.yaml'
+      '400':
+        description: Invalid event id or request body.
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/Error.yaml'
+      '403':
+        description: Caller is not a moderator/admin.
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/Error.yaml'
+      '404':
+        description: No event with that id (or not authorized).
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/Error.yaml'
+  delete:
+    summary: Delete an event (moderator/admin only)
+    operationId: deleteEvent
+    tags: [events]
+    security:
+      - bearerAuth: []
+    parameters:
+      - name: eventId
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    responses:
+      '204':
+        description: Deleted.
+      '400':
+        description: Invalid event id.
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/Error.yaml'
+      '404':
+        description: No event with that id (or not authorized).
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/Error.yaml'

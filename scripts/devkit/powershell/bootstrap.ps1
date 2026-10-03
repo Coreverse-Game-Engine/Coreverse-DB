@@ -6,7 +6,8 @@
     Toolchain inspection/installation and project dependency resolution,
     automated by a single command. Independent tools/workflows run in
     parallel; dependents within a workflow (Deno->its subtools, Node->pnpm,
-    Rustup->Cargo->mdBook) run inline as a task-graph layer chain.
+    Rustup->Cargo->mdBook, pnpm Deps->Vitest) run inline as a task-graph
+    layer chain.
 .PARAMETER Yes
     Unapproved/unattended mode. Without -Accept/-Reject, optional tools
     default to skipped in this mode (no interactive prompt is possible).
@@ -226,7 +227,8 @@ if ($optionalDecisions['sqlfluff']) {
 $toolchainGraphResults = Invoke-TaskGraph -Tasks $toolchainTasks
 $toolchainFlat = ConvertTo-FlatResults -GraphResults $toolchainGraphResults
 
-# --- 6. Phase 2: Project Dependencies (Independent workflows, parallel) ---
+# --- 6. Phase 2: Project Dependencies (Deno Deps / pnpm Deps run in
+#        parallel; Vitest is a single-task chain off pnpm Deps) ---
 Write-Banner -Title '2/2 - Project Dependencies'
 
 $depDir = "$PSRoot/scripts/dependencies"
@@ -234,12 +236,16 @@ $depDir = "$PSRoot/scripts/dependencies"
 $depTasks = @(
     # supabase/functions/ (Deno) - deno install, then deno audit last in the
     # same chain when approved (see parse-deno.ps1).
-    @{ Name = 'Deno Deps'; ScriptPath = "$depDir/parse-deno.ps1"; Arguments = (@{ FunctionsDir = $absDenoFunctionsDir; RunAudit = [bool]$optionalDecisions['deno-audit'] } + $commonArgs) }
+    @{ Name = 'Deno Deps'; ScriptPath = "$depDir/parse-deno.ps1"; DependsOn = @(); Arguments = (@{ FunctionsDir = $absDenoFunctionsDir; RunAudit = [bool]$optionalDecisions['deno-audit'] } + $commonArgs) }
     # src/ (React + pnpm) - existing package.json/pnpm-lock.yaml/tsconfig.json/orval.config.ts are left untouched.
-    @{ Name = 'pnpm Deps'; ScriptPath = "$depDir/parse-pnpm.ps1"; Arguments = (@{ PackageDir = $absPnpmPackageDir } + $commonArgs) }
+    @{ Name = 'pnpm Deps'; ScriptPath = "$depDir/parse-pnpm.ps1"; DependsOn = @(); Arguments = (@{ PackageDir = $absPnpmPackageDir } + $commonArgs) }
+    # tests/ (Vitest) - only confirms Vitest resolves via pnpm exec; needs
+    # 'pnpm Deps' (node_modules) to have landed first (see parse-vitest.ps1's
+    # own NOTES).
+    @{ Name = 'Vitest'; ScriptPath = "$depDir/parse-vitest.ps1"; DependsOn = @('pnpm Deps'); Arguments = (@{ PackageDir = $absPnpmPackageDir } + $commonArgs) }
 )
 
-$depGraphResults = Invoke-ParallelTasks -Tasks $depTasks
+$depGraphResults = Invoke-TaskGraph -Tasks $depTasks
 $depFlat = ConvertTo-FlatResults -GraphResults $depGraphResults
 
 # --- 7. Summary Table and Exit Code ---

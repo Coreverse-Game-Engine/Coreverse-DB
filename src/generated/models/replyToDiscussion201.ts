@@ -4,15 +4,20 @@
  * Coreverse DB API
  * Centralized data-access API for the Coreverse ecosystem. Coreverse DB defines and serves all data operations; Coreverse Launcher and Coreverse Website consume this API and never access Postgres/Supabase directly.
  *
- * OpenAPI spec version: 0.2.0
+ * OpenAPI spec version: 0.4.2
  */
+import type { ReplyToDiscussion201Author } from "./replyToDiscussion201Author";
 
 export type ReplyToDiscussion201 = {
   id: string;
   discussion_id: string;
   author_id: string;
+  author: ReplyToDiscussion201Author;
   /** null/omitted when deleted_at is set -- render as "[deleted]". */
   body?: string | null;
   deleted_at?: string | null;
-  created_at?: string;
+  /** Set when body is edited. Distinct from deleted_at/updated_at -- see the Phase 3 migration. */
+  edited_at?: string | null;
+  created_at: string;
+  updated_at: string;
 };

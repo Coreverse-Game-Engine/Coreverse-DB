@@ -3,7 +3,7 @@
 
 begin;
 
-select plan(12);
+select plan(24);
 
 -- ---------------------------------------------------------------------
 -- Fixture users: one moderator, one regular user, one outsider
@@ -346,6 +346,278 @@ select throws_ok(
          '42501',
          null,
          'replying to a locked discussion is blocked'
+       );
+
+reset role;
+
+-- ---------------------------------------------------------------------
+-- events: draft is hidden from the public, moderator-only write
+-- (same shape as news, above)
+-- ---------------------------------------------------------------------
+
+set local role authenticated;
+
+set local "request.jwt.claims" to
+  '{"sub":"dddddddd-0000-0000-0000-000000000001","role":"authenticated"}';
+
+select lives_ok(
+         $$
+        insert into content.events (
+            title,
+            slug,
+            description,
+            starts_at,
+            author_id,
+            status
+        )
+        values (
+            'RLS Test Event',
+            'rls-test-event',
+            'description',
+            now() + interval '7 days',
+            'dddddddd-0000-0000-0000-000000000001',
+            'draft'
+        )
+    $$,
+         'a moderator can INSERT a draft event'
+       );
+
+reset role;
+
+set local role anon;
+
+set local "request.jwt.claims" to
+  '{"role":"anon"}';
+
+select is_empty(
+         $$
+        select 1
+        from content.events
+        where slug = 'rls-test-event'
+    $$,
+         'anon cannot SELECT a draft event'
+       );
+
+reset role;
+
+set local role authenticated;
+
+set local "request.jwt.claims" to
+  '{"sub":"dddddddd-0000-0000-0000-000000000002","role":"authenticated"}';
+
+select throws_ok(
+         $$
+        insert into content.events (
+            title,
+            slug,
+            description,
+            starts_at,
+            author_id,
+            status
+        )
+        values (
+            'Should Fail',
+            'should-fail-event',
+            'description',
+            now() + interval '7 days',
+            'dddddddd-0000-0000-0000-000000000002',
+            'draft'
+        )
+    $$,
+         '42501',
+         null,
+         'a non-moderator cannot INSERT an event'
+       );
+
+reset role;
+
+set local role authenticated;
+
+set local "request.jwt.claims" to
+  '{"sub":"dddddddd-0000-0000-0000-000000000001","role":"authenticated"}';
+
+select lives_ok(
+         $$
+        update content.events
+        set
+            status = 'published',
+            published_at = now()
+        where slug = 'rls-test-event'
+    $$,
+         'a moderator can publish an event'
+       );
+
+reset role;
+
+set local role anon;
+
+set local "request.jwt.claims" to
+  '{"role":"anon"}';
+
+select isnt_empty(
+         $$
+        select 1
+        from content.events
+        where slug = 'rls-test-event'
+    $$,
+         'anon can SELECT a published event'
+       );
+
+reset role;
+
+-- ---------------------------------------------------------------------
+-- faq_items / faq_translations: always public read (no draft state),
+-- moderator-only write
+-- ---------------------------------------------------------------------
+
+set local role authenticated;
+
+set local "request.jwt.claims" to
+  '{"sub":"dddddddd-0000-0000-0000-000000000001","role":"authenticated"}';
+
+select lives_ok(
+         $$
+        insert into content.faq_items (
+            id,
+            category,
+            created_by
+        )
+        values (
+            'eeeeeeee-0000-0000-0000-000000000004',
+            'billing',
+            'dddddddd-0000-0000-0000-000000000001'
+        )
+    $$,
+         'a moderator can INSERT a faq_item'
+       );
+
+reset role;
+
+set local role authenticated;
+
+set local "request.jwt.claims" to
+  '{"sub":"dddddddd-0000-0000-0000-000000000002","role":"authenticated"}';
+
+select throws_ok(
+         $$
+        insert into content.faq_items (
+            category,
+            created_by
+        )
+        values (
+            'should-fail',
+            'dddddddd-0000-0000-0000-000000000002'
+        )
+    $$,
+         '42501',
+         null,
+         'a non-moderator cannot INSERT a faq_item'
+       );
+
+reset role;
+
+set local role anon;
+
+set local "request.jwt.claims" to
+  '{"role":"anon"}';
+
+select isnt_empty(
+         $$
+        select 1
+        from content.faq_items
+        where id = 'eeeeeeee-0000-0000-0000-000000000004'
+    $$,
+         'anon can SELECT a faq_item (no draft state to hide)'
+       );
+
+reset role;
+
+set local role authenticated;
+
+set local "request.jwt.claims" to
+  '{"sub":"dddddddd-0000-0000-0000-000000000001","role":"authenticated"}';
+
+select lives_ok(
+         $$
+        insert into content.faq_translations (
+            faq_item_id,
+            locale,
+            question,
+            answer
+        )
+        values (
+            'eeeeeeee-0000-0000-0000-000000000004',
+            'en',
+            'Is it free?',
+            'Yes.'
+        )
+    $$,
+         'a moderator can INSERT a faq_translation'
+       );
+
+reset role;
+
+set local role authenticated;
+
+set local "request.jwt.claims" to
+  '{"sub":"dddddddd-0000-0000-0000-000000000002","role":"authenticated"}';
+
+select throws_ok(
+         $$
+        insert into content.faq_translations (
+            faq_item_id,
+            locale,
+            question,
+            answer
+        )
+        values (
+            'eeeeeeee-0000-0000-0000-000000000004',
+            'tr',
+            'Ücretsiz mi?',
+            'Evet.'
+        )
+    $$,
+         '42501',
+         null,
+         'a non-moderator cannot INSERT a faq_translation'
+       );
+
+reset role;
+
+set local role anon;
+
+set local "request.jwt.claims" to
+  '{"role":"anon"}';
+
+select isnt_empty(
+         $$
+        select 1
+        from content.faq_translations
+        where faq_item_id = 'eeeeeeee-0000-0000-0000-000000000004'
+          and locale = 'en'
+    $$,
+         'anon can SELECT a faq_translation'
+       );
+
+reset role;
+
+set local role authenticated;
+
+set local "request.jwt.claims" to
+  '{"sub":"dddddddd-0000-0000-0000-000000000002","role":"authenticated"}';
+
+update content.faq_items
+set category = 'hijacked'
+where id = 'eeeeeeee-0000-0000-0000-000000000004';
+
+select is(
+         (
+           select category
+           from content.faq_items
+           where id = 'eeeeeeee-0000-0000-0000-000000000004'
+         ),
+         'billing',
+         'a non-moderator cannot UPDATE a faq_item'
        );
 
 reset role;

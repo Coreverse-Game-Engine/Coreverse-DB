@@ -109,27 +109,139 @@ export function actionLinkFor(supabaseUrl: string, data: EmailData,): string {
   return `${supabaseUrl}/auth/v1/verify?${params.toString()}`;
 }
 
-// No localized copy for anything besides 'recovery' yet -- see
-// index.ts's module comment. Any other action_type still gets a
-// working link rather than being dropped or erroring, since a non-2xx
-// from the hook fails the underlying Auth action for the end user, not
-// just the email.
+export function escapeHtml(value: string,): string {
+  return value
+    .replaceAll('&', '&amp;',)
+    .replaceAll('<', '&lt;',)
+    .replaceAll('>', '&gt;',)
+    .replaceAll('"', '&quot;',)
+    .replaceAll("'", '&#39;',);
+}
+
+type ActionCopy = { subject: string; body: string; cta: string };
+
+// Copy for the Supabase Auth action types besides 'recovery'. Unlike
+// RESET_EMAIL_COPY, this is NOT mirrored from the Website's
+// i18n.json -- only en and tr are written out here; every other locale
+// falls back to en (see copyFor) rather than shipping unreviewed
+// machine translations of transactional email. To localize a locale
+// properly, add its entry here from the Website's own translations.
+//
+// 'email_change' is deliberately absent: with secure email change on,
+// Supabase Auth sends one message per address (token_hash /
+// token_hash_new), and this hook currently always sends to user.email,
+// so which address gets which link needs a decision before it can have
+// real copy. It keeps the generic fallback below.
+const ACTION_COPY: Record<
+  'signup' | 'magiclink' | 'invite' | 'reauthentication',
+  Partial<Record<WebsiteLocale, ActionCopy>> & { en: ActionCopy }
+> = {
+  signup: {
+    en: {
+      subject: 'Confirm your Coreverse Engine account',
+      body: 'Welcome to Coreverse Engine! Click the button below to confirm your email address.',
+      cta: 'Confirm Email',
+    },
+    tr: {
+      subject: 'Coreverse Engine hesabınızı doğrulayın',
+      body:
+        "Coreverse Engine'e hoş geldiniz! E-posta adresinizi doğrulamak için aşağıdaki düğmeye tıklayın.",
+      cta: 'E-postayı Doğrula',
+    },
+  },
+  magiclink: {
+    en: {
+      subject: 'Your Coreverse Engine sign-in link',
+      body: 'Click the button below to sign in to your Coreverse Engine account.',
+      cta: 'Sign In',
+    },
+    tr: {
+      subject: 'Coreverse Engine giriş bağlantınız',
+      body: 'Coreverse Engine hesabınıza giriş yapmak için aşağıdaki düğmeye tıklayın.',
+      cta: 'Giriş Yap',
+    },
+  },
+  invite: {
+    en: {
+      subject: "You've been invited to Coreverse Engine",
+      body:
+        'You have been invited to create a Coreverse Engine account. Click the button below to accept.',
+      cta: 'Accept Invitation',
+    },
+    tr: {
+      subject: "Coreverse Engine'e davet edildiniz",
+      body:
+        'Bir Coreverse Engine hesabı oluşturmaya davet edildiniz. Kabul etmek için aşağıdaki düğmeye tıklayın.',
+      cta: 'Daveti Kabul Et',
+    },
+  },
+  reauthentication: {
+    en: {
+      subject: 'Your Coreverse Engine verification code',
+      body: 'Enter this code to confirm it is you:',
+      cta: '',
+    },
+    tr: {
+      subject: 'Coreverse Engine doğrulama kodunuz',
+      body: 'Bu sizseniz doğrulamak için aşağıdaki kodu girin:',
+      cta: '',
+    },
+  },
+};
+
+function isLocalizedAction(actionType: string,): actionType is keyof typeof ACTION_COPY {
+  return Object.hasOwn(ACTION_COPY, actionType,);
+}
+
+function copyFor(actionType: keyof typeof ACTION_COPY, locale: WebsiteLocale,): ActionCopy {
+  const byLocale = ACTION_COPY[actionType];
+  return byLocale[locale] ?? byLocale.en;
+}
+
+// `token` is the 6-digit OTP from email_data.token; only
+// 'reauthentication' uses it (that flow has no link, the user types the
+// code back in), so it's optional for every other action type.
+//
+// Anything not covered above still gets a working link rather than
+// being dropped or erroring, since a non-2xx from the hook fails the
+// underlying Auth action for the end user, not just the email.
+// Interpolated values are HTML-escaped: the action link carries `&`
+// separators, and action_type/token come from the hook payload rather
+// than from this file.
 export function emailContentFor(
   actionType: string,
   locale: WebsiteLocale,
   actionLink: string,
+  token?: string,
 ): { subject: string; htmlContent: string } {
+  const link = escapeHtml(actionLink,);
+
   if (actionType === 'recovery') {
     const copy = RESET_EMAIL_COPY[locale];
     return {
       subject: copy.subject,
-      htmlContent: `<p>${copy.body}</p><p><a href="${actionLink}">${copy.cta}</a></p>`,
+      htmlContent: `<p>${copy.body}</p><p><a href="${link}">${copy.cta}</a></p>`,
+    };
+  }
+
+  if (isLocalizedAction(actionType,)) {
+    const copy = copyFor(actionType, locale,);
+    if (actionType === 'reauthentication') {
+      return {
+        subject: copy.subject,
+        htmlContent: `<p>${copy.body}</p><p><strong>${escapeHtml(token ?? '',)}</strong></p>`,
+      };
+    }
+    return {
+      subject: copy.subject,
+      htmlContent: `<p>${copy.body}</p><p><a href="${link}">${copy.cta}</a></p>`,
     };
   }
 
   return {
     subject: 'Coreverse Engine',
-    htmlContent: `<p>Please use the link below to continue (action: ${actionType}).</p>` +
-      `<p><a href="${actionLink}">${actionLink}</a></p>`,
+    htmlContent:
+      `<p>Please use the link below to continue (action: ${escapeHtml(actionType,)}).</p>` +
+      `<p><a href="${link}">${link}</a></p>`,
   };
 }

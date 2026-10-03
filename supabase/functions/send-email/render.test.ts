@@ -70,8 +70,52 @@ Deno.test('emailContentFor covers every WEBSITE_LOCALES entry for recovery (no m
 });
 
 Deno.test('emailContentFor falls back to a generic English message for an uncovered action_type', () => {
-  const { subject, htmlContent, } = emailContentFor('signup', 'tr', 'https://coreverse.dev/link',);
+  // email_change is deliberately left uncovered -- see render.ts's
+  // ACTION_COPY module comment.
+  const { subject, htmlContent, } = emailContentFor(
+    'email_change',
+    'tr',
+    'https://coreverse.dev/link',
+  );
   assertEquals(subject, 'Coreverse Engine',);
-  assertStringIncludes(htmlContent, 'signup',);
+  assertStringIncludes(htmlContent, 'email_change',);
   assertStringIncludes(htmlContent, 'https://coreverse.dev/link',);
+});
+
+Deno.test('emailContentFor returns Turkish copy for a localized non-recovery action (signup)', () => {
+  const { subject, htmlContent, } = emailContentFor(
+    'signup',
+    'tr',
+    'https://coreverse.dev/confirm',
+  );
+  assertEquals(subject, 'Coreverse Engine hesabınızı doğrulayın',);
+  assertStringIncludes(htmlContent, 'E-postayı Doğrula',);
+});
+
+Deno.test('emailContentFor falls back to English for a localized action in an un-mirrored locale', () => {
+  // ACTION_COPY only has en+tr written out (unlike RESET_EMAIL_COPY,
+  // which mirrors every WEBSITE_LOCALES entry) -- 'fr' must fall back
+  // to the en copy rather than throwing or rendering "undefined".
+  const { subject, } = emailContentFor('magiclink', 'fr', 'https://coreverse.dev/link',);
+  assertEquals(subject, 'Your Coreverse Engine sign-in link',);
+});
+
+Deno.test('emailContentFor renders the OTP for reauthentication instead of a link', () => {
+  const { htmlContent, } = emailContentFor(
+    'reauthentication',
+    'en',
+    'https://coreverse.dev/link',
+    '123456',
+  );
+  assertStringIncludes(htmlContent, '123456',);
+});
+
+Deno.test('emailContentFor HTML-escapes an untrusted action_type in the fallback message', () => {
+  const { htmlContent, } = emailContentFor(
+    '<script>alert(1)</script>',
+    'en',
+    'https://coreverse.dev/link',
+  );
+  assertEquals(htmlContent.includes('<script>',), false,);
+  assertStringIncludes(htmlContent, '&lt;script&gt;',);
 });

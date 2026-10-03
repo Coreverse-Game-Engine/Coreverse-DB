@@ -17,6 +17,17 @@ Deno.test('UpdateNewsSchema rejects an empty body', () => {
   assertFalse(UpdateNewsSchema.safeParse({},).success,);
 });
 
+Deno.test('CreateNewsSchema accepts optional summary and cover_image_path', () => {
+  const result = CreateNewsSchema.safeParse({
+    title: 'T',
+    slug: 't-slug',
+    body: 'body',
+    summary: 'A short summary.',
+    cover_image_path: 'covers/t-slug.png',
+  },);
+  assert(result.success,);
+});
+
 Deno.test('UpdateNewsSchema accepts a status-only update', () => {
   assert(UpdateNewsSchema.safeParse({ status: 'published', },).success,);
 });

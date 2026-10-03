@@ -2,7 +2,7 @@
 
 ## `pnpm publish` fails with `403 Forbidden` / `Permission permission_denied: The requested installation does not exist`
 
-Seen on the very first publish of `@coreverse/db-client` after the `coreverse` GitHub org and package scope were set up. The build, typecheck, and `pnpm verify` steps all succeeded — only the actual `pnpm publish --no-git-checks` call to GitHub Packages failed, alongside an OIDC warning (`ERR_PNPM_ID_TOKEN_GITHUB_WORKFLOW_INCORRECT_PERMISSIONS`). This points to the org/repo's GitHub Packages and Actions permissions not yet being fully configured on the GitHub side (repository/organization settings), not a problem with the workflow file or the package itself. Check:
+Seen on the very first publish of `@Coreverse-Game-Engine/db-client` after the `coreverse` GitHub org and package scope were set up. The build, typecheck, and `pnpm verify` steps all succeeded — only the actual `pnpm publish --no-git-checks` call to GitHub Packages failed, alongside an OIDC warning (`ERR_PNPM_ID_TOKEN_GITHUB_WORKFLOW_INCORRECT_PERMISSIONS`). This points to the org/repo's GitHub Packages and Actions permissions not yet being fully configured on the GitHub side (repository/organization settings), not a problem with the workflow file or the package itself. Check:
 
 - The repository's Actions → General → Workflow permissions (needs `packages: write`).
 - That the `coreverse` organization actually allows the publishing repository to write packages under its scope.

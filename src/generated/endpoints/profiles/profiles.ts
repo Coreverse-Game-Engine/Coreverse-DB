@@ -4,9 +4,18 @@
  * Coreverse DB API
  * Centralized data-access API for the Coreverse ecosystem. Coreverse DB defines and serves all data operations; Coreverse Launcher and Coreverse Website consume this API and never access Postgres/Supabase directly.
  *
- * OpenAPI spec version: 0.2.0
+ * OpenAPI spec version: 0.4.2
  */
 import type {
+  CheckUsernameAvailability200,
+  CheckUsernameAvailability400,
+  CheckUsernameAvailability429,
+  CheckUsernameAvailabilityParams,
+  DeleteMyAccount401,
+  DeleteMyAccount409,
+  DeleteMyAvatar200,
+  DeleteMyAvatar401,
+  DeleteMyAvatar404,
   GetMyProfile200,
   GetMyProfile401,
   GetMyProfile404,
@@ -139,6 +148,114 @@ export const updateMyProfile = async (
   });
 };
 
+export type deleteMyAccountResponse204 = {
+  data: void;
+  status: 204;
+};
+
+export type deleteMyAccountResponse401 = {
+  data: DeleteMyAccount401;
+  status: 401;
+};
+
+export type deleteMyAccountResponse409 = {
+  data: DeleteMyAccount409;
+  status: 409;
+};
+
+export type deleteMyAccountResponseSuccess = deleteMyAccountResponse204 & {
+  headers: Headers;
+};
+export type deleteMyAccountResponseError = (
+  deleteMyAccountResponse401 | deleteMyAccountResponse409
+) & {
+  headers: Headers;
+};
+
+export type deleteMyAccountResponse =
+  deleteMyAccountResponseSuccess | deleteMyAccountResponseError;
+
+export const getDeleteMyAccountUrl = () => {
+  return `/profiles/me`;
+};
+
+/**
+ * Deletes the Auth user and (via cascade) the profile row -- not reversible. Fails with 409 if the account still owns or authored content that isn't safe to silently delete or orphan (a team it sole-owns, news/events/discussions/discussion replies/FAQ items it authored, a project it owns); the response lists exactly which. Resolve each listed blocker (transfer ownership, delete the content, etc.) and retry.
+ * @summary Delete the caller's own account
+ */
+export const deleteMyAccount = async (
+  options?: Parameters<typeof coreverseFetch>[1],
+): Promise<deleteMyAccountResponse> => {
+  return coreverseFetch<deleteMyAccountResponse>(getDeleteMyAccountUrl(), {
+    ...options,
+    method: "DELETE",
+  });
+};
+
+export type checkUsernameAvailabilityResponse200 = {
+  data: CheckUsernameAvailability200;
+  status: 200;
+};
+
+export type checkUsernameAvailabilityResponse400 = {
+  data: CheckUsernameAvailability400;
+  status: 400;
+};
+
+export type checkUsernameAvailabilityResponse429 = {
+  data: CheckUsernameAvailability429;
+  status: 429;
+};
+
+export type checkUsernameAvailabilityResponseSuccess =
+  checkUsernameAvailabilityResponse200 & {
+    headers: Headers;
+  };
+export type checkUsernameAvailabilityResponseError = (
+  checkUsernameAvailabilityResponse400 | checkUsernameAvailabilityResponse429
+) & {
+  headers: Headers;
+};
+
+export type checkUsernameAvailabilityResponse =
+  | checkUsernameAvailabilityResponseSuccess
+  | checkUsernameAvailabilityResponseError;
+
+export const getCheckUsernameAvailabilityUrl = (
+  params: CheckUsernameAvailabilityParams,
+) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : String(value));
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/profiles/username-availability?${stringifiedParams}`
+    : `/profiles/username-availability`;
+};
+
+/**
+ * Public (no session required) -- a signed-out user picking a username at signup needs this too. Rate-limited per caller IP (30/min). If the caller does have a session, their own current username counts as available (re-checking the value already in an edit form must not report it as taken).
+ * @summary Check whether a username is available
+ */
+export const checkUsernameAvailability = async (
+  params: CheckUsernameAvailabilityParams,
+  options?: Parameters<typeof coreverseFetch>[1],
+): Promise<checkUsernameAvailabilityResponse> => {
+  return coreverseFetch<checkUsernameAvailabilityResponse>(
+    getCheckUsernameAvailabilityUrl(params),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
 export type uploadMyAvatarResponse200 = {
   data: UploadMyAvatar200;
   status: 200;
@@ -198,5 +315,49 @@ export const uploadMyAvatar = async (
     ...options,
     method: "POST",
     body: formData,
+  });
+};
+
+export type deleteMyAvatarResponse200 = {
+  data: DeleteMyAvatar200;
+  status: 200;
+};
+
+export type deleteMyAvatarResponse401 = {
+  data: DeleteMyAvatar401;
+  status: 401;
+};
+
+export type deleteMyAvatarResponse404 = {
+  data: DeleteMyAvatar404;
+  status: 404;
+};
+
+export type deleteMyAvatarResponseSuccess = deleteMyAvatarResponse200 & {
+  headers: Headers;
+};
+export type deleteMyAvatarResponseError = (
+  deleteMyAvatarResponse401 | deleteMyAvatarResponse404
+) & {
+  headers: Headers;
+};
+
+export type deleteMyAvatarResponse =
+  deleteMyAvatarResponseSuccess | deleteMyAvatarResponseError;
+
+export const getDeleteMyAvatarUrl = () => {
+  return `/profiles/me/avatar`;
+};
+
+/**
+ * Clears avatar_path and best-effort removes the underlying object from the avatars bucket. 404 if the profile has no avatar set.
+ * @summary Remove the caller's own avatar
+ */
+export const deleteMyAvatar = async (
+  options?: Parameters<typeof coreverseFetch>[1],
+): Promise<deleteMyAvatarResponse> => {
+  return coreverseFetch<deleteMyAvatarResponse>(getDeleteMyAvatarUrl(), {
+    ...options,
+    method: "DELETE",
   });
 };

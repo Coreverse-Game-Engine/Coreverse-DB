@@ -4,9 +4,28 @@
  * Coreverse DB API
  * Centralized data-access API for the Coreverse ecosystem. Coreverse DB defines and serves all data operations; Coreverse Launcher and Coreverse Website consume this API and never access Postgres/Supabase directly.
  *
- * OpenAPI spec version: 0.2.0
+ * OpenAPI spec version: 0.4.2
  */
+import type { ListDiscussionsSort } from "./listDiscussionsSort";
 
 export type ListDiscussionsParams = {
   category?: string;
+  /**
+   * Full-text search over title + body ('simple' config, plain query -- same convention as docs search). Combines with category if both are given.
+   */
+  q?: string;
+  /**
+   * recent = created_at desc (default, cursor-paginated). active = last_activity_at desc. replies = reply_count desc. active/replies are single-page only for now -- next_cursor is always null, and passing cursor with either of them is a 400.
+   */
+  sort?: ListDiscussionsSort;
+  /**
+   * Max items to return (1-100, default 20).
+   * @minimum 1
+   * @maximum 100
+   */
+  limit?: number;
+  /**
+   * Opaque token from a previous page's next_cursor. Omit for the first page. Treat as opaque -- its encoding is an implementation detail and may change.
+   */
+  cursor?: string;
 };

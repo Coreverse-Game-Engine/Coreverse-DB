@@ -4,8 +4,9 @@
  * Coreverse DB API
  * Centralized data-access API for the Coreverse ecosystem. Coreverse DB defines and serves all data operations; Coreverse Launcher and Coreverse Website consume this API and never access Postgres/Supabase directly.
  *
- * OpenAPI spec version: 0.2.0
+ * OpenAPI spec version: 0.4.2
  */
+import type { CreateNews201Author } from "./createNews201Author";
 import type { CreateNews201Status } from "./createNews201Status";
 
 export type CreateNews201 = {
@@ -13,7 +14,13 @@ export type CreateNews201 = {
   title: string;
   slug: string;
   body?: string;
-  author_id?: string;
+  /** Optional short standalone summary, distinct from body -- for list views/link previews. */
+  summary?: string | null;
+  cover_image_url?: string | null;
+  author_id: string;
+  author: CreateNews201Author;
   status: CreateNews201Status;
   published_at?: string | null;
+  created_at: string;
+  updated_at: string;
 };

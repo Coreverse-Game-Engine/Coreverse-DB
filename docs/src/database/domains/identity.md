@@ -17,11 +17,11 @@ See [Tables › Profiles](../tables/profiles.md), [Tables › Teams](../tables/t
 
 `team_membership_requests.type` covers three distinct flows through one table:
 
-| Type | Initiated by | Decided by |
-|---|---|---|
-| `join_request` | The user wanting to join | A team owner/admin |
-| `invite` | A team owner/admin | The invited user |
-| `ownership_transfer` | The current owner | The target user (member or not) |
+| Type                 | Initiated by             | Decided by                      |
+|----------------------|--------------------------|---------------------------------|
+| `join_request`       | The user wanting to join | A team owner/admin              |
+| `invite`             | A team owner/admin       | The invited user                |
+| `ownership_transfer` | The current owner        | The target user (member or not) |
 
 A unique partial index allows **at most one pending request per `(team, user)`**, regardless of type, and the initiator can always cancel their own request while it's still `pending`. See [Functions › Identity](../functions/identity.md) for the full set of state-transition functions (`request_to_join`, `invite_to_team`, `offer_ownership`, `cancel_request`, `respond_to_join_request`, `respond_to_invite`, `respond_to_ownership_transfer`) and the team-management functions (`promote_to_admin`, `demote_to_member`, `remove_member`, `leave_team`).
 
@@ -35,7 +35,7 @@ A `before insert` trigger on `team_members` (`identity.enforce_team_capacity`) r
 
 ## Legacy backfill
 
-Before this package's `identity` domain existed, the Website ran its own signup-time schema directly (`public.profiles`, `public.handle_new_user()`). `20260912120000_backfill_legacy_identity.sql` backfills `identity.profiles` rows for any user who signed up before `trg_handle_new_auth_user` existed, and is idempotent — safe to re-run, and a no-op on an environment that never had the legacy schema. It does not drop the legacy objects themselves; that's a separate, manually-run step once each environment is confirmed clear of other consumers — see `supabase/maintenance/drop_legacy_identity_objects.sql`.
+Before this package's `identity` domain existed, the Website ran its own signup-time schema directly (`public.profiles`, `public.handle_new_user()`). `20260912190612_backfill_legacy_identity.sql` backfills `identity.profiles` rows for any user who signed up before `trg_handle_new_auth_user` existed, and is idempotent — safe to re-run, and a no-op on an environment that never had the legacy schema. It does not drop the legacy objects themselves; that's a separate, manually-run step once each environment is confirmed clear of other consumers — see `supabase/maintenance/drop_legacy_identity_objects.sql`.
 
 ## Why membership logic is functions, not policies
 
