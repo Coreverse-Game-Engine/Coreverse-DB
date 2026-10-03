@@ -27,6 +27,8 @@ describe.skipIf(!generatedReactExists)("src/react.ts barrel", () => {
       news: "useCreateNews",
       polls: "useCreatePoll",
       discussions: "useCreateDiscussion",
+      events: "useListEvents",
+      faq: "useListFaq",
       docs: "useSearchDocs",
       auth: "useRequestPasswordReset",
     };
@@ -43,11 +45,11 @@ describe.skipIf(!generatedReactExists)("src/react.ts barrel", () => {
 
     const hookNames = Object.keys(react).filter((name) => /^use[A-Z]/.test(name));
 
-    // 42 export function use* declarations exist across the 10 tag files
-    // today (see src/generated/react/**); require a healthy majority so a
-    // broken/partial barrel export fails loudly instead of silently
-    // dropping a tag.
-    expect(hookNames.length).toBeGreaterThanOrEqual(10);
+    // Every operation across the 12 tag files becomes at least one use*
+    // hook (see src/generated/react/**); the floor below is deliberately
+    // loose, it only exists so a broken/partial barrel export fails
+    // loudly instead of silently dropping a tag.
+    expect(hookNames.length).toBeGreaterThanOrEqual(12);
   });
 
   it("never re-exports the hand-written client/http.ts exports (react.ts is a separate entry point, see src/react.ts's own comment)", async () => {
