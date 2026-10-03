@@ -30,6 +30,14 @@ export const GetMyProfileResponse = zod.object({
     .describe(
       "Public\/signed URL resolved from the stored avatar_path, not the raw path itself.",
     ),
+  platform_role: zod
+    .union([zod.literal("admin"), zod.literal("moderator"), zod.literal(null)])
+    .nullish()
+    .describe(
+      "Only present on GET \/profiles\/me (never on another user's profile) -- identity.platform_roles is self-only RLS. null means no elevated role.\n",
+    ),
+  created_at: zod.iso.datetime({ offset: true }),
+  updated_at: zod.iso.datetime({ offset: true }),
 });
 
 /**
@@ -80,6 +88,43 @@ export const UpdateMyProfileResponse = zod.object({
     .describe(
       "Public\/signed URL resolved from the stored avatar_path, not the raw path itself.",
     ),
+  platform_role: zod
+    .union([zod.literal("admin"), zod.literal("moderator"), zod.literal(null)])
+    .nullish()
+    .describe(
+      "Only present on GET \/profiles\/me (never on another user's profile) -- identity.platform_roles is self-only RLS. null means no elevated role.\n",
+    ),
+  created_at: zod.iso.datetime({ offset: true }),
+  updated_at: zod.iso.datetime({ offset: true }),
+});
+
+/**
+ * Deletes the Auth user and (via cascade) the profile row -- not reversible. Fails with 409 if the account still owns or authored content that isn't safe to silently delete or orphan (a team it sole-owns, news/events/discussions/discussion replies/FAQ items it authored, a project it owns); the response lists exactly which. Resolve each listed blocker (transfer ownership, delete the content, etc.) and retry.
+ * @summary Delete the caller's own account
+ */
+export const DeleteMyAccountResponse = zod.void();
+
+/**
+ * Public (no session required) -- a signed-out user picking a username at signup needs this too. Rate-limited per caller IP (30/min). If the caller does have a session, their own current username counts as available (re-checking the value already in an edit form must not report it as taken).
+ * @summary Check whether a username is available
+ */
+export const checkUsernameAvailabilityQueryUsernameMin = 3;
+export const checkUsernameAvailabilityQueryUsernameMax = 24;
+
+export const checkUsernameAvailabilityQueryUsernameRegExp = new RegExp(
+  "^[a-zA-Z0-9_]+$",
+);
+
+export const CheckUsernameAvailabilityQueryParams = zod.object({
+  username: zod
+    .string()
+    .min(checkUsernameAvailabilityQueryUsernameMin)
+    .max(checkUsernameAvailabilityQueryUsernameMax)
+    .regex(checkUsernameAvailabilityQueryUsernameRegExp),
+});
+
+export const CheckUsernameAvailabilityResponse = zod.object({
+  available: zod.boolean(),
 });
 
 /**
@@ -109,6 +154,47 @@ export const UploadMyAvatarResponse = zod.object({
     .describe(
       "Public\/signed URL resolved from the stored avatar_path, not the raw path itself.",
     ),
+  platform_role: zod
+    .union([zod.literal("admin"), zod.literal("moderator"), zod.literal(null)])
+    .nullish()
+    .describe(
+      "Only present on GET \/profiles\/me (never on another user's profile) -- identity.platform_roles is self-only RLS. null means no elevated role.\n",
+    ),
+  created_at: zod.iso.datetime({ offset: true }),
+  updated_at: zod.iso.datetime({ offset: true }),
+});
+
+/**
+ * Clears avatar_path and best-effort removes the underlying object from the avatars bucket. 404 if the profile has no avatar set.
+ * @summary Remove the caller's own avatar
+ */
+export const DeleteMyAvatarResponse = zod.object({
+  id: zod.uuid(),
+  full_name: zod
+    .string()
+    .describe(
+      "Free-text display name, no format or uniqueness constraint. Distinct from username.",
+    ),
+  username: zod
+    .string()
+    .nullish()
+    .describe(
+      "Unique (case-insensitive), alphanumeric\/underscore handle, 3-24 characters. Every profile has one in practice (assigned at signup, backfilled for pre-existing users), but it's nullable at the schema level rather than required.\n",
+    ),
+  avatar_url: zod
+    .url()
+    .nullish()
+    .describe(
+      "Public\/signed URL resolved from the stored avatar_path, not the raw path itself.",
+    ),
+  platform_role: zod
+    .union([zod.literal("admin"), zod.literal("moderator"), zod.literal(null)])
+    .nullish()
+    .describe(
+      "Only present on GET \/profiles\/me (never on another user's profile) -- identity.platform_roles is self-only RLS. null means no elevated role.\n",
+    ),
+  created_at: zod.iso.datetime({ offset: true }),
+  updated_at: zod.iso.datetime({ offset: true }),
 });
 
 /**

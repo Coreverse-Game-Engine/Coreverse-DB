@@ -328,6 +328,15 @@ deno_version = 2
 # [edge_runtime.secrets]
 # secret_key = "env(SECRET_VALUE)"
 
+# send-email is the Supabase Auth "Send Email" hook target. GoTrue calls it
+# server-to-server with a Standard Webhooks signature and NO user JWT, so the
+# platform's JWT gate must be off for this one function (the signature is
+# verified inside the function against SEND_EMAIL_HOOK_SECRET). Declared here
+# so `supabase functions deploy send-email` applies it without anyone having
+# to remember --no-verify-jwt. Every other function keeps the default.
+[functions.send-email]
+verify_jwt = false
+
 [analytics]
 enabled = true
 port = 54327

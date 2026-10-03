@@ -1,0 +1,39 @@
+type: object
+description: >
+  A FAQ item with every locale it has a translation for, as returned by
+  GET /faq/{faqId} and the write endpoints. Used for admin/editing
+  views -- GET /faq (list) returns FaqEntry, flattened to one locale,
+  instead.
+required:
+  - id
+  - category
+  - display_order
+  - translations
+  - created_at
+  - updated_at
+properties:
+  id:
+    type: string
+    format: uuid
+  category:
+    type: string
+    nullable: true
+  display_order:
+    type: integer
+  translations:
+    type: object
+    description: Keyed by locale code (e.g. "en", "tr").
+    additionalProperties:
+      type: object
+      required: [question, answer]
+      properties:
+        question:
+          type: string
+        answer:
+          type: string
+  created_at:
+    type: string
+    format: date-time
+  updated_at:
+    type: string
+    format: date-time

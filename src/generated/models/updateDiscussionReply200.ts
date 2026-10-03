@@ -6,13 +6,18 @@
  *
  * OpenAPI spec version: 0.4.2
  */
+import type { UpdateDiscussionReply200Author } from "./updateDiscussionReply200Author";
 
 export type UpdateDiscussionReply200 = {
   id: string;
   discussion_id: string;
   author_id: string;
+  author: UpdateDiscussionReply200Author;
   /** null/omitted when deleted_at is set -- render as "[deleted]". */
   body?: string | null;
   deleted_at?: string | null;
-  created_at?: string;
+  /** Set when body is edited. Distinct from deleted_at/updated_at -- see the Phase 3 migration. */
+  edited_at?: string | null;
+  created_at: string;
+  updated_at: string;
 };

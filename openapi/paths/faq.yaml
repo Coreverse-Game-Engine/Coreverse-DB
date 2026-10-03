@@ -1,0 +1,277 @@
+list:
+  get:
+    summary: List FAQ entries in one locale (public)
+    operationId: listFaq
+    tags: [faq]
+    security:
+      - {}
+      - bearerAuth: []
+    description: >
+      Public reference content, same as GET /docs/sources -- returned
+      as a plain array (ordered by category, then display_order), not
+      keyset-paginated like news/events/discussions/polls: this is a
+      small, bounded dataset meant to be fetched in full, not paged
+      through. Only items that have a translation for the requested
+      locale are included; there is no fallback to another locale.
+    parameters:
+      - name: locale
+        in: query
+        required: false
+        schema: { type: string, default: en }
+        description: One of the Website's supported locales (see _shared/locales.ts). Defaults to "en".
+      - name: category
+        in: query
+        required: false
+        schema: { type: string }
+    responses:
+      '200':
+        description: FAQ entries for the requested locale.
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: '../schemas/FaqEntry.yaml'
+      '400':
+        description: Unrecognized locale.
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/Error.yaml'
+  post:
+    summary: Create a FAQ item with its translations (moderator/admin only)
+    operationId: createFaqItem
+    tags: [faq]
+    security:
+      - bearerAuth: []
+    description: >
+      Wraps content.create_faq_item_with_translations() -- a FAQ item
+      is meaningless without at least one translation, so item and
+      translations are created atomically in one call rather than a
+      POST /faq followed by separate per-locale PUTs.
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [translations]
+            properties:
+              category: { type: string, nullable: true }
+              display_order: { type: integer }
+              translations:
+                type: object
+                description: At least one entry, keyed by locale code.
+                additionalProperties:
+                  type: object
+                  required: [question, answer]
+                  properties:
+                    question: { type: string }
+                    answer: { type: string }
+    responses:
+      '201':
+        description: Created FAQ item.
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/FaqItem.yaml'
+      '400':
+        description: Invalid request body, or an unrecognized locale key.
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/Error.yaml'
+      '401':
+        description: A valid session is required.
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/Error.yaml'
+      '403':
+        description: Caller is not a moderator/admin.
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/Error.yaml'
+
+byId:
+  get:
+    summary: Fetch one FAQ item with every locale it has a translation for
+    operationId: getFaqItem
+    tags: [faq]
+    security:
+      - {}
+      - bearerAuth: []
+    parameters:
+      - name: faqId
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    responses:
+      '200':
+        description: The FAQ item, across all its translations.
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/FaqItem.yaml'
+      '404':
+        description: No FAQ item with that id.
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/Error.yaml'
+  patch:
+    summary: Update a FAQ item's category/display_order (moderator/admin only)
+    operationId: updateFaqItem
+    tags: [faq]
+    security:
+      - bearerAuth: []
+    description: Item-level fields only; per-locale question/answer text goes through the translations sub-resource below.
+    parameters:
+      - name: faqId
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              category: { type: string, nullable: true }
+              display_order: { type: integer }
+    responses:
+      '200':
+        description: Updated FAQ item.
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/FaqItem.yaml'
+      '400':
+        description: Invalid FAQ id or request body.
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/Error.yaml'
+      '403':
+        description: Caller is not a moderator/admin.
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/Error.yaml'
+      '404':
+        description: No FAQ item with that id.
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/Error.yaml'
+  delete:
+    summary: Delete a FAQ item, including every locale's translation (moderator/admin only)
+    operationId: deleteFaqItem
+    tags: [faq]
+    security:
+      - bearerAuth: []
+    parameters:
+      - name: faqId
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    responses:
+      '204':
+        description: Deleted.
+      '400':
+        description: Invalid FAQ id.
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/Error.yaml'
+      '404':
+        description: No FAQ item with that id.
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/Error.yaml'
+
+translation:
+  put:
+    summary: Create or replace one locale's translation for a FAQ item (moderator/admin only)
+    operationId: upsertFaqTranslation
+    tags: [faq]
+    security:
+      - bearerAuth: []
+    parameters:
+      - name: faqId
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+      - name: locale
+        in: path
+        required: true
+        schema: { type: string }
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [question, answer]
+            properties:
+              question: { type: string }
+              answer: { type: string }
+    responses:
+      '200':
+        description: The FAQ item, with the updated translation set.
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/FaqItem.yaml'
+      '400':
+        description: Invalid FAQ id, unrecognized locale, or request body.
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/Error.yaml'
+      '403':
+        description: Caller is not a moderator/admin.
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/Error.yaml'
+      '404':
+        description: No FAQ item with that id.
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/Error.yaml'
+  delete:
+    summary: Remove one locale's translation from a FAQ item (moderator/admin only)
+    operationId: deleteFaqTranslation
+    tags: [faq]
+    security:
+      - bearerAuth: []
+    description: The parent FAQ item and its other locales are unaffected.
+    parameters:
+      - name: faqId
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+      - name: locale
+        in: path
+        required: true
+        schema: { type: string }
+    responses:
+      '204':
+        description: Deleted.
+      '400':
+        description: Invalid FAQ id or unrecognized locale.
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/Error.yaml'
+      '404':
+        description: No FAQ item with that id, or it has no translation in that locale.
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/Error.yaml'

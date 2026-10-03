@@ -1,18 +1,44 @@
-// GET    /news              -> list visible news (RLS: published, or own draft, or moderator)
-// POST   /news               -> create a draft (moderator/admin only, via RLS)
-// PATCH  /news/{newsId}       -> update, including publishing (moderator/admin only)
-// DELETE /news/{newsId}       -> delete (moderator/admin only)
+// GET    /news                -> list visible news (RLS: published, or own draft, or moderator)
+// GET    /news/{newsIdOrSlug} -> fetch one (accepts a uuid id OR a slug)
+// POST   /news                 -> create a draft (moderator/admin only, via RLS)
+// PATCH  /news/{newsId}         -> update, including publishing (moderator/admin only; uuid id only)
+// DELETE /news/{newsId}         -> delete (moderator/admin only; uuid id only)
 //
 // All authorization is RLS (identity.is_platform_moderator()) -- this is
 // a thin PostgREST pass-through, same shape as the projects function.
 
 import { serve, } from '@std/http/server';
 import { createUserClient, } from '../_shared/supabase-client.ts';
-import { errorResponse, jsonResponse, withCors, } from '../_shared/http.ts';
+import { errorResponse, jsonResponse, safeDbErrorMessage, withCors, } from '../_shared/http.ts';
+import { buildCursorFilter, paginate, parsePagination, } from '../_shared/pagination.ts';
+import { fetchAuthors, unknownAuthor, } from '../_shared/authors.ts';
+import { publicUrlWithCacheBust, } from '../_shared/storage.ts';
 import { CreateNewsSchema, UpdateNewsSchema, UuidSchema, } from './schemas.ts';
 
 const SELECT_COLUMNS =
-  'id, title, slug, body, author_id, status, published_at, created_at, updated_at';
+  'id, title, slug, body, summary, cover_image_path, author_id, status, published_at, created_at, updated_at';
+
+function withCoverImageUrl<T extends { cover_image_path: string | null; updated_at?: string },>(
+  supabase: ReturnType<typeof createUserClient>,
+  row: T,
+): Omit<T, 'cover_image_path'> & { cover_image_url: string | null } {
+  const { cover_image_path, ...rest } = row;
+  const cover_image_url = publicUrlWithCacheBust(
+    supabase.storage,
+    'news-covers',
+    cover_image_path,
+    rest.updated_at ?? null,
+  );
+  return { ...rest, cover_image_url, };
+}
+
+async function withAuthor(
+  supabase: ReturnType<typeof createUserClient>,
+  row: { author_id: string; [key: string]: unknown },
+) {
+  const authors = await fetchAuthors(supabase, [row.author_id,],);
+  return { ...row, author: authors.get(row.author_id,) ?? unknownAuthor(row.author_id,), };
+}
 
 serve(withCors(async (req,) => {
   const url = new URL(req.url,);
@@ -26,6 +52,9 @@ serve(withCors(async (req,) => {
   try {
     // GET /news
     if (segments.length === 0 && req.method === 'GET') {
+      const page = parsePagination(url,);
+      if ('error' in page) return page.error;
+
       let query = supabase.schema('content',).from('news',).select(SELECT_COLUMNS,);
 
       const statusParam = url.searchParams.get('status',);
@@ -35,10 +64,23 @@ serve(withCors(async (req,) => {
         }
         query = query.eq('status', statusParam,);
       }
+      if (page.cursor) query = query.or(buildCursorFilter(page.cursor, 'desc',),);
 
-      const { data, error, } = await query.order('created_at', { ascending: false, },);
-      if (error) return errorResponse('query_error', error.message, 500,);
-      return jsonResponse(data,);
+      const { data, error, } = await query
+        .order('created_at', { ascending: false, },)
+        .order('id', { ascending: false, },)
+        .limit(page.limit + 1,);
+      if (error) return errorResponse('query_error', safeDbErrorMessage(500,), 500,);
+
+      const paged = paginate(data ?? [], page.limit,);
+      const authors = await fetchAuthors(supabase, paged.items.map((r,) => r.author_id),);
+      return jsonResponse({
+        items: paged.items.map((r,) => ({
+          ...withCoverImageUrl(supabase, r,),
+          author: authors.get(r.author_id,) ?? unknownAuthor(r.author_id,),
+        })),
+        next_cursor: paged.next_cursor,
+      },);
     }
 
     // POST /news
@@ -61,9 +103,27 @@ serve(withCors(async (req,) => {
 
       if (error) {
         const status = error.code === '42501' ? 403 : error.code === '23505' ? 409 : 500;
-        return errorResponse('query_error', error.message, status,);
+        return errorResponse('query_error', safeDbErrorMessage(status,), status,);
       }
-      return jsonResponse(data, 201,);
+      return jsonResponse(await withAuthor(supabase, withCoverImageUrl(supabase, data,),), 201,);
+    }
+
+    // GET /news/{newsIdOrSlug} -- either a uuid id or a slug. PATCH/DELETE
+    // below stay uuid-only (moderators already have the id from their own
+    // listing; slug support is specifically for public read, where
+    // Website's article URLs are slug-based).
+    if (segments.length === 1 && req.method === 'GET') {
+      const identifier = segments[0];
+      const asUuid = UuidSchema.safeParse(identifier,);
+
+      let query = supabase.schema('content',).from('news',).select(SELECT_COLUMNS,);
+      query = asUuid.success ? query.eq('id', asUuid.data,) : query.eq('slug', identifier,);
+
+      const { data, error, } = await query.maybeSingle();
+      if (error) return errorResponse('query_error', safeDbErrorMessage(500,), 500,);
+      if (!data) return errorResponse('not_found', 'No news item with that id or slug.', 404,);
+
+      return jsonResponse(await withAuthor(supabase, withCoverImageUrl(supabase, data,),),);
     }
 
     const newsIdParsed = segments.length === 1 ? UuidSchema.safeParse(segments[0],) : null;
@@ -92,12 +152,12 @@ serve(withCors(async (req,) => {
 
       if (error) {
         const status = error.code === '42501' ? 403 : 500;
-        return errorResponse('query_error', error.message, status,);
+        return errorResponse('query_error', safeDbErrorMessage(status,), status,);
       }
       if (!data) {
         return errorResponse('not_found', 'No news item with that id (or not authorized).', 404,);
       }
-      return jsonResponse(data,);
+      return jsonResponse(await withAuthor(supabase, withCoverImageUrl(supabase, data,),),);
     }
 
     // DELETE /news/{newsId}
@@ -108,7 +168,7 @@ serve(withCors(async (req,) => {
         .delete({ count: 'exact', },)
         .eq('id', newsIdParsed!.data,);
 
-      if (error) return errorResponse('query_error', error.message, 500,);
+      if (error) return errorResponse('query_error', safeDbErrorMessage(500,), 500,);
       if (!count) {
         return errorResponse('not_found', 'No news item with that id (or not authorized).', 404,);
       }
@@ -116,11 +176,7 @@ serve(withCors(async (req,) => {
     }
 
     return errorResponse('not_found', 'Unknown news route.', 404,);
-  } catch (err) {
-    return errorResponse(
-      'internal_error',
-      err instanceof Error ? err.message : 'Unexpected error.',
-      500,
-    );
+  } catch (_err) {
+    return errorResponse('internal_error', safeDbErrorMessage(500,), 500,);
   }
 },),);

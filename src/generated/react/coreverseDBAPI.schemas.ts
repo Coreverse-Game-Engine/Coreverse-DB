@@ -125,6 +125,17 @@ export interface Artifact {
   compiler: ArtifactCompiler;
 }
 
+/**
+ * Only present on GET /profiles/me (never on another user's profile) -- identity.platform_roles is self-only RLS. null means no elevated role.
+ */
+export type ProfilePlatformRole =
+  (typeof ProfilePlatformRole)[keyof typeof ProfilePlatformRole] | null;
+
+export const ProfilePlatformRole = {
+  admin: "admin",
+  moderator: "moderator",
+} as const;
+
 export interface Profile {
   id: string;
   /** Free-text display name, no format or uniqueness constraint. Distinct from username. */
@@ -133,6 +144,10 @@ export interface Profile {
   username?: string | null;
   /** Public/signed URL resolved from the stored avatar_path, not the raw path itself. */
   avatar_url?: string | null;
+  /** Only present on GET /profiles/me (never on another user's profile) -- identity.platform_roles is self-only RLS. null means no elevated role. */
+  platform_role?: ProfilePlatformRole;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface Team {
@@ -200,6 +215,12 @@ export interface Project {
   archive_sha256: string;
 }
 
+export type NewsAuthor = {
+  id: string;
+  username: string;
+  avatar_url: string | null;
+};
+
 export type NewsStatus = (typeof NewsStatus)[keyof typeof NewsStatus];
 
 export const NewsStatus = {
@@ -212,10 +233,22 @@ export interface News {
   title: string;
   slug: string;
   body?: string;
-  author_id?: string;
+  /** Optional short standalone summary, distinct from body -- for list views/link previews. */
+  summary?: string | null;
+  cover_image_url?: string | null;
+  author_id: string;
+  author: NewsAuthor;
   status: NewsStatus;
   published_at?: string | null;
+  created_at: string;
+  updated_at: string;
 }
+
+export type PollResultsItem = {
+  option_id: string;
+  label: string;
+  vote_count: number;
+};
 
 export type PollOptionsItem = {
   id: string;
@@ -227,7 +260,16 @@ export interface Poll {
   id: string;
   question: string;
   closes_at?: string | null;
+  /** Computed from closes_at at read time (closes_at !== null && closes_at <= now). */
+  is_closed: boolean;
+  /** Aggregate across all users (content.poll_vote_totals()) -- always present, 0 on a brand-new poll. */
+  total_votes: number;
+  /** The caller's own vote, if any. Always null for an anonymous caller or one who hasn't voted -- never another user's vote (poll_votes_self_read RLS). */
+  my_option_id: string | null;
+  /** Only present when the request used ?include=results. */
+  results?: PollResultsItem[];
   options: PollOptionsItem[];
+  created_at: string;
 }
 
 export interface PollResult {
@@ -236,24 +278,113 @@ export interface PollResult {
   vote_count: number;
 }
 
+export type DiscussionAuthor = {
+  id: string;
+  username: string;
+  avatar_url: string | null;
+};
+
 export interface Discussion {
   id: string;
   title: string;
-  body?: string;
+  body: string;
   author_id: string;
+  author: DiscussionAuthor;
   category?: string | null;
   is_locked: boolean;
-  created_at?: string;
+  /** Count of non-deleted replies. Denormalized -- see the Phase 3 migration. */
+  reply_count: number;
+  /** Bumped when a new reply is posted. NOT bumped by reply edits or soft-deletes, or by editing the discussion itself. */
+  last_activity_at: string;
+  created_at: string;
+  updated_at: string;
 }
+
+export type DiscussionReplyAuthor = {
+  id: string;
+  username: string;
+  avatar_url: string | null;
+};
 
 export interface DiscussionReply {
   id: string;
   discussion_id: string;
   author_id: string;
+  author: DiscussionReplyAuthor;
   /** null/omitted when deleted_at is set -- render as "[deleted]". */
   body?: string | null;
   deleted_at?: string | null;
-  created_at?: string;
+  /** Set when body is edited. Distinct from deleted_at/updated_at -- see the Phase 3 migration. */
+  edited_at?: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export type EventAuthor = {
+  id: string;
+  username: string;
+  avatar_url: string | null;
+};
+
+export type EventStatus = (typeof EventStatus)[keyof typeof EventStatus];
+
+export const EventStatus = {
+  draft: "draft",
+  published: "published",
+} as const;
+
+export interface Event {
+  id: string;
+  title: string;
+  slug: string;
+  description: string;
+  /** Free-text venue or "Online" -- not a structured address. */
+  location?: string | null;
+  starts_at: string;
+  ends_at?: string | null;
+  /** External registration link. Coreverse-DB does not track registrations/attendees itself. */
+  registration_url?: string | null;
+  author_id: string;
+  author: EventAuthor;
+  status: EventStatus;
+  published_at?: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+/**
+ * A single FAQ item flattened to one locale, as returned by GET /faq.
+ */
+export interface FaqEntry {
+  id: string;
+  category: string | null;
+  display_order: number;
+  locale: string;
+  question: string;
+  answer: string;
+}
+
+/**
+ * Keyed by locale code (e.g. "en", "tr").
+ */
+export type FaqItemTranslations = {
+  [key: string]: {
+    question: string;
+    answer: string;
+  };
+};
+
+/**
+ * A FAQ item with every locale it has a translation for, as returned by GET /faq/{faqId} and the write endpoints. Used for admin/editing views -- GET /faq (list) returns FaqEntry, flattened to one locale, instead.
+ */
+export interface FaqItem {
+  id: string;
+  category: string | null;
+  display_order: number;
+  /** Keyed by locale code (e.g. "en", "tr"). */
+  translations: FaqItemTranslations;
+  created_at: string;
+  updated_at: string;
 }
 
 export type DocSourceKind = (typeof DocSourceKind)[keyof typeof DocSourceKind];
@@ -292,11 +423,15 @@ export interface DocSearchResult {
 export type ErrorError = (typeof ErrorError)[keyof typeof ErrorError];
 
 export const ErrorError = {
+  account_has_content: "account_has_content",
   already_decided: "already_decided",
   already_voted: "already_voted",
   internal_error: "internal_error",
   invalid_body: "invalid_body",
   invalid_discussion_id: "invalid_discussion_id",
+  invalid_event_id: "invalid_event_id",
+  invalid_faq_id: "invalid_faq_id",
+  invalid_locale: "invalid_locale",
   invalid_news_id: "invalid_news_id",
   invalid_poll_id: "invalid_poll_id",
   invalid_project_id: "invalid_project_id",
@@ -433,11 +568,15 @@ export type ListReleases400Error =
   (typeof ListReleases400Error)[keyof typeof ListReleases400Error];
 
 export const ListReleases400Error = {
+  account_has_content: "account_has_content",
   already_decided: "already_decided",
   already_voted: "already_voted",
   internal_error: "internal_error",
   invalid_body: "invalid_body",
   invalid_discussion_id: "invalid_discussion_id",
+  invalid_event_id: "invalid_event_id",
+  invalid_faq_id: "invalid_faq_id",
+  invalid_locale: "invalid_locale",
   invalid_news_id: "invalid_news_id",
   invalid_poll_id: "invalid_poll_id",
   invalid_project_id: "invalid_project_id",
@@ -565,11 +704,15 @@ export type GetLatestRelease404Error =
   (typeof GetLatestRelease404Error)[keyof typeof GetLatestRelease404Error];
 
 export const GetLatestRelease404Error = {
+  account_has_content: "account_has_content",
   already_decided: "already_decided",
   already_voted: "already_voted",
   internal_error: "internal_error",
   invalid_body: "invalid_body",
   invalid_discussion_id: "invalid_discussion_id",
+  invalid_event_id: "invalid_event_id",
+  invalid_faq_id: "invalid_faq_id",
+  invalid_locale: "invalid_locale",
   invalid_news_id: "invalid_news_id",
   invalid_poll_id: "invalid_poll_id",
   invalid_project_id: "invalid_project_id",
@@ -683,11 +826,15 @@ export type GetReleaseByVersion400Error =
   (typeof GetReleaseByVersion400Error)[keyof typeof GetReleaseByVersion400Error];
 
 export const GetReleaseByVersion400Error = {
+  account_has_content: "account_has_content",
   already_decided: "already_decided",
   already_voted: "already_voted",
   internal_error: "internal_error",
   invalid_body: "invalid_body",
   invalid_discussion_id: "invalid_discussion_id",
+  invalid_event_id: "invalid_event_id",
+  invalid_faq_id: "invalid_faq_id",
+  invalid_locale: "invalid_locale",
   invalid_news_id: "invalid_news_id",
   invalid_poll_id: "invalid_poll_id",
   invalid_project_id: "invalid_project_id",
@@ -729,11 +876,15 @@ export type GetReleaseByVersion404Error =
   (typeof GetReleaseByVersion404Error)[keyof typeof GetReleaseByVersion404Error];
 
 export const GetReleaseByVersion404Error = {
+  account_has_content: "account_has_content",
   already_decided: "already_decided",
   already_voted: "already_voted",
   internal_error: "internal_error",
   invalid_body: "invalid_body",
   invalid_discussion_id: "invalid_discussion_id",
+  invalid_event_id: "invalid_event_id",
+  invalid_faq_id: "invalid_faq_id",
+  invalid_locale: "invalid_locale",
   invalid_news_id: "invalid_news_id",
   invalid_poll_id: "invalid_poll_id",
   invalid_project_id: "invalid_project_id",
@@ -786,11 +937,15 @@ export type CreateTeam400Error =
   (typeof CreateTeam400Error)[keyof typeof CreateTeam400Error];
 
 export const CreateTeam400Error = {
+  account_has_content: "account_has_content",
   already_decided: "already_decided",
   already_voted: "already_voted",
   internal_error: "internal_error",
   invalid_body: "invalid_body",
   invalid_discussion_id: "invalid_discussion_id",
+  invalid_event_id: "invalid_event_id",
+  invalid_faq_id: "invalid_faq_id",
+  invalid_locale: "invalid_locale",
   invalid_news_id: "invalid_news_id",
   invalid_poll_id: "invalid_poll_id",
   invalid_project_id: "invalid_project_id",
@@ -832,11 +987,15 @@ export type CreateTeam401Error =
   (typeof CreateTeam401Error)[keyof typeof CreateTeam401Error];
 
 export const CreateTeam401Error = {
+  account_has_content: "account_has_content",
   already_decided: "already_decided",
   already_voted: "already_voted",
   internal_error: "internal_error",
   invalid_body: "invalid_body",
   invalid_discussion_id: "invalid_discussion_id",
+  invalid_event_id: "invalid_event_id",
+  invalid_faq_id: "invalid_faq_id",
+  invalid_locale: "invalid_locale",
   invalid_news_id: "invalid_news_id",
   invalid_poll_id: "invalid_poll_id",
   invalid_project_id: "invalid_project_id",
@@ -889,11 +1048,15 @@ export type RenameTeam400Error =
   (typeof RenameTeam400Error)[keyof typeof RenameTeam400Error];
 
 export const RenameTeam400Error = {
+  account_has_content: "account_has_content",
   already_decided: "already_decided",
   already_voted: "already_voted",
   internal_error: "internal_error",
   invalid_body: "invalid_body",
   invalid_discussion_id: "invalid_discussion_id",
+  invalid_event_id: "invalid_event_id",
+  invalid_faq_id: "invalid_faq_id",
+  invalid_locale: "invalid_locale",
   invalid_news_id: "invalid_news_id",
   invalid_poll_id: "invalid_poll_id",
   invalid_project_id: "invalid_project_id",
@@ -935,11 +1098,15 @@ export type RenameTeam401Error =
   (typeof RenameTeam401Error)[keyof typeof RenameTeam401Error];
 
 export const RenameTeam401Error = {
+  account_has_content: "account_has_content",
   already_decided: "already_decided",
   already_voted: "already_voted",
   internal_error: "internal_error",
   invalid_body: "invalid_body",
   invalid_discussion_id: "invalid_discussion_id",
+  invalid_event_id: "invalid_event_id",
+  invalid_faq_id: "invalid_faq_id",
+  invalid_locale: "invalid_locale",
   invalid_news_id: "invalid_news_id",
   invalid_poll_id: "invalid_poll_id",
   invalid_project_id: "invalid_project_id",
@@ -981,11 +1148,15 @@ export type RenameTeam403Error =
   (typeof RenameTeam403Error)[keyof typeof RenameTeam403Error];
 
 export const RenameTeam403Error = {
+  account_has_content: "account_has_content",
   already_decided: "already_decided",
   already_voted: "already_voted",
   internal_error: "internal_error",
   invalid_body: "invalid_body",
   invalid_discussion_id: "invalid_discussion_id",
+  invalid_event_id: "invalid_event_id",
+  invalid_faq_id: "invalid_faq_id",
+  invalid_locale: "invalid_locale",
   invalid_news_id: "invalid_news_id",
   invalid_poll_id: "invalid_poll_id",
   invalid_project_id: "invalid_project_id",
@@ -1027,11 +1198,15 @@ export type DeleteTeam400Error =
   (typeof DeleteTeam400Error)[keyof typeof DeleteTeam400Error];
 
 export const DeleteTeam400Error = {
+  account_has_content: "account_has_content",
   already_decided: "already_decided",
   already_voted: "already_voted",
   internal_error: "internal_error",
   invalid_body: "invalid_body",
   invalid_discussion_id: "invalid_discussion_id",
+  invalid_event_id: "invalid_event_id",
+  invalid_faq_id: "invalid_faq_id",
+  invalid_locale: "invalid_locale",
   invalid_news_id: "invalid_news_id",
   invalid_poll_id: "invalid_poll_id",
   invalid_project_id: "invalid_project_id",
@@ -1073,11 +1248,15 @@ export type DeleteTeam401Error =
   (typeof DeleteTeam401Error)[keyof typeof DeleteTeam401Error];
 
 export const DeleteTeam401Error = {
+  account_has_content: "account_has_content",
   already_decided: "already_decided",
   already_voted: "already_voted",
   internal_error: "internal_error",
   invalid_body: "invalid_body",
   invalid_discussion_id: "invalid_discussion_id",
+  invalid_event_id: "invalid_event_id",
+  invalid_faq_id: "invalid_faq_id",
+  invalid_locale: "invalid_locale",
   invalid_news_id: "invalid_news_id",
   invalid_poll_id: "invalid_poll_id",
   invalid_project_id: "invalid_project_id",
@@ -1119,11 +1298,15 @@ export type DeleteTeam403Error =
   (typeof DeleteTeam403Error)[keyof typeof DeleteTeam403Error];
 
 export const DeleteTeam403Error = {
+  account_has_content: "account_has_content",
   already_decided: "already_decided",
   already_voted: "already_voted",
   internal_error: "internal_error",
   invalid_body: "invalid_body",
   invalid_discussion_id: "invalid_discussion_id",
+  invalid_event_id: "invalid_event_id",
+  invalid_faq_id: "invalid_faq_id",
+  invalid_locale: "invalid_locale",
   invalid_news_id: "invalid_news_id",
   invalid_poll_id: "invalid_poll_id",
   invalid_project_id: "invalid_project_id",
@@ -1180,11 +1363,15 @@ export type ListTeamMembers400Error =
   (typeof ListTeamMembers400Error)[keyof typeof ListTeamMembers400Error];
 
 export const ListTeamMembers400Error = {
+  account_has_content: "account_has_content",
   already_decided: "already_decided",
   already_voted: "already_voted",
   internal_error: "internal_error",
   invalid_body: "invalid_body",
   invalid_discussion_id: "invalid_discussion_id",
+  invalid_event_id: "invalid_event_id",
+  invalid_faq_id: "invalid_faq_id",
+  invalid_locale: "invalid_locale",
   invalid_news_id: "invalid_news_id",
   invalid_poll_id: "invalid_poll_id",
   invalid_project_id: "invalid_project_id",
@@ -1226,11 +1413,15 @@ export type ListTeamMembers401Error =
   (typeof ListTeamMembers401Error)[keyof typeof ListTeamMembers401Error];
 
 export const ListTeamMembers401Error = {
+  account_has_content: "account_has_content",
   already_decided: "already_decided",
   already_voted: "already_voted",
   internal_error: "internal_error",
   invalid_body: "invalid_body",
   invalid_discussion_id: "invalid_discussion_id",
+  invalid_event_id: "invalid_event_id",
+  invalid_faq_id: "invalid_faq_id",
+  invalid_locale: "invalid_locale",
   invalid_news_id: "invalid_news_id",
   invalid_poll_id: "invalid_poll_id",
   invalid_project_id: "invalid_project_id",
@@ -1292,11 +1483,15 @@ export type TeamMemberAction400Error =
   (typeof TeamMemberAction400Error)[keyof typeof TeamMemberAction400Error];
 
 export const TeamMemberAction400Error = {
+  account_has_content: "account_has_content",
   already_decided: "already_decided",
   already_voted: "already_voted",
   internal_error: "internal_error",
   invalid_body: "invalid_body",
   invalid_discussion_id: "invalid_discussion_id",
+  invalid_event_id: "invalid_event_id",
+  invalid_faq_id: "invalid_faq_id",
+  invalid_locale: "invalid_locale",
   invalid_news_id: "invalid_news_id",
   invalid_poll_id: "invalid_poll_id",
   invalid_project_id: "invalid_project_id",
@@ -1338,11 +1533,15 @@ export type TeamMemberAction401Error =
   (typeof TeamMemberAction401Error)[keyof typeof TeamMemberAction401Error];
 
 export const TeamMemberAction401Error = {
+  account_has_content: "account_has_content",
   already_decided: "already_decided",
   already_voted: "already_voted",
   internal_error: "internal_error",
   invalid_body: "invalid_body",
   invalid_discussion_id: "invalid_discussion_id",
+  invalid_event_id: "invalid_event_id",
+  invalid_faq_id: "invalid_faq_id",
+  invalid_locale: "invalid_locale",
   invalid_news_id: "invalid_news_id",
   invalid_poll_id: "invalid_poll_id",
   invalid_project_id: "invalid_project_id",
@@ -1384,11 +1583,15 @@ export type TeamMemberAction403Error =
   (typeof TeamMemberAction403Error)[keyof typeof TeamMemberAction403Error];
 
 export const TeamMemberAction403Error = {
+  account_has_content: "account_has_content",
   already_decided: "already_decided",
   already_voted: "already_voted",
   internal_error: "internal_error",
   invalid_body: "invalid_body",
   invalid_discussion_id: "invalid_discussion_id",
+  invalid_event_id: "invalid_event_id",
+  invalid_faq_id: "invalid_faq_id",
+  invalid_locale: "invalid_locale",
   invalid_news_id: "invalid_news_id",
   invalid_poll_id: "invalid_poll_id",
   invalid_project_id: "invalid_project_id",
@@ -1462,11 +1665,15 @@ export type RequestToJoinTeam400Error =
   (typeof RequestToJoinTeam400Error)[keyof typeof RequestToJoinTeam400Error];
 
 export const RequestToJoinTeam400Error = {
+  account_has_content: "account_has_content",
   already_decided: "already_decided",
   already_voted: "already_voted",
   internal_error: "internal_error",
   invalid_body: "invalid_body",
   invalid_discussion_id: "invalid_discussion_id",
+  invalid_event_id: "invalid_event_id",
+  invalid_faq_id: "invalid_faq_id",
+  invalid_locale: "invalid_locale",
   invalid_news_id: "invalid_news_id",
   invalid_poll_id: "invalid_poll_id",
   invalid_project_id: "invalid_project_id",
@@ -1508,11 +1715,15 @@ export type RequestToJoinTeam401Error =
   (typeof RequestToJoinTeam401Error)[keyof typeof RequestToJoinTeam401Error];
 
 export const RequestToJoinTeam401Error = {
+  account_has_content: "account_has_content",
   already_decided: "already_decided",
   already_voted: "already_voted",
   internal_error: "internal_error",
   invalid_body: "invalid_body",
   invalid_discussion_id: "invalid_discussion_id",
+  invalid_event_id: "invalid_event_id",
+  invalid_faq_id: "invalid_faq_id",
+  invalid_locale: "invalid_locale",
   invalid_news_id: "invalid_news_id",
   invalid_poll_id: "invalid_poll_id",
   invalid_project_id: "invalid_project_id",
@@ -1554,11 +1765,15 @@ export type RequestToJoinTeam409Error =
   (typeof RequestToJoinTeam409Error)[keyof typeof RequestToJoinTeam409Error];
 
 export const RequestToJoinTeam409Error = {
+  account_has_content: "account_has_content",
   already_decided: "already_decided",
   already_voted: "already_voted",
   internal_error: "internal_error",
   invalid_body: "invalid_body",
   invalid_discussion_id: "invalid_discussion_id",
+  invalid_event_id: "invalid_event_id",
+  invalid_faq_id: "invalid_faq_id",
+  invalid_locale: "invalid_locale",
   invalid_news_id: "invalid_news_id",
   invalid_poll_id: "invalid_poll_id",
   invalid_project_id: "invalid_project_id",
@@ -1636,11 +1851,15 @@ export type InviteToTeam400Error =
   (typeof InviteToTeam400Error)[keyof typeof InviteToTeam400Error];
 
 export const InviteToTeam400Error = {
+  account_has_content: "account_has_content",
   already_decided: "already_decided",
   already_voted: "already_voted",
   internal_error: "internal_error",
   invalid_body: "invalid_body",
   invalid_discussion_id: "invalid_discussion_id",
+  invalid_event_id: "invalid_event_id",
+  invalid_faq_id: "invalid_faq_id",
+  invalid_locale: "invalid_locale",
   invalid_news_id: "invalid_news_id",
   invalid_poll_id: "invalid_poll_id",
   invalid_project_id: "invalid_project_id",
@@ -1682,11 +1901,15 @@ export type InviteToTeam401Error =
   (typeof InviteToTeam401Error)[keyof typeof InviteToTeam401Error];
 
 export const InviteToTeam401Error = {
+  account_has_content: "account_has_content",
   already_decided: "already_decided",
   already_voted: "already_voted",
   internal_error: "internal_error",
   invalid_body: "invalid_body",
   invalid_discussion_id: "invalid_discussion_id",
+  invalid_event_id: "invalid_event_id",
+  invalid_faq_id: "invalid_faq_id",
+  invalid_locale: "invalid_locale",
   invalid_news_id: "invalid_news_id",
   invalid_poll_id: "invalid_poll_id",
   invalid_project_id: "invalid_project_id",
@@ -1728,11 +1951,15 @@ export type InviteToTeam403Error =
   (typeof InviteToTeam403Error)[keyof typeof InviteToTeam403Error];
 
 export const InviteToTeam403Error = {
+  account_has_content: "account_has_content",
   already_decided: "already_decided",
   already_voted: "already_voted",
   internal_error: "internal_error",
   invalid_body: "invalid_body",
   invalid_discussion_id: "invalid_discussion_id",
+  invalid_event_id: "invalid_event_id",
+  invalid_faq_id: "invalid_faq_id",
+  invalid_locale: "invalid_locale",
   invalid_news_id: "invalid_news_id",
   invalid_poll_id: "invalid_poll_id",
   invalid_project_id: "invalid_project_id",
@@ -1810,11 +2037,15 @@ export type OfferOwnershipTransfer400Error =
   (typeof OfferOwnershipTransfer400Error)[keyof typeof OfferOwnershipTransfer400Error];
 
 export const OfferOwnershipTransfer400Error = {
+  account_has_content: "account_has_content",
   already_decided: "already_decided",
   already_voted: "already_voted",
   internal_error: "internal_error",
   invalid_body: "invalid_body",
   invalid_discussion_id: "invalid_discussion_id",
+  invalid_event_id: "invalid_event_id",
+  invalid_faq_id: "invalid_faq_id",
+  invalid_locale: "invalid_locale",
   invalid_news_id: "invalid_news_id",
   invalid_poll_id: "invalid_poll_id",
   invalid_project_id: "invalid_project_id",
@@ -1856,11 +2087,15 @@ export type OfferOwnershipTransfer401Error =
   (typeof OfferOwnershipTransfer401Error)[keyof typeof OfferOwnershipTransfer401Error];
 
 export const OfferOwnershipTransfer401Error = {
+  account_has_content: "account_has_content",
   already_decided: "already_decided",
   already_voted: "already_voted",
   internal_error: "internal_error",
   invalid_body: "invalid_body",
   invalid_discussion_id: "invalid_discussion_id",
+  invalid_event_id: "invalid_event_id",
+  invalid_faq_id: "invalid_faq_id",
+  invalid_locale: "invalid_locale",
   invalid_news_id: "invalid_news_id",
   invalid_poll_id: "invalid_poll_id",
   invalid_project_id: "invalid_project_id",
@@ -1902,11 +2137,15 @@ export type OfferOwnershipTransfer403Error =
   (typeof OfferOwnershipTransfer403Error)[keyof typeof OfferOwnershipTransfer403Error];
 
 export const OfferOwnershipTransfer403Error = {
+  account_has_content: "account_has_content",
   already_decided: "already_decided",
   already_voted: "already_voted",
   internal_error: "internal_error",
   invalid_body: "invalid_body",
   invalid_discussion_id: "invalid_discussion_id",
+  invalid_event_id: "invalid_event_id",
+  invalid_faq_id: "invalid_faq_id",
+  invalid_locale: "invalid_locale",
   invalid_news_id: "invalid_news_id",
   invalid_poll_id: "invalid_poll_id",
   invalid_project_id: "invalid_project_id",
@@ -1948,11 +2187,15 @@ export type LeaveTeam400Error =
   (typeof LeaveTeam400Error)[keyof typeof LeaveTeam400Error];
 
 export const LeaveTeam400Error = {
+  account_has_content: "account_has_content",
   already_decided: "already_decided",
   already_voted: "already_voted",
   internal_error: "internal_error",
   invalid_body: "invalid_body",
   invalid_discussion_id: "invalid_discussion_id",
+  invalid_event_id: "invalid_event_id",
+  invalid_faq_id: "invalid_faq_id",
+  invalid_locale: "invalid_locale",
   invalid_news_id: "invalid_news_id",
   invalid_poll_id: "invalid_poll_id",
   invalid_project_id: "invalid_project_id",
@@ -1994,11 +2237,15 @@ export type LeaveTeam401Error =
   (typeof LeaveTeam401Error)[keyof typeof LeaveTeam401Error];
 
 export const LeaveTeam401Error = {
+  account_has_content: "account_has_content",
   already_decided: "already_decided",
   already_voted: "already_voted",
   internal_error: "internal_error",
   invalid_body: "invalid_body",
   invalid_discussion_id: "invalid_discussion_id",
+  invalid_event_id: "invalid_event_id",
+  invalid_faq_id: "invalid_faq_id",
+  invalid_locale: "invalid_locale",
   invalid_news_id: "invalid_news_id",
   invalid_poll_id: "invalid_poll_id",
   invalid_project_id: "invalid_project_id",
@@ -2040,11 +2287,15 @@ export type LeaveTeam403Error =
   (typeof LeaveTeam403Error)[keyof typeof LeaveTeam403Error];
 
 export const LeaveTeam403Error = {
+  account_has_content: "account_has_content",
   already_decided: "already_decided",
   already_voted: "already_voted",
   internal_error: "internal_error",
   invalid_body: "invalid_body",
   invalid_discussion_id: "invalid_discussion_id",
+  invalid_event_id: "invalid_event_id",
+  invalid_faq_id: "invalid_faq_id",
+  invalid_locale: "invalid_locale",
   invalid_news_id: "invalid_news_id",
   invalid_poll_id: "invalid_poll_id",
   invalid_project_id: "invalid_project_id",
@@ -2093,11 +2344,15 @@ export type AcceptMembershipRequest400Error =
   (typeof AcceptMembershipRequest400Error)[keyof typeof AcceptMembershipRequest400Error];
 
 export const AcceptMembershipRequest400Error = {
+  account_has_content: "account_has_content",
   already_decided: "already_decided",
   already_voted: "already_voted",
   internal_error: "internal_error",
   invalid_body: "invalid_body",
   invalid_discussion_id: "invalid_discussion_id",
+  invalid_event_id: "invalid_event_id",
+  invalid_faq_id: "invalid_faq_id",
+  invalid_locale: "invalid_locale",
   invalid_news_id: "invalid_news_id",
   invalid_poll_id: "invalid_poll_id",
   invalid_project_id: "invalid_project_id",
@@ -2139,11 +2394,15 @@ export type AcceptMembershipRequest401Error =
   (typeof AcceptMembershipRequest401Error)[keyof typeof AcceptMembershipRequest401Error];
 
 export const AcceptMembershipRequest401Error = {
+  account_has_content: "account_has_content",
   already_decided: "already_decided",
   already_voted: "already_voted",
   internal_error: "internal_error",
   invalid_body: "invalid_body",
   invalid_discussion_id: "invalid_discussion_id",
+  invalid_event_id: "invalid_event_id",
+  invalid_faq_id: "invalid_faq_id",
+  invalid_locale: "invalid_locale",
   invalid_news_id: "invalid_news_id",
   invalid_poll_id: "invalid_poll_id",
   invalid_project_id: "invalid_project_id",
@@ -2185,11 +2444,15 @@ export type AcceptMembershipRequest403Error =
   (typeof AcceptMembershipRequest403Error)[keyof typeof AcceptMembershipRequest403Error];
 
 export const AcceptMembershipRequest403Error = {
+  account_has_content: "account_has_content",
   already_decided: "already_decided",
   already_voted: "already_voted",
   internal_error: "internal_error",
   invalid_body: "invalid_body",
   invalid_discussion_id: "invalid_discussion_id",
+  invalid_event_id: "invalid_event_id",
+  invalid_faq_id: "invalid_faq_id",
+  invalid_locale: "invalid_locale",
   invalid_news_id: "invalid_news_id",
   invalid_poll_id: "invalid_poll_id",
   invalid_project_id: "invalid_project_id",
@@ -2231,11 +2494,15 @@ export type AcceptMembershipRequest404Error =
   (typeof AcceptMembershipRequest404Error)[keyof typeof AcceptMembershipRequest404Error];
 
 export const AcceptMembershipRequest404Error = {
+  account_has_content: "account_has_content",
   already_decided: "already_decided",
   already_voted: "already_voted",
   internal_error: "internal_error",
   invalid_body: "invalid_body",
   invalid_discussion_id: "invalid_discussion_id",
+  invalid_event_id: "invalid_event_id",
+  invalid_faq_id: "invalid_faq_id",
+  invalid_locale: "invalid_locale",
   invalid_news_id: "invalid_news_id",
   invalid_poll_id: "invalid_poll_id",
   invalid_project_id: "invalid_project_id",
@@ -2277,11 +2544,15 @@ export type AcceptMembershipRequest409Error =
   (typeof AcceptMembershipRequest409Error)[keyof typeof AcceptMembershipRequest409Error];
 
 export const AcceptMembershipRequest409Error = {
+  account_has_content: "account_has_content",
   already_decided: "already_decided",
   already_voted: "already_voted",
   internal_error: "internal_error",
   invalid_body: "invalid_body",
   invalid_discussion_id: "invalid_discussion_id",
+  invalid_event_id: "invalid_event_id",
+  invalid_faq_id: "invalid_faq_id",
+  invalid_locale: "invalid_locale",
   invalid_news_id: "invalid_news_id",
   invalid_poll_id: "invalid_poll_id",
   invalid_project_id: "invalid_project_id",
@@ -2330,11 +2601,15 @@ export type RejectMembershipRequest400Error =
   (typeof RejectMembershipRequest400Error)[keyof typeof RejectMembershipRequest400Error];
 
 export const RejectMembershipRequest400Error = {
+  account_has_content: "account_has_content",
   already_decided: "already_decided",
   already_voted: "already_voted",
   internal_error: "internal_error",
   invalid_body: "invalid_body",
   invalid_discussion_id: "invalid_discussion_id",
+  invalid_event_id: "invalid_event_id",
+  invalid_faq_id: "invalid_faq_id",
+  invalid_locale: "invalid_locale",
   invalid_news_id: "invalid_news_id",
   invalid_poll_id: "invalid_poll_id",
   invalid_project_id: "invalid_project_id",
@@ -2376,11 +2651,15 @@ export type RejectMembershipRequest401Error =
   (typeof RejectMembershipRequest401Error)[keyof typeof RejectMembershipRequest401Error];
 
 export const RejectMembershipRequest401Error = {
+  account_has_content: "account_has_content",
   already_decided: "already_decided",
   already_voted: "already_voted",
   internal_error: "internal_error",
   invalid_body: "invalid_body",
   invalid_discussion_id: "invalid_discussion_id",
+  invalid_event_id: "invalid_event_id",
+  invalid_faq_id: "invalid_faq_id",
+  invalid_locale: "invalid_locale",
   invalid_news_id: "invalid_news_id",
   invalid_poll_id: "invalid_poll_id",
   invalid_project_id: "invalid_project_id",
@@ -2422,11 +2701,15 @@ export type RejectMembershipRequest403Error =
   (typeof RejectMembershipRequest403Error)[keyof typeof RejectMembershipRequest403Error];
 
 export const RejectMembershipRequest403Error = {
+  account_has_content: "account_has_content",
   already_decided: "already_decided",
   already_voted: "already_voted",
   internal_error: "internal_error",
   invalid_body: "invalid_body",
   invalid_discussion_id: "invalid_discussion_id",
+  invalid_event_id: "invalid_event_id",
+  invalid_faq_id: "invalid_faq_id",
+  invalid_locale: "invalid_locale",
   invalid_news_id: "invalid_news_id",
   invalid_poll_id: "invalid_poll_id",
   invalid_project_id: "invalid_project_id",
@@ -2468,11 +2751,15 @@ export type RejectMembershipRequest404Error =
   (typeof RejectMembershipRequest404Error)[keyof typeof RejectMembershipRequest404Error];
 
 export const RejectMembershipRequest404Error = {
+  account_has_content: "account_has_content",
   already_decided: "already_decided",
   already_voted: "already_voted",
   internal_error: "internal_error",
   invalid_body: "invalid_body",
   invalid_discussion_id: "invalid_discussion_id",
+  invalid_event_id: "invalid_event_id",
+  invalid_faq_id: "invalid_faq_id",
+  invalid_locale: "invalid_locale",
   invalid_news_id: "invalid_news_id",
   invalid_poll_id: "invalid_poll_id",
   invalid_project_id: "invalid_project_id",
@@ -2514,11 +2801,15 @@ export type RejectMembershipRequest409Error =
   (typeof RejectMembershipRequest409Error)[keyof typeof RejectMembershipRequest409Error];
 
 export const RejectMembershipRequest409Error = {
+  account_has_content: "account_has_content",
   already_decided: "already_decided",
   already_voted: "already_voted",
   internal_error: "internal_error",
   invalid_body: "invalid_body",
   invalid_discussion_id: "invalid_discussion_id",
+  invalid_event_id: "invalid_event_id",
+  invalid_faq_id: "invalid_faq_id",
+  invalid_locale: "invalid_locale",
   invalid_news_id: "invalid_news_id",
   invalid_poll_id: "invalid_poll_id",
   invalid_project_id: "invalid_project_id",
@@ -2567,11 +2858,15 @@ export type CancelMembershipRequest400Error =
   (typeof CancelMembershipRequest400Error)[keyof typeof CancelMembershipRequest400Error];
 
 export const CancelMembershipRequest400Error = {
+  account_has_content: "account_has_content",
   already_decided: "already_decided",
   already_voted: "already_voted",
   internal_error: "internal_error",
   invalid_body: "invalid_body",
   invalid_discussion_id: "invalid_discussion_id",
+  invalid_event_id: "invalid_event_id",
+  invalid_faq_id: "invalid_faq_id",
+  invalid_locale: "invalid_locale",
   invalid_news_id: "invalid_news_id",
   invalid_poll_id: "invalid_poll_id",
   invalid_project_id: "invalid_project_id",
@@ -2613,11 +2908,15 @@ export type CancelMembershipRequest401Error =
   (typeof CancelMembershipRequest401Error)[keyof typeof CancelMembershipRequest401Error];
 
 export const CancelMembershipRequest401Error = {
+  account_has_content: "account_has_content",
   already_decided: "already_decided",
   already_voted: "already_voted",
   internal_error: "internal_error",
   invalid_body: "invalid_body",
   invalid_discussion_id: "invalid_discussion_id",
+  invalid_event_id: "invalid_event_id",
+  invalid_faq_id: "invalid_faq_id",
+  invalid_locale: "invalid_locale",
   invalid_news_id: "invalid_news_id",
   invalid_poll_id: "invalid_poll_id",
   invalid_project_id: "invalid_project_id",
@@ -2659,11 +2958,15 @@ export type CancelMembershipRequest403Error =
   (typeof CancelMembershipRequest403Error)[keyof typeof CancelMembershipRequest403Error];
 
 export const CancelMembershipRequest403Error = {
+  account_has_content: "account_has_content",
   already_decided: "already_decided",
   already_voted: "already_voted",
   internal_error: "internal_error",
   invalid_body: "invalid_body",
   invalid_discussion_id: "invalid_discussion_id",
+  invalid_event_id: "invalid_event_id",
+  invalid_faq_id: "invalid_faq_id",
+  invalid_locale: "invalid_locale",
   invalid_news_id: "invalid_news_id",
   invalid_poll_id: "invalid_poll_id",
   invalid_project_id: "invalid_project_id",
@@ -2698,6 +3001,18 @@ export type CancelMembershipRequest403 = {
   message: string;
 };
 
+/**
+ * Only present on GET /profiles/me (never on another user's profile) -- identity.platform_roles is self-only RLS. null means no elevated role.
+ */
+export type GetMyProfile200PlatformRole =
+  | (typeof GetMyProfile200PlatformRole)[keyof typeof GetMyProfile200PlatformRole]
+  | null;
+
+export const GetMyProfile200PlatformRole = {
+  admin: "admin",
+  moderator: "moderator",
+} as const;
+
 export type GetMyProfile200 = {
   id: string;
   /** Free-text display name, no format or uniqueness constraint. Distinct from username. */
@@ -2706,6 +3021,10 @@ export type GetMyProfile200 = {
   username?: string | null;
   /** Public/signed URL resolved from the stored avatar_path, not the raw path itself. */
   avatar_url?: string | null;
+  /** Only present on GET /profiles/me (never on another user's profile) -- identity.platform_roles is self-only RLS. null means no elevated role. */
+  platform_role?: GetMyProfile200PlatformRole;
+  created_at: string;
+  updated_at: string;
 };
 
 /**
@@ -2715,11 +3034,15 @@ export type GetMyProfile401Error =
   (typeof GetMyProfile401Error)[keyof typeof GetMyProfile401Error];
 
 export const GetMyProfile401Error = {
+  account_has_content: "account_has_content",
   already_decided: "already_decided",
   already_voted: "already_voted",
   internal_error: "internal_error",
   invalid_body: "invalid_body",
   invalid_discussion_id: "invalid_discussion_id",
+  invalid_event_id: "invalid_event_id",
+  invalid_faq_id: "invalid_faq_id",
+  invalid_locale: "invalid_locale",
   invalid_news_id: "invalid_news_id",
   invalid_poll_id: "invalid_poll_id",
   invalid_project_id: "invalid_project_id",
@@ -2761,11 +3084,15 @@ export type GetMyProfile404Error =
   (typeof GetMyProfile404Error)[keyof typeof GetMyProfile404Error];
 
 export const GetMyProfile404Error = {
+  account_has_content: "account_has_content",
   already_decided: "already_decided",
   already_voted: "already_voted",
   internal_error: "internal_error",
   invalid_body: "invalid_body",
   invalid_discussion_id: "invalid_discussion_id",
+  invalid_event_id: "invalid_event_id",
+  invalid_faq_id: "invalid_faq_id",
+  invalid_locale: "invalid_locale",
   invalid_news_id: "invalid_news_id",
   invalid_poll_id: "invalid_poll_id",
   invalid_project_id: "invalid_project_id",
@@ -2818,6 +3145,18 @@ export type UpdateMyProfileBody = {
   username?: string;
 };
 
+/**
+ * Only present on GET /profiles/me (never on another user's profile) -- identity.platform_roles is self-only RLS. null means no elevated role.
+ */
+export type UpdateMyProfile200PlatformRole =
+  | (typeof UpdateMyProfile200PlatformRole)[keyof typeof UpdateMyProfile200PlatformRole]
+  | null;
+
+export const UpdateMyProfile200PlatformRole = {
+  admin: "admin",
+  moderator: "moderator",
+} as const;
+
 export type UpdateMyProfile200 = {
   id: string;
   /** Free-text display name, no format or uniqueness constraint. Distinct from username. */
@@ -2826,6 +3165,10 @@ export type UpdateMyProfile200 = {
   username?: string | null;
   /** Public/signed URL resolved from the stored avatar_path, not the raw path itself. */
   avatar_url?: string | null;
+  /** Only present on GET /profiles/me (never on another user's profile) -- identity.platform_roles is self-only RLS. null means no elevated role. */
+  platform_role?: UpdateMyProfile200PlatformRole;
+  created_at: string;
+  updated_at: string;
 };
 
 /**
@@ -2835,11 +3178,15 @@ export type UpdateMyProfile400Error =
   (typeof UpdateMyProfile400Error)[keyof typeof UpdateMyProfile400Error];
 
 export const UpdateMyProfile400Error = {
+  account_has_content: "account_has_content",
   already_decided: "already_decided",
   already_voted: "already_voted",
   internal_error: "internal_error",
   invalid_body: "invalid_body",
   invalid_discussion_id: "invalid_discussion_id",
+  invalid_event_id: "invalid_event_id",
+  invalid_faq_id: "invalid_faq_id",
+  invalid_locale: "invalid_locale",
   invalid_news_id: "invalid_news_id",
   invalid_poll_id: "invalid_poll_id",
   invalid_project_id: "invalid_project_id",
@@ -2881,11 +3228,15 @@ export type UpdateMyProfile401Error =
   (typeof UpdateMyProfile401Error)[keyof typeof UpdateMyProfile401Error];
 
 export const UpdateMyProfile401Error = {
+  account_has_content: "account_has_content",
   already_decided: "already_decided",
   already_voted: "already_voted",
   internal_error: "internal_error",
   invalid_body: "invalid_body",
   invalid_discussion_id: "invalid_discussion_id",
+  invalid_event_id: "invalid_event_id",
+  invalid_faq_id: "invalid_faq_id",
+  invalid_locale: "invalid_locale",
   invalid_news_id: "invalid_news_id",
   invalid_poll_id: "invalid_poll_id",
   invalid_project_id: "invalid_project_id",
@@ -2927,11 +3278,15 @@ export type UpdateMyProfile404Error =
   (typeof UpdateMyProfile404Error)[keyof typeof UpdateMyProfile404Error];
 
 export const UpdateMyProfile404Error = {
+  account_has_content: "account_has_content",
   already_decided: "already_decided",
   already_voted: "already_voted",
   internal_error: "internal_error",
   invalid_body: "invalid_body",
   invalid_discussion_id: "invalid_discussion_id",
+  invalid_event_id: "invalid_event_id",
+  invalid_faq_id: "invalid_faq_id",
+  invalid_locale: "invalid_locale",
   invalid_news_id: "invalid_news_id",
   invalid_poll_id: "invalid_poll_id",
   invalid_project_id: "invalid_project_id",
@@ -2973,11 +3328,15 @@ export type UpdateMyProfile409Error =
   (typeof UpdateMyProfile409Error)[keyof typeof UpdateMyProfile409Error];
 
 export const UpdateMyProfile409Error = {
+  account_has_content: "account_has_content",
   already_decided: "already_decided",
   already_voted: "already_voted",
   internal_error: "internal_error",
   invalid_body: "invalid_body",
   invalid_discussion_id: "invalid_discussion_id",
+  invalid_event_id: "invalid_event_id",
+  invalid_faq_id: "invalid_faq_id",
+  invalid_locale: "invalid_locale",
   invalid_news_id: "invalid_news_id",
   invalid_poll_id: "invalid_poll_id",
   invalid_project_id: "invalid_project_id",
@@ -3012,10 +3371,216 @@ export type UpdateMyProfile409 = {
   message: string;
 };
 
+/**
+ * Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check).
+ */
+export type DeleteMyAccount401Error =
+  (typeof DeleteMyAccount401Error)[keyof typeof DeleteMyAccount401Error];
+
+export const DeleteMyAccount401Error = {
+  account_has_content: "account_has_content",
+  already_decided: "already_decided",
+  already_voted: "already_voted",
+  internal_error: "internal_error",
+  invalid_body: "invalid_body",
+  invalid_discussion_id: "invalid_discussion_id",
+  invalid_event_id: "invalid_event_id",
+  invalid_faq_id: "invalid_faq_id",
+  invalid_locale: "invalid_locale",
+  invalid_news_id: "invalid_news_id",
+  invalid_poll_id: "invalid_poll_id",
+  invalid_project_id: "invalid_project_id",
+  invalid_query: "invalid_query",
+  invalid_redirect: "invalid_redirect",
+  invalid_reply_id: "invalid_reply_id",
+  invalid_request_id: "invalid_request_id",
+  invalid_team_id: "invalid_team_id",
+  invalid_user_id: "invalid_user_id",
+  invalid_version: "invalid_version",
+  method_not_allowed: "method_not_allowed",
+  misconfigured: "misconfigured",
+  missing_file: "missing_file",
+  not_found: "not_found",
+  poll_closed: "poll_closed",
+  poll_not_found: "poll_not_found",
+  query_error: "query_error",
+  rate_limited: "rate_limited",
+  rpc_error: "rpc_error",
+  storage_error: "storage_error",
+  too_large: "too_large",
+  unauthorized: "unauthorized",
+  unsupported_type: "unsupported_type",
+  username_taken: "username_taken",
+  vote_rejected: "vote_rejected",
+} as const;
+
+export type DeleteMyAccount401 = {
+  /** Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check). */
+  error: DeleteMyAccount401Error;
+  /** Human-readable detail, for logging/debugging. Never contains raw Postgres/PostgREST error text (constraint names, column names, internal query shape) -- see safeDbErrorMessage() in supabase/functions/_shared/http.ts. Not meant to be shown verbatim to end users; Website should key UI copy off `error`. */
+  message: string;
+};
+
+export type DeleteMyAccount409Error =
+  (typeof DeleteMyAccount409Error)[keyof typeof DeleteMyAccount409Error];
+
+export const DeleteMyAccount409Error = {
+  account_has_content: "account_has_content",
+} as const;
+
+export type DeleteMyAccount409BlockersItemReason =
+  (typeof DeleteMyAccount409BlockersItemReason)[keyof typeof DeleteMyAccount409BlockersItemReason];
+
+export const DeleteMyAccount409BlockersItemReason = {
+  owns_teams: "owns_teams",
+  owns_projects: "owns_projects",
+  authored_news: "authored_news",
+  authored_events: "authored_events",
+  created_faq_items: "created_faq_items",
+  authored_discussions: "authored_discussions",
+  authored_discussion_replies: "authored_discussion_replies",
+} as const;
+
+export type DeleteMyAccount409BlockersItem = {
+  reason: DeleteMyAccount409BlockersItemReason;
+  count: number;
+};
+
+export type DeleteMyAccount409 = {
+  error: DeleteMyAccount409Error;
+  message: string;
+  blockers: DeleteMyAccount409BlockersItem[];
+};
+
+export type CheckUsernameAvailabilityParams = {
+  /**
+   * @minLength 3
+   * @maxLength 24
+   * @pattern ^[a-zA-Z0-9_]+$
+   */
+  username: string;
+};
+
+export type CheckUsernameAvailability200 = {
+  available: boolean;
+};
+
+/**
+ * Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check).
+ */
+export type CheckUsernameAvailability400Error =
+  (typeof CheckUsernameAvailability400Error)[keyof typeof CheckUsernameAvailability400Error];
+
+export const CheckUsernameAvailability400Error = {
+  account_has_content: "account_has_content",
+  already_decided: "already_decided",
+  already_voted: "already_voted",
+  internal_error: "internal_error",
+  invalid_body: "invalid_body",
+  invalid_discussion_id: "invalid_discussion_id",
+  invalid_event_id: "invalid_event_id",
+  invalid_faq_id: "invalid_faq_id",
+  invalid_locale: "invalid_locale",
+  invalid_news_id: "invalid_news_id",
+  invalid_poll_id: "invalid_poll_id",
+  invalid_project_id: "invalid_project_id",
+  invalid_query: "invalid_query",
+  invalid_redirect: "invalid_redirect",
+  invalid_reply_id: "invalid_reply_id",
+  invalid_request_id: "invalid_request_id",
+  invalid_team_id: "invalid_team_id",
+  invalid_user_id: "invalid_user_id",
+  invalid_version: "invalid_version",
+  method_not_allowed: "method_not_allowed",
+  misconfigured: "misconfigured",
+  missing_file: "missing_file",
+  not_found: "not_found",
+  poll_closed: "poll_closed",
+  poll_not_found: "poll_not_found",
+  query_error: "query_error",
+  rate_limited: "rate_limited",
+  rpc_error: "rpc_error",
+  storage_error: "storage_error",
+  too_large: "too_large",
+  unauthorized: "unauthorized",
+  unsupported_type: "unsupported_type",
+  username_taken: "username_taken",
+  vote_rejected: "vote_rejected",
+} as const;
+
+export type CheckUsernameAvailability400 = {
+  /** Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check). */
+  error: CheckUsernameAvailability400Error;
+  /** Human-readable detail, for logging/debugging. Never contains raw Postgres/PostgREST error text (constraint names, column names, internal query shape) -- see safeDbErrorMessage() in supabase/functions/_shared/http.ts. Not meant to be shown verbatim to end users; Website should key UI copy off `error`. */
+  message: string;
+};
+
+/**
+ * Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check).
+ */
+export type CheckUsernameAvailability429Error =
+  (typeof CheckUsernameAvailability429Error)[keyof typeof CheckUsernameAvailability429Error];
+
+export const CheckUsernameAvailability429Error = {
+  account_has_content: "account_has_content",
+  already_decided: "already_decided",
+  already_voted: "already_voted",
+  internal_error: "internal_error",
+  invalid_body: "invalid_body",
+  invalid_discussion_id: "invalid_discussion_id",
+  invalid_event_id: "invalid_event_id",
+  invalid_faq_id: "invalid_faq_id",
+  invalid_locale: "invalid_locale",
+  invalid_news_id: "invalid_news_id",
+  invalid_poll_id: "invalid_poll_id",
+  invalid_project_id: "invalid_project_id",
+  invalid_query: "invalid_query",
+  invalid_redirect: "invalid_redirect",
+  invalid_reply_id: "invalid_reply_id",
+  invalid_request_id: "invalid_request_id",
+  invalid_team_id: "invalid_team_id",
+  invalid_user_id: "invalid_user_id",
+  invalid_version: "invalid_version",
+  method_not_allowed: "method_not_allowed",
+  misconfigured: "misconfigured",
+  missing_file: "missing_file",
+  not_found: "not_found",
+  poll_closed: "poll_closed",
+  poll_not_found: "poll_not_found",
+  query_error: "query_error",
+  rate_limited: "rate_limited",
+  rpc_error: "rpc_error",
+  storage_error: "storage_error",
+  too_large: "too_large",
+  unauthorized: "unauthorized",
+  unsupported_type: "unsupported_type",
+  username_taken: "username_taken",
+  vote_rejected: "vote_rejected",
+} as const;
+
+export type CheckUsernameAvailability429 = {
+  /** Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check). */
+  error: CheckUsernameAvailability429Error;
+  /** Human-readable detail, for logging/debugging. Never contains raw Postgres/PostgREST error text (constraint names, column names, internal query shape) -- see safeDbErrorMessage() in supabase/functions/_shared/http.ts. Not meant to be shown verbatim to end users; Website should key UI copy off `error`. */
+  message: string;
+};
+
 export type UploadMyAvatarBody = {
   /** PNG or WebP image, up to 5 MB. */
   file: Blob;
 };
+
+/**
+ * Only present on GET /profiles/me (never on another user's profile) -- identity.platform_roles is self-only RLS. null means no elevated role.
+ */
+export type UploadMyAvatar200PlatformRole =
+  | (typeof UploadMyAvatar200PlatformRole)[keyof typeof UploadMyAvatar200PlatformRole]
+  | null;
+
+export const UploadMyAvatar200PlatformRole = {
+  admin: "admin",
+  moderator: "moderator",
+} as const;
 
 export type UploadMyAvatar200 = {
   id: string;
@@ -3025,6 +3590,10 @@ export type UploadMyAvatar200 = {
   username?: string | null;
   /** Public/signed URL resolved from the stored avatar_path, not the raw path itself. */
   avatar_url?: string | null;
+  /** Only present on GET /profiles/me (never on another user's profile) -- identity.platform_roles is self-only RLS. null means no elevated role. */
+  platform_role?: UploadMyAvatar200PlatformRole;
+  created_at: string;
+  updated_at: string;
 };
 
 /**
@@ -3034,11 +3603,15 @@ export type UploadMyAvatar400Error =
   (typeof UploadMyAvatar400Error)[keyof typeof UploadMyAvatar400Error];
 
 export const UploadMyAvatar400Error = {
+  account_has_content: "account_has_content",
   already_decided: "already_decided",
   already_voted: "already_voted",
   internal_error: "internal_error",
   invalid_body: "invalid_body",
   invalid_discussion_id: "invalid_discussion_id",
+  invalid_event_id: "invalid_event_id",
+  invalid_faq_id: "invalid_faq_id",
+  invalid_locale: "invalid_locale",
   invalid_news_id: "invalid_news_id",
   invalid_poll_id: "invalid_poll_id",
   invalid_project_id: "invalid_project_id",
@@ -3080,11 +3653,15 @@ export type UploadMyAvatar401Error =
   (typeof UploadMyAvatar401Error)[keyof typeof UploadMyAvatar401Error];
 
 export const UploadMyAvatar401Error = {
+  account_has_content: "account_has_content",
   already_decided: "already_decided",
   already_voted: "already_voted",
   internal_error: "internal_error",
   invalid_body: "invalid_body",
   invalid_discussion_id: "invalid_discussion_id",
+  invalid_event_id: "invalid_event_id",
+  invalid_faq_id: "invalid_faq_id",
+  invalid_locale: "invalid_locale",
   invalid_news_id: "invalid_news_id",
   invalid_poll_id: "invalid_poll_id",
   invalid_project_id: "invalid_project_id",
@@ -3126,11 +3703,15 @@ export type UploadMyAvatar404Error =
   (typeof UploadMyAvatar404Error)[keyof typeof UploadMyAvatar404Error];
 
 export const UploadMyAvatar404Error = {
+  account_has_content: "account_has_content",
   already_decided: "already_decided",
   already_voted: "already_voted",
   internal_error: "internal_error",
   invalid_body: "invalid_body",
   invalid_discussion_id: "invalid_discussion_id",
+  invalid_event_id: "invalid_event_id",
+  invalid_faq_id: "invalid_faq_id",
+  invalid_locale: "invalid_locale",
   invalid_news_id: "invalid_news_id",
   invalid_poll_id: "invalid_poll_id",
   invalid_project_id: "invalid_project_id",
@@ -3172,11 +3753,15 @@ export type UploadMyAvatar413Error =
   (typeof UploadMyAvatar413Error)[keyof typeof UploadMyAvatar413Error];
 
 export const UploadMyAvatar413Error = {
+  account_has_content: "account_has_content",
   already_decided: "already_decided",
   already_voted: "already_voted",
   internal_error: "internal_error",
   invalid_body: "invalid_body",
   invalid_discussion_id: "invalid_discussion_id",
+  invalid_event_id: "invalid_event_id",
+  invalid_faq_id: "invalid_faq_id",
+  invalid_locale: "invalid_locale",
   invalid_news_id: "invalid_news_id",
   invalid_poll_id: "invalid_poll_id",
   invalid_project_id: "invalid_project_id",
@@ -3211,6 +3796,18 @@ export type UploadMyAvatar413 = {
   message: string;
 };
 
+/**
+ * Only present on GET /profiles/me (never on another user's profile) -- identity.platform_roles is self-only RLS. null means no elevated role.
+ */
+export type DeleteMyAvatar200PlatformRole =
+  | (typeof DeleteMyAvatar200PlatformRole)[keyof typeof DeleteMyAvatar200PlatformRole]
+  | null;
+
+export const DeleteMyAvatar200PlatformRole = {
+  admin: "admin",
+  moderator: "moderator",
+} as const;
+
 export type DeleteMyAvatar200 = {
   id: string;
   /** Free-text display name, no format or uniqueness constraint. Distinct from username. */
@@ -3219,6 +3816,10 @@ export type DeleteMyAvatar200 = {
   username?: string | null;
   /** Public/signed URL resolved from the stored avatar_path, not the raw path itself. */
   avatar_url?: string | null;
+  /** Only present on GET /profiles/me (never on another user's profile) -- identity.platform_roles is self-only RLS. null means no elevated role. */
+  platform_role?: DeleteMyAvatar200PlatformRole;
+  created_at: string;
+  updated_at: string;
 };
 
 /**
@@ -3228,11 +3829,15 @@ export type DeleteMyAvatar401Error =
   (typeof DeleteMyAvatar401Error)[keyof typeof DeleteMyAvatar401Error];
 
 export const DeleteMyAvatar401Error = {
+  account_has_content: "account_has_content",
   already_decided: "already_decided",
   already_voted: "already_voted",
   internal_error: "internal_error",
   invalid_body: "invalid_body",
   invalid_discussion_id: "invalid_discussion_id",
+  invalid_event_id: "invalid_event_id",
+  invalid_faq_id: "invalid_faq_id",
+  invalid_locale: "invalid_locale",
   invalid_news_id: "invalid_news_id",
   invalid_poll_id: "invalid_poll_id",
   invalid_project_id: "invalid_project_id",
@@ -3274,11 +3879,15 @@ export type DeleteMyAvatar404Error =
   (typeof DeleteMyAvatar404Error)[keyof typeof DeleteMyAvatar404Error];
 
 export const DeleteMyAvatar404Error = {
+  account_has_content: "account_has_content",
   already_decided: "already_decided",
   already_voted: "already_voted",
   internal_error: "internal_error",
   invalid_body: "invalid_body",
   invalid_discussion_id: "invalid_discussion_id",
+  invalid_event_id: "invalid_event_id",
+  invalid_faq_id: "invalid_faq_id",
+  invalid_locale: "invalid_locale",
   invalid_news_id: "invalid_news_id",
   invalid_poll_id: "invalid_poll_id",
   invalid_project_id: "invalid_project_id",
@@ -3333,11 +3942,15 @@ export type RequestPasswordReset400Error =
   (typeof RequestPasswordReset400Error)[keyof typeof RequestPasswordReset400Error];
 
 export const RequestPasswordReset400Error = {
+  account_has_content: "account_has_content",
   already_decided: "already_decided",
   already_voted: "already_voted",
   internal_error: "internal_error",
   invalid_body: "invalid_body",
   invalid_discussion_id: "invalid_discussion_id",
+  invalid_event_id: "invalid_event_id",
+  invalid_faq_id: "invalid_faq_id",
+  invalid_locale: "invalid_locale",
   invalid_news_id: "invalid_news_id",
   invalid_poll_id: "invalid_poll_id",
   invalid_project_id: "invalid_project_id",
@@ -3379,11 +3992,15 @@ export type RequestPasswordReset429Error =
   (typeof RequestPasswordReset429Error)[keyof typeof RequestPasswordReset429Error];
 
 export const RequestPasswordReset429Error = {
+  account_has_content: "account_has_content",
   already_decided: "already_decided",
   already_voted: "already_voted",
   internal_error: "internal_error",
   invalid_body: "invalid_body",
   invalid_discussion_id: "invalid_discussion_id",
+  invalid_event_id: "invalid_event_id",
+  invalid_faq_id: "invalid_faq_id",
+  invalid_locale: "invalid_locale",
   invalid_news_id: "invalid_news_id",
   invalid_poll_id: "invalid_poll_id",
   invalid_project_id: "invalid_project_id",
@@ -3440,11 +4057,15 @@ export type ListProjects400Error =
   (typeof ListProjects400Error)[keyof typeof ListProjects400Error];
 
 export const ListProjects400Error = {
+  account_has_content: "account_has_content",
   already_decided: "already_decided",
   already_voted: "already_voted",
   internal_error: "internal_error",
   invalid_body: "invalid_body",
   invalid_discussion_id: "invalid_discussion_id",
+  invalid_event_id: "invalid_event_id",
+  invalid_faq_id: "invalid_faq_id",
+  invalid_locale: "invalid_locale",
   invalid_news_id: "invalid_news_id",
   invalid_poll_id: "invalid_poll_id",
   invalid_project_id: "invalid_project_id",
@@ -3507,11 +4128,15 @@ export type CreateProject400Error =
   (typeof CreateProject400Error)[keyof typeof CreateProject400Error];
 
 export const CreateProject400Error = {
+  account_has_content: "account_has_content",
   already_decided: "already_decided",
   already_voted: "already_voted",
   internal_error: "internal_error",
   invalid_body: "invalid_body",
   invalid_discussion_id: "invalid_discussion_id",
+  invalid_event_id: "invalid_event_id",
+  invalid_faq_id: "invalid_faq_id",
+  invalid_locale: "invalid_locale",
   invalid_news_id: "invalid_news_id",
   invalid_poll_id: "invalid_poll_id",
   invalid_project_id: "invalid_project_id",
@@ -3553,11 +4178,15 @@ export type CreateProject401Error =
   (typeof CreateProject401Error)[keyof typeof CreateProject401Error];
 
 export const CreateProject401Error = {
+  account_has_content: "account_has_content",
   already_decided: "already_decided",
   already_voted: "already_voted",
   internal_error: "internal_error",
   invalid_body: "invalid_body",
   invalid_discussion_id: "invalid_discussion_id",
+  invalid_event_id: "invalid_event_id",
+  invalid_faq_id: "invalid_faq_id",
+  invalid_locale: "invalid_locale",
   invalid_news_id: "invalid_news_id",
   invalid_poll_id: "invalid_poll_id",
   invalid_project_id: "invalid_project_id",
@@ -3615,11 +4244,15 @@ export type UpdateProject400Error =
   (typeof UpdateProject400Error)[keyof typeof UpdateProject400Error];
 
 export const UpdateProject400Error = {
+  account_has_content: "account_has_content",
   already_decided: "already_decided",
   already_voted: "already_voted",
   internal_error: "internal_error",
   invalid_body: "invalid_body",
   invalid_discussion_id: "invalid_discussion_id",
+  invalid_event_id: "invalid_event_id",
+  invalid_faq_id: "invalid_faq_id",
+  invalid_locale: "invalid_locale",
   invalid_news_id: "invalid_news_id",
   invalid_poll_id: "invalid_poll_id",
   invalid_project_id: "invalid_project_id",
@@ -3661,11 +4294,15 @@ export type UpdateProject404Error =
   (typeof UpdateProject404Error)[keyof typeof UpdateProject404Error];
 
 export const UpdateProject404Error = {
+  account_has_content: "account_has_content",
   already_decided: "already_decided",
   already_voted: "already_voted",
   internal_error: "internal_error",
   invalid_body: "invalid_body",
   invalid_discussion_id: "invalid_discussion_id",
+  invalid_event_id: "invalid_event_id",
+  invalid_faq_id: "invalid_faq_id",
+  invalid_locale: "invalid_locale",
   invalid_news_id: "invalid_news_id",
   invalid_poll_id: "invalid_poll_id",
   invalid_project_id: "invalid_project_id",
@@ -3707,11 +4344,15 @@ export type DeleteProject400Error =
   (typeof DeleteProject400Error)[keyof typeof DeleteProject400Error];
 
 export const DeleteProject400Error = {
+  account_has_content: "account_has_content",
   already_decided: "already_decided",
   already_voted: "already_voted",
   internal_error: "internal_error",
   invalid_body: "invalid_body",
   invalid_discussion_id: "invalid_discussion_id",
+  invalid_event_id: "invalid_event_id",
+  invalid_faq_id: "invalid_faq_id",
+  invalid_locale: "invalid_locale",
   invalid_news_id: "invalid_news_id",
   invalid_poll_id: "invalid_poll_id",
   invalid_project_id: "invalid_project_id",
@@ -3753,11 +4394,15 @@ export type DeleteProject404Error =
   (typeof DeleteProject404Error)[keyof typeof DeleteProject404Error];
 
 export const DeleteProject404Error = {
+  account_has_content: "account_has_content",
   already_decided: "already_decided",
   already_voted: "already_voted",
   internal_error: "internal_error",
   invalid_body: "invalid_body",
   invalid_discussion_id: "invalid_discussion_id",
+  invalid_event_id: "invalid_event_id",
+  invalid_faq_id: "invalid_faq_id",
+  invalid_locale: "invalid_locale",
   invalid_news_id: "invalid_news_id",
   invalid_poll_id: "invalid_poll_id",
   invalid_project_id: "invalid_project_id",
@@ -3805,11 +4450,15 @@ export type GetProjectDownloadUrl400Error =
   (typeof GetProjectDownloadUrl400Error)[keyof typeof GetProjectDownloadUrl400Error];
 
 export const GetProjectDownloadUrl400Error = {
+  account_has_content: "account_has_content",
   already_decided: "already_decided",
   already_voted: "already_voted",
   internal_error: "internal_error",
   invalid_body: "invalid_body",
   invalid_discussion_id: "invalid_discussion_id",
+  invalid_event_id: "invalid_event_id",
+  invalid_faq_id: "invalid_faq_id",
+  invalid_locale: "invalid_locale",
   invalid_news_id: "invalid_news_id",
   invalid_poll_id: "invalid_poll_id",
   invalid_project_id: "invalid_project_id",
@@ -3851,11 +4500,15 @@ export type GetProjectDownloadUrl404Error =
   (typeof GetProjectDownloadUrl404Error)[keyof typeof GetProjectDownloadUrl404Error];
 
 export const GetProjectDownloadUrl404Error = {
+  account_has_content: "account_has_content",
   already_decided: "already_decided",
   already_voted: "already_voted",
   internal_error: "internal_error",
   invalid_body: "invalid_body",
   invalid_discussion_id: "invalid_discussion_id",
+  invalid_event_id: "invalid_event_id",
+  invalid_faq_id: "invalid_faq_id",
+  invalid_locale: "invalid_locale",
   invalid_news_id: "invalid_news_id",
   invalid_poll_id: "invalid_poll_id",
   invalid_project_id: "invalid_project_id",
@@ -3892,6 +4545,16 @@ export type GetProjectDownloadUrl404 = {
 
 export type ListNewsParams = {
   status?: ListNewsStatus;
+  /**
+   * Max items to return (1-100, default 20).
+   * @minimum 1
+   * @maximum 100
+   */
+  limit?: number;
+  /**
+   * Opaque token from a previous page's next_cursor. Omit for the first page. Treat as opaque -- its encoding is an implementation detail and may change.
+   */
+  cursor?: string;
 };
 
 export type ListNewsStatus =
@@ -3902,22 +4565,40 @@ export const ListNewsStatus = {
   published: "published",
 } as const;
 
-export type ListNews200ItemStatus =
-  (typeof ListNews200ItemStatus)[keyof typeof ListNews200ItemStatus];
+export type ListNews200ItemsItemAuthor = {
+  id: string;
+  username: string;
+  avatar_url: string | null;
+};
 
-export const ListNews200ItemStatus = {
+export type ListNews200ItemsItemStatus =
+  (typeof ListNews200ItemsItemStatus)[keyof typeof ListNews200ItemsItemStatus];
+
+export const ListNews200ItemsItemStatus = {
   draft: "draft",
   published: "published",
 } as const;
 
-export type ListNews200Item = {
+export type ListNews200ItemsItem = {
   id: string;
   title: string;
   slug: string;
   body?: string;
-  author_id?: string;
-  status: ListNews200ItemStatus;
+  /** Optional short standalone summary, distinct from body -- for list views/link previews. */
+  summary?: string | null;
+  cover_image_url?: string | null;
+  author_id: string;
+  author: ListNews200ItemsItemAuthor;
+  status: ListNews200ItemsItemStatus;
   published_at?: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type ListNews200 = {
+  items: ListNews200ItemsItem[];
+  /** Pass as ?cursor= to fetch the next page. null once there are no more. */
+  next_cursor: string | null;
 };
 
 /**
@@ -3927,11 +4608,15 @@ export type ListNews400Error =
   (typeof ListNews400Error)[keyof typeof ListNews400Error];
 
 export const ListNews400Error = {
+  account_has_content: "account_has_content",
   already_decided: "already_decided",
   already_voted: "already_voted",
   internal_error: "internal_error",
   invalid_body: "invalid_body",
   invalid_discussion_id: "invalid_discussion_id",
+  invalid_event_id: "invalid_event_id",
+  invalid_faq_id: "invalid_faq_id",
+  invalid_locale: "invalid_locale",
   invalid_news_id: "invalid_news_id",
   invalid_poll_id: "invalid_poll_id",
   invalid_project_id: "invalid_project_id",
@@ -3970,6 +4655,15 @@ export type CreateNewsBody = {
   title: string;
   slug: string;
   body: string;
+  summary?: string | null;
+  /** Storage path in the news-covers bucket (moderator/admin-write only). Resolved to cover_image_url in the response. */
+  cover_image_path?: string | null;
+};
+
+export type CreateNews201Author = {
+  id: string;
+  username: string;
+  avatar_url: string | null;
 };
 
 export type CreateNews201Status =
@@ -3985,9 +4679,15 @@ export type CreateNews201 = {
   title: string;
   slug: string;
   body?: string;
-  author_id?: string;
+  /** Optional short standalone summary, distinct from body -- for list views/link previews. */
+  summary?: string | null;
+  cover_image_url?: string | null;
+  author_id: string;
+  author: CreateNews201Author;
   status: CreateNews201Status;
   published_at?: string | null;
+  created_at: string;
+  updated_at: string;
 };
 
 /**
@@ -3997,11 +4697,15 @@ export type CreateNews400Error =
   (typeof CreateNews400Error)[keyof typeof CreateNews400Error];
 
 export const CreateNews400Error = {
+  account_has_content: "account_has_content",
   already_decided: "already_decided",
   already_voted: "already_voted",
   internal_error: "internal_error",
   invalid_body: "invalid_body",
   invalid_discussion_id: "invalid_discussion_id",
+  invalid_event_id: "invalid_event_id",
+  invalid_faq_id: "invalid_faq_id",
+  invalid_locale: "invalid_locale",
   invalid_news_id: "invalid_news_id",
   invalid_poll_id: "invalid_poll_id",
   invalid_project_id: "invalid_project_id",
@@ -4043,11 +4747,15 @@ export type CreateNews401Error =
   (typeof CreateNews401Error)[keyof typeof CreateNews401Error];
 
 export const CreateNews401Error = {
+  account_has_content: "account_has_content",
   already_decided: "already_decided",
   already_voted: "already_voted",
   internal_error: "internal_error",
   invalid_body: "invalid_body",
   invalid_discussion_id: "invalid_discussion_id",
+  invalid_event_id: "invalid_event_id",
+  invalid_faq_id: "invalid_faq_id",
+  invalid_locale: "invalid_locale",
   invalid_news_id: "invalid_news_id",
   invalid_poll_id: "invalid_poll_id",
   invalid_project_id: "invalid_project_id",
@@ -4089,11 +4797,15 @@ export type CreateNews403Error =
   (typeof CreateNews403Error)[keyof typeof CreateNews403Error];
 
 export const CreateNews403Error = {
+  account_has_content: "account_has_content",
   already_decided: "already_decided",
   already_voted: "already_voted",
   internal_error: "internal_error",
   invalid_body: "invalid_body",
   invalid_discussion_id: "invalid_discussion_id",
+  invalid_event_id: "invalid_event_id",
+  invalid_faq_id: "invalid_faq_id",
+  invalid_locale: "invalid_locale",
   invalid_news_id: "invalid_news_id",
   invalid_poll_id: "invalid_poll_id",
   invalid_project_id: "invalid_project_id",
@@ -4135,11 +4847,15 @@ export type CreateNews409Error =
   (typeof CreateNews409Error)[keyof typeof CreateNews409Error];
 
 export const CreateNews409Error = {
+  account_has_content: "account_has_content",
   already_decided: "already_decided",
   already_voted: "already_voted",
   internal_error: "internal_error",
   invalid_body: "invalid_body",
   invalid_discussion_id: "invalid_discussion_id",
+  invalid_event_id: "invalid_event_id",
+  invalid_faq_id: "invalid_faq_id",
+  invalid_locale: "invalid_locale",
   invalid_news_id: "invalid_news_id",
   invalid_poll_id: "invalid_poll_id",
   invalid_project_id: "invalid_project_id",
@@ -4174,6 +4890,86 @@ export type CreateNews409 = {
   message: string;
 };
 
+export type GetNews200Author = {
+  id: string;
+  username: string;
+  avatar_url: string | null;
+};
+
+export type GetNews200Status =
+  (typeof GetNews200Status)[keyof typeof GetNews200Status];
+
+export const GetNews200Status = {
+  draft: "draft",
+  published: "published",
+} as const;
+
+export type GetNews200 = {
+  id: string;
+  title: string;
+  slug: string;
+  body?: string;
+  /** Optional short standalone summary, distinct from body -- for list views/link previews. */
+  summary?: string | null;
+  cover_image_url?: string | null;
+  author_id: string;
+  author: GetNews200Author;
+  status: GetNews200Status;
+  published_at?: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+/**
+ * Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check).
+ */
+export type GetNews404Error =
+  (typeof GetNews404Error)[keyof typeof GetNews404Error];
+
+export const GetNews404Error = {
+  account_has_content: "account_has_content",
+  already_decided: "already_decided",
+  already_voted: "already_voted",
+  internal_error: "internal_error",
+  invalid_body: "invalid_body",
+  invalid_discussion_id: "invalid_discussion_id",
+  invalid_event_id: "invalid_event_id",
+  invalid_faq_id: "invalid_faq_id",
+  invalid_locale: "invalid_locale",
+  invalid_news_id: "invalid_news_id",
+  invalid_poll_id: "invalid_poll_id",
+  invalid_project_id: "invalid_project_id",
+  invalid_query: "invalid_query",
+  invalid_redirect: "invalid_redirect",
+  invalid_reply_id: "invalid_reply_id",
+  invalid_request_id: "invalid_request_id",
+  invalid_team_id: "invalid_team_id",
+  invalid_user_id: "invalid_user_id",
+  invalid_version: "invalid_version",
+  method_not_allowed: "method_not_allowed",
+  misconfigured: "misconfigured",
+  missing_file: "missing_file",
+  not_found: "not_found",
+  poll_closed: "poll_closed",
+  poll_not_found: "poll_not_found",
+  query_error: "query_error",
+  rate_limited: "rate_limited",
+  rpc_error: "rpc_error",
+  storage_error: "storage_error",
+  too_large: "too_large",
+  unauthorized: "unauthorized",
+  unsupported_type: "unsupported_type",
+  username_taken: "username_taken",
+  vote_rejected: "vote_rejected",
+} as const;
+
+export type GetNews404 = {
+  /** Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check). */
+  error: GetNews404Error;
+  /** Human-readable detail, for logging/debugging. Never contains raw Postgres/PostgREST error text (constraint names, column names, internal query shape) -- see safeDbErrorMessage() in supabase/functions/_shared/http.ts. Not meant to be shown verbatim to end users; Website should key UI copy off `error`. */
+  message: string;
+};
+
 export type UpdateNewsBodyStatus =
   (typeof UpdateNewsBodyStatus)[keyof typeof UpdateNewsBodyStatus];
 
@@ -4185,7 +4981,15 @@ export const UpdateNewsBodyStatus = {
 export type UpdateNewsBody = {
   title?: string;
   body?: string;
+  summary?: string | null;
+  cover_image_path?: string | null;
   status?: UpdateNewsBodyStatus;
+};
+
+export type UpdateNews200Author = {
+  id: string;
+  username: string;
+  avatar_url: string | null;
 };
 
 export type UpdateNews200Status =
@@ -4201,9 +5005,15 @@ export type UpdateNews200 = {
   title: string;
   slug: string;
   body?: string;
-  author_id?: string;
+  /** Optional short standalone summary, distinct from body -- for list views/link previews. */
+  summary?: string | null;
+  cover_image_url?: string | null;
+  author_id: string;
+  author: UpdateNews200Author;
   status: UpdateNews200Status;
   published_at?: string | null;
+  created_at: string;
+  updated_at: string;
 };
 
 /**
@@ -4213,11 +5023,15 @@ export type UpdateNews400Error =
   (typeof UpdateNews400Error)[keyof typeof UpdateNews400Error];
 
 export const UpdateNews400Error = {
+  account_has_content: "account_has_content",
   already_decided: "already_decided",
   already_voted: "already_voted",
   internal_error: "internal_error",
   invalid_body: "invalid_body",
   invalid_discussion_id: "invalid_discussion_id",
+  invalid_event_id: "invalid_event_id",
+  invalid_faq_id: "invalid_faq_id",
+  invalid_locale: "invalid_locale",
   invalid_news_id: "invalid_news_id",
   invalid_poll_id: "invalid_poll_id",
   invalid_project_id: "invalid_project_id",
@@ -4259,11 +5073,15 @@ export type UpdateNews403Error =
   (typeof UpdateNews403Error)[keyof typeof UpdateNews403Error];
 
 export const UpdateNews403Error = {
+  account_has_content: "account_has_content",
   already_decided: "already_decided",
   already_voted: "already_voted",
   internal_error: "internal_error",
   invalid_body: "invalid_body",
   invalid_discussion_id: "invalid_discussion_id",
+  invalid_event_id: "invalid_event_id",
+  invalid_faq_id: "invalid_faq_id",
+  invalid_locale: "invalid_locale",
   invalid_news_id: "invalid_news_id",
   invalid_poll_id: "invalid_poll_id",
   invalid_project_id: "invalid_project_id",
@@ -4305,11 +5123,15 @@ export type UpdateNews404Error =
   (typeof UpdateNews404Error)[keyof typeof UpdateNews404Error];
 
 export const UpdateNews404Error = {
+  account_has_content: "account_has_content",
   already_decided: "already_decided",
   already_voted: "already_voted",
   internal_error: "internal_error",
   invalid_body: "invalid_body",
   invalid_discussion_id: "invalid_discussion_id",
+  invalid_event_id: "invalid_event_id",
+  invalid_faq_id: "invalid_faq_id",
+  invalid_locale: "invalid_locale",
   invalid_news_id: "invalid_news_id",
   invalid_poll_id: "invalid_poll_id",
   invalid_project_id: "invalid_project_id",
@@ -4351,11 +5173,15 @@ export type DeleteNews400Error =
   (typeof DeleteNews400Error)[keyof typeof DeleteNews400Error];
 
 export const DeleteNews400Error = {
+  account_has_content: "account_has_content",
   already_decided: "already_decided",
   already_voted: "already_voted",
   internal_error: "internal_error",
   invalid_body: "invalid_body",
   invalid_discussion_id: "invalid_discussion_id",
+  invalid_event_id: "invalid_event_id",
+  invalid_faq_id: "invalid_faq_id",
+  invalid_locale: "invalid_locale",
   invalid_news_id: "invalid_news_id",
   invalid_poll_id: "invalid_poll_id",
   invalid_project_id: "invalid_project_id",
@@ -4397,11 +5223,15 @@ export type DeleteNews404Error =
   (typeof DeleteNews404Error)[keyof typeof DeleteNews404Error];
 
 export const DeleteNews404Error = {
+  account_has_content: "account_has_content",
   already_decided: "already_decided",
   already_voted: "already_voted",
   internal_error: "internal_error",
   invalid_body: "invalid_body",
   invalid_discussion_id: "invalid_discussion_id",
+  invalid_event_id: "invalid_event_id",
+  invalid_faq_id: "invalid_faq_id",
+  invalid_locale: "invalid_locale",
   invalid_news_id: "invalid_news_id",
   invalid_poll_id: "invalid_poll_id",
   invalid_project_id: "invalid_project_id",
@@ -4436,17 +5266,121 @@ export type DeleteNews404 = {
   message: string;
 };
 
-export type ListPolls200ItemOptionsItem = {
+export type ListPollsParams = {
+  status?: ListPollsStatus;
+  /**
+   * include=results embeds full per-option counts (one extra call per poll on the page -- keep limit modest when using this).
+   */
+  include?: ListPollsInclude;
+  /**
+   * Max items to return (1-100, default 20).
+   * @minimum 1
+   * @maximum 100
+   */
+  limit?: number;
+  /**
+   * Opaque token from a previous page's next_cursor. Omit for the first page. Treat as opaque -- its encoding is an implementation detail and may change.
+   */
+  cursor?: string;
+};
+
+export type ListPollsStatus =
+  (typeof ListPollsStatus)[keyof typeof ListPollsStatus];
+
+export const ListPollsStatus = {
+  open: "open",
+  closed: "closed",
+} as const;
+
+export type ListPollsInclude =
+  (typeof ListPollsInclude)[keyof typeof ListPollsInclude];
+
+export const ListPollsInclude = {
+  results: "results",
+} as const;
+
+export type ListPolls200ItemsItemResultsItem = {
+  option_id: string;
+  label: string;
+  vote_count: number;
+};
+
+export type ListPolls200ItemsItemOptionsItem = {
   id: string;
   label: string;
   display_order?: number;
 };
 
-export type ListPolls200Item = {
+export type ListPolls200ItemsItem = {
   id: string;
   question: string;
   closes_at?: string | null;
-  options: ListPolls200ItemOptionsItem[];
+  /** Computed from closes_at at read time (closes_at !== null && closes_at <= now). */
+  is_closed: boolean;
+  /** Aggregate across all users (content.poll_vote_totals()) -- always present, 0 on a brand-new poll. */
+  total_votes: number;
+  /** The caller's own vote, if any. Always null for an anonymous caller or one who hasn't voted -- never another user's vote (poll_votes_self_read RLS). */
+  my_option_id: string | null;
+  /** Only present when the request used ?include=results. */
+  results?: ListPolls200ItemsItemResultsItem[];
+  options: ListPolls200ItemsItemOptionsItem[];
+  created_at: string;
+};
+
+export type ListPolls200 = {
+  items: ListPolls200ItemsItem[];
+  /** Pass as ?cursor= to fetch the next page. null once there are no more. */
+  next_cursor: string | null;
+};
+
+/**
+ * Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check).
+ */
+export type ListPolls400Error =
+  (typeof ListPolls400Error)[keyof typeof ListPolls400Error];
+
+export const ListPolls400Error = {
+  account_has_content: "account_has_content",
+  already_decided: "already_decided",
+  already_voted: "already_voted",
+  internal_error: "internal_error",
+  invalid_body: "invalid_body",
+  invalid_discussion_id: "invalid_discussion_id",
+  invalid_event_id: "invalid_event_id",
+  invalid_faq_id: "invalid_faq_id",
+  invalid_locale: "invalid_locale",
+  invalid_news_id: "invalid_news_id",
+  invalid_poll_id: "invalid_poll_id",
+  invalid_project_id: "invalid_project_id",
+  invalid_query: "invalid_query",
+  invalid_redirect: "invalid_redirect",
+  invalid_reply_id: "invalid_reply_id",
+  invalid_request_id: "invalid_request_id",
+  invalid_team_id: "invalid_team_id",
+  invalid_user_id: "invalid_user_id",
+  invalid_version: "invalid_version",
+  method_not_allowed: "method_not_allowed",
+  misconfigured: "misconfigured",
+  missing_file: "missing_file",
+  not_found: "not_found",
+  poll_closed: "poll_closed",
+  poll_not_found: "poll_not_found",
+  query_error: "query_error",
+  rate_limited: "rate_limited",
+  rpc_error: "rpc_error",
+  storage_error: "storage_error",
+  too_large: "too_large",
+  unauthorized: "unauthorized",
+  unsupported_type: "unsupported_type",
+  username_taken: "username_taken",
+  vote_rejected: "vote_rejected",
+} as const;
+
+export type ListPolls400 = {
+  /** Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check). */
+  error: ListPolls400Error;
+  /** Human-readable detail, for logging/debugging. Never contains raw Postgres/PostgREST error text (constraint names, column names, internal query shape) -- see safeDbErrorMessage() in supabase/functions/_shared/http.ts. Not meant to be shown verbatim to end users; Website should key UI copy off `error`. */
+  message: string;
 };
 
 export type CreatePollBody = {
@@ -4454,6 +5388,12 @@ export type CreatePollBody = {
   closes_at?: string | null;
   /** @minItems 2 */
   options: string[];
+};
+
+export type CreatePoll201ResultsItem = {
+  option_id: string;
+  label: string;
+  vote_count: number;
 };
 
 export type CreatePoll201OptionsItem = {
@@ -4466,7 +5406,16 @@ export type CreatePoll201 = {
   id: string;
   question: string;
   closes_at?: string | null;
+  /** Computed from closes_at at read time (closes_at !== null && closes_at <= now). */
+  is_closed: boolean;
+  /** Aggregate across all users (content.poll_vote_totals()) -- always present, 0 on a brand-new poll. */
+  total_votes: number;
+  /** The caller's own vote, if any. Always null for an anonymous caller or one who hasn't voted -- never another user's vote (poll_votes_self_read RLS). */
+  my_option_id: string | null;
+  /** Only present when the request used ?include=results. */
+  results?: CreatePoll201ResultsItem[];
   options: CreatePoll201OptionsItem[];
+  created_at: string;
 };
 
 /**
@@ -4476,11 +5425,15 @@ export type CreatePoll400Error =
   (typeof CreatePoll400Error)[keyof typeof CreatePoll400Error];
 
 export const CreatePoll400Error = {
+  account_has_content: "account_has_content",
   already_decided: "already_decided",
   already_voted: "already_voted",
   internal_error: "internal_error",
   invalid_body: "invalid_body",
   invalid_discussion_id: "invalid_discussion_id",
+  invalid_event_id: "invalid_event_id",
+  invalid_faq_id: "invalid_faq_id",
+  invalid_locale: "invalid_locale",
   invalid_news_id: "invalid_news_id",
   invalid_poll_id: "invalid_poll_id",
   invalid_project_id: "invalid_project_id",
@@ -4522,11 +5475,15 @@ export type CreatePoll403Error =
   (typeof CreatePoll403Error)[keyof typeof CreatePoll403Error];
 
 export const CreatePoll403Error = {
+  account_has_content: "account_has_content",
   already_decided: "already_decided",
   already_voted: "already_voted",
   internal_error: "internal_error",
   invalid_body: "invalid_body",
   invalid_discussion_id: "invalid_discussion_id",
+  invalid_event_id: "invalid_event_id",
+  invalid_faq_id: "invalid_faq_id",
+  invalid_locale: "invalid_locale",
   invalid_news_id: "invalid_news_id",
   invalid_poll_id: "invalid_poll_id",
   invalid_project_id: "invalid_project_id",
@@ -4579,11 +5536,15 @@ export type CastVote400Error =
   (typeof CastVote400Error)[keyof typeof CastVote400Error];
 
 export const CastVote400Error = {
+  account_has_content: "account_has_content",
   already_decided: "already_decided",
   already_voted: "already_voted",
   internal_error: "internal_error",
   invalid_body: "invalid_body",
   invalid_discussion_id: "invalid_discussion_id",
+  invalid_event_id: "invalid_event_id",
+  invalid_faq_id: "invalid_faq_id",
+  invalid_locale: "invalid_locale",
   invalid_news_id: "invalid_news_id",
   invalid_poll_id: "invalid_poll_id",
   invalid_project_id: "invalid_project_id",
@@ -4625,11 +5586,15 @@ export type CastVote401Error =
   (typeof CastVote401Error)[keyof typeof CastVote401Error];
 
 export const CastVote401Error = {
+  account_has_content: "account_has_content",
   already_decided: "already_decided",
   already_voted: "already_voted",
   internal_error: "internal_error",
   invalid_body: "invalid_body",
   invalid_discussion_id: "invalid_discussion_id",
+  invalid_event_id: "invalid_event_id",
+  invalid_faq_id: "invalid_faq_id",
+  invalid_locale: "invalid_locale",
   invalid_news_id: "invalid_news_id",
   invalid_poll_id: "invalid_poll_id",
   invalid_project_id: "invalid_project_id",
@@ -4671,11 +5636,15 @@ export type CastVote404Error =
   (typeof CastVote404Error)[keyof typeof CastVote404Error];
 
 export const CastVote404Error = {
+  account_has_content: "account_has_content",
   already_decided: "already_decided",
   already_voted: "already_voted",
   internal_error: "internal_error",
   invalid_body: "invalid_body",
   invalid_discussion_id: "invalid_discussion_id",
+  invalid_event_id: "invalid_event_id",
+  invalid_faq_id: "invalid_faq_id",
+  invalid_locale: "invalid_locale",
   invalid_news_id: "invalid_news_id",
   invalid_poll_id: "invalid_poll_id",
   invalid_project_id: "invalid_project_id",
@@ -4717,11 +5686,15 @@ export type CastVote409Error =
   (typeof CastVote409Error)[keyof typeof CastVote409Error];
 
 export const CastVote409Error = {
+  account_has_content: "account_has_content",
   already_decided: "already_decided",
   already_voted: "already_voted",
   internal_error: "internal_error",
   invalid_body: "invalid_body",
   invalid_discussion_id: "invalid_discussion_id",
+  invalid_event_id: "invalid_event_id",
+  invalid_faq_id: "invalid_faq_id",
+  invalid_locale: "invalid_locale",
   invalid_news_id: "invalid_news_id",
   invalid_poll_id: "invalid_poll_id",
   invalid_project_id: "invalid_project_id",
@@ -4756,6 +5729,56 @@ export type CastVote409 = {
   message: string;
 };
 
+/**
+ * Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check).
+ */
+export type CastVote429Error =
+  (typeof CastVote429Error)[keyof typeof CastVote429Error];
+
+export const CastVote429Error = {
+  account_has_content: "account_has_content",
+  already_decided: "already_decided",
+  already_voted: "already_voted",
+  internal_error: "internal_error",
+  invalid_body: "invalid_body",
+  invalid_discussion_id: "invalid_discussion_id",
+  invalid_event_id: "invalid_event_id",
+  invalid_faq_id: "invalid_faq_id",
+  invalid_locale: "invalid_locale",
+  invalid_news_id: "invalid_news_id",
+  invalid_poll_id: "invalid_poll_id",
+  invalid_project_id: "invalid_project_id",
+  invalid_query: "invalid_query",
+  invalid_redirect: "invalid_redirect",
+  invalid_reply_id: "invalid_reply_id",
+  invalid_request_id: "invalid_request_id",
+  invalid_team_id: "invalid_team_id",
+  invalid_user_id: "invalid_user_id",
+  invalid_version: "invalid_version",
+  method_not_allowed: "method_not_allowed",
+  misconfigured: "misconfigured",
+  missing_file: "missing_file",
+  not_found: "not_found",
+  poll_closed: "poll_closed",
+  poll_not_found: "poll_not_found",
+  query_error: "query_error",
+  rate_limited: "rate_limited",
+  rpc_error: "rpc_error",
+  storage_error: "storage_error",
+  too_large: "too_large",
+  unauthorized: "unauthorized",
+  unsupported_type: "unsupported_type",
+  username_taken: "username_taken",
+  vote_rejected: "vote_rejected",
+} as const;
+
+export type CastVote429 = {
+  /** Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check). */
+  error: CastVote429Error;
+  /** Human-readable detail, for logging/debugging. Never contains raw Postgres/PostgREST error text (constraint names, column names, internal query shape) -- see safeDbErrorMessage() in supabase/functions/_shared/http.ts. Not meant to be shown verbatim to end users; Website should key UI copy off `error`. */
+  message: string;
+};
+
 export type GetPollResults200Item = {
   option_id: string;
   label: string;
@@ -4769,11 +5792,15 @@ export type GetPollResults400Error =
   (typeof GetPollResults400Error)[keyof typeof GetPollResults400Error];
 
 export const GetPollResults400Error = {
+  account_has_content: "account_has_content",
   already_decided: "already_decided",
   already_voted: "already_voted",
   internal_error: "internal_error",
   invalid_body: "invalid_body",
   invalid_discussion_id: "invalid_discussion_id",
+  invalid_event_id: "invalid_event_id",
+  invalid_faq_id: "invalid_faq_id",
+  invalid_locale: "invalid_locale",
   invalid_news_id: "invalid_news_id",
   invalid_poll_id: "invalid_poll_id",
   invalid_project_id: "invalid_project_id",
@@ -4810,16 +5837,110 @@ export type GetPollResults400 = {
 
 export type ListDiscussionsParams = {
   category?: string;
+  /**
+   * Full-text search over title + body ('simple' config, plain query -- same convention as docs search). Combines with category if both are given.
+   */
+  q?: string;
+  /**
+   * recent = created_at desc (default, cursor-paginated). active = last_activity_at desc. replies = reply_count desc. active/replies are single-page only for now -- next_cursor is always null, and passing cursor with either of them is a 400.
+   */
+  sort?: ListDiscussionsSort;
+  /**
+   * Max items to return (1-100, default 20).
+   * @minimum 1
+   * @maximum 100
+   */
+  limit?: number;
+  /**
+   * Opaque token from a previous page's next_cursor. Omit for the first page. Treat as opaque -- its encoding is an implementation detail and may change.
+   */
+  cursor?: string;
 };
 
-export type ListDiscussions200Item = {
+export type ListDiscussionsSort =
+  (typeof ListDiscussionsSort)[keyof typeof ListDiscussionsSort];
+
+export const ListDiscussionsSort = {
+  recent: "recent",
+  active: "active",
+  replies: "replies",
+} as const;
+
+export type ListDiscussions200ItemsItemAuthor = {
+  id: string;
+  username: string;
+  avatar_url: string | null;
+};
+
+export type ListDiscussions200ItemsItem = {
   id: string;
   title: string;
-  body?: string;
+  /** body truncated to ~280 chars, word-boundary aware. Fetch GET /discussions/{id} for the full body. */
+  excerpt: string;
   author_id: string;
+  author: ListDiscussions200ItemsItemAuthor;
   category?: string | null;
   is_locked: boolean;
-  created_at?: string;
+  reply_count: number;
+  last_activity_at: string;
+  created_at: string;
+  updated_at: string;
+};
+
+export type ListDiscussions200 = {
+  items: ListDiscussions200ItemsItem[];
+  /** Pass as ?cursor= to fetch the next page. null once there are no more. */
+  next_cursor: string | null;
+};
+
+/**
+ * Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check).
+ */
+export type ListDiscussions400Error =
+  (typeof ListDiscussions400Error)[keyof typeof ListDiscussions400Error];
+
+export const ListDiscussions400Error = {
+  account_has_content: "account_has_content",
+  already_decided: "already_decided",
+  already_voted: "already_voted",
+  internal_error: "internal_error",
+  invalid_body: "invalid_body",
+  invalid_discussion_id: "invalid_discussion_id",
+  invalid_event_id: "invalid_event_id",
+  invalid_faq_id: "invalid_faq_id",
+  invalid_locale: "invalid_locale",
+  invalid_news_id: "invalid_news_id",
+  invalid_poll_id: "invalid_poll_id",
+  invalid_project_id: "invalid_project_id",
+  invalid_query: "invalid_query",
+  invalid_redirect: "invalid_redirect",
+  invalid_reply_id: "invalid_reply_id",
+  invalid_request_id: "invalid_request_id",
+  invalid_team_id: "invalid_team_id",
+  invalid_user_id: "invalid_user_id",
+  invalid_version: "invalid_version",
+  method_not_allowed: "method_not_allowed",
+  misconfigured: "misconfigured",
+  missing_file: "missing_file",
+  not_found: "not_found",
+  poll_closed: "poll_closed",
+  poll_not_found: "poll_not_found",
+  query_error: "query_error",
+  rate_limited: "rate_limited",
+  rpc_error: "rpc_error",
+  storage_error: "storage_error",
+  too_large: "too_large",
+  unauthorized: "unauthorized",
+  unsupported_type: "unsupported_type",
+  username_taken: "username_taken",
+  vote_rejected: "vote_rejected",
+} as const;
+
+export type ListDiscussions400 = {
+  /** Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check). */
+  error: ListDiscussions400Error;
+  /** Human-readable detail, for logging/debugging. Never contains raw Postgres/PostgREST error text (constraint names, column names, internal query shape) -- see safeDbErrorMessage() in supabase/functions/_shared/http.ts. Not meant to be shown verbatim to end users; Website should key UI copy off `error`. */
+  message: string;
 };
 
 export type CreateDiscussionBody = {
@@ -4828,14 +5949,26 @@ export type CreateDiscussionBody = {
   category?: string | null;
 };
 
+export type CreateDiscussion201Author = {
+  id: string;
+  username: string;
+  avatar_url: string | null;
+};
+
 export type CreateDiscussion201 = {
   id: string;
   title: string;
-  body?: string;
+  body: string;
   author_id: string;
+  author: CreateDiscussion201Author;
   category?: string | null;
   is_locked: boolean;
-  created_at?: string;
+  /** Count of non-deleted replies. Denormalized -- see the Phase 3 migration. */
+  reply_count: number;
+  /** Bumped when a new reply is posted. NOT bumped by reply edits or soft-deletes, or by editing the discussion itself. */
+  last_activity_at: string;
+  created_at: string;
+  updated_at: string;
 };
 
 /**
@@ -4845,11 +5978,15 @@ export type CreateDiscussion400Error =
   (typeof CreateDiscussion400Error)[keyof typeof CreateDiscussion400Error];
 
 export const CreateDiscussion400Error = {
+  account_has_content: "account_has_content",
   already_decided: "already_decided",
   already_voted: "already_voted",
   internal_error: "internal_error",
   invalid_body: "invalid_body",
   invalid_discussion_id: "invalid_discussion_id",
+  invalid_event_id: "invalid_event_id",
+  invalid_faq_id: "invalid_faq_id",
+  invalid_locale: "invalid_locale",
   invalid_news_id: "invalid_news_id",
   invalid_poll_id: "invalid_poll_id",
   invalid_project_id: "invalid_project_id",
@@ -4891,11 +6028,15 @@ export type CreateDiscussion401Error =
   (typeof CreateDiscussion401Error)[keyof typeof CreateDiscussion401Error];
 
 export const CreateDiscussion401Error = {
+  account_has_content: "account_has_content",
   already_decided: "already_decided",
   already_voted: "already_voted",
   internal_error: "internal_error",
   invalid_body: "invalid_body",
   invalid_discussion_id: "invalid_discussion_id",
+  invalid_event_id: "invalid_event_id",
+  invalid_faq_id: "invalid_faq_id",
+  invalid_locale: "invalid_locale",
   invalid_news_id: "invalid_news_id",
   invalid_poll_id: "invalid_poll_id",
   invalid_project_id: "invalid_project_id",
@@ -4930,20 +6071,209 @@ export type CreateDiscussion401 = {
   message: string;
 };
 
+/**
+ * Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check).
+ */
+export type CreateDiscussion429Error =
+  (typeof CreateDiscussion429Error)[keyof typeof CreateDiscussion429Error];
+
+export const CreateDiscussion429Error = {
+  account_has_content: "account_has_content",
+  already_decided: "already_decided",
+  already_voted: "already_voted",
+  internal_error: "internal_error",
+  invalid_body: "invalid_body",
+  invalid_discussion_id: "invalid_discussion_id",
+  invalid_event_id: "invalid_event_id",
+  invalid_faq_id: "invalid_faq_id",
+  invalid_locale: "invalid_locale",
+  invalid_news_id: "invalid_news_id",
+  invalid_poll_id: "invalid_poll_id",
+  invalid_project_id: "invalid_project_id",
+  invalid_query: "invalid_query",
+  invalid_redirect: "invalid_redirect",
+  invalid_reply_id: "invalid_reply_id",
+  invalid_request_id: "invalid_request_id",
+  invalid_team_id: "invalid_team_id",
+  invalid_user_id: "invalid_user_id",
+  invalid_version: "invalid_version",
+  method_not_allowed: "method_not_allowed",
+  misconfigured: "misconfigured",
+  missing_file: "missing_file",
+  not_found: "not_found",
+  poll_closed: "poll_closed",
+  poll_not_found: "poll_not_found",
+  query_error: "query_error",
+  rate_limited: "rate_limited",
+  rpc_error: "rpc_error",
+  storage_error: "storage_error",
+  too_large: "too_large",
+  unauthorized: "unauthorized",
+  unsupported_type: "unsupported_type",
+  username_taken: "username_taken",
+  vote_rejected: "vote_rejected",
+} as const;
+
+export type CreateDiscussion429 = {
+  /** Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check). */
+  error: CreateDiscussion429Error;
+  /** Human-readable detail, for logging/debugging. Never contains raw Postgres/PostgREST error text (constraint names, column names, internal query shape) -- see safeDbErrorMessage() in supabase/functions/_shared/http.ts. Not meant to be shown verbatim to end users; Website should key UI copy off `error`. */
+  message: string;
+};
+
+export type ListDiscussionCategories200Item = {
+  category: string;
+  count: number;
+};
+
+export type GetDiscussion200Author = {
+  id: string;
+  username: string;
+  avatar_url: string | null;
+};
+
+export type GetDiscussion200 = {
+  id: string;
+  title: string;
+  body: string;
+  author_id: string;
+  author: GetDiscussion200Author;
+  category?: string | null;
+  is_locked: boolean;
+  /** Count of non-deleted replies. Denormalized -- see the Phase 3 migration. */
+  reply_count: number;
+  /** Bumped when a new reply is posted. NOT bumped by reply edits or soft-deletes, or by editing the discussion itself. */
+  last_activity_at: string;
+  created_at: string;
+  updated_at: string;
+};
+
+/**
+ * Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check).
+ */
+export type GetDiscussion400Error =
+  (typeof GetDiscussion400Error)[keyof typeof GetDiscussion400Error];
+
+export const GetDiscussion400Error = {
+  account_has_content: "account_has_content",
+  already_decided: "already_decided",
+  already_voted: "already_voted",
+  internal_error: "internal_error",
+  invalid_body: "invalid_body",
+  invalid_discussion_id: "invalid_discussion_id",
+  invalid_event_id: "invalid_event_id",
+  invalid_faq_id: "invalid_faq_id",
+  invalid_locale: "invalid_locale",
+  invalid_news_id: "invalid_news_id",
+  invalid_poll_id: "invalid_poll_id",
+  invalid_project_id: "invalid_project_id",
+  invalid_query: "invalid_query",
+  invalid_redirect: "invalid_redirect",
+  invalid_reply_id: "invalid_reply_id",
+  invalid_request_id: "invalid_request_id",
+  invalid_team_id: "invalid_team_id",
+  invalid_user_id: "invalid_user_id",
+  invalid_version: "invalid_version",
+  method_not_allowed: "method_not_allowed",
+  misconfigured: "misconfigured",
+  missing_file: "missing_file",
+  not_found: "not_found",
+  poll_closed: "poll_closed",
+  poll_not_found: "poll_not_found",
+  query_error: "query_error",
+  rate_limited: "rate_limited",
+  rpc_error: "rpc_error",
+  storage_error: "storage_error",
+  too_large: "too_large",
+  unauthorized: "unauthorized",
+  unsupported_type: "unsupported_type",
+  username_taken: "username_taken",
+  vote_rejected: "vote_rejected",
+} as const;
+
+export type GetDiscussion400 = {
+  /** Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check). */
+  error: GetDiscussion400Error;
+  /** Human-readable detail, for logging/debugging. Never contains raw Postgres/PostgREST error text (constraint names, column names, internal query shape) -- see safeDbErrorMessage() in supabase/functions/_shared/http.ts. Not meant to be shown verbatim to end users; Website should key UI copy off `error`. */
+  message: string;
+};
+
+/**
+ * Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check).
+ */
+export type GetDiscussion404Error =
+  (typeof GetDiscussion404Error)[keyof typeof GetDiscussion404Error];
+
+export const GetDiscussion404Error = {
+  account_has_content: "account_has_content",
+  already_decided: "already_decided",
+  already_voted: "already_voted",
+  internal_error: "internal_error",
+  invalid_body: "invalid_body",
+  invalid_discussion_id: "invalid_discussion_id",
+  invalid_event_id: "invalid_event_id",
+  invalid_faq_id: "invalid_faq_id",
+  invalid_locale: "invalid_locale",
+  invalid_news_id: "invalid_news_id",
+  invalid_poll_id: "invalid_poll_id",
+  invalid_project_id: "invalid_project_id",
+  invalid_query: "invalid_query",
+  invalid_redirect: "invalid_redirect",
+  invalid_reply_id: "invalid_reply_id",
+  invalid_request_id: "invalid_request_id",
+  invalid_team_id: "invalid_team_id",
+  invalid_user_id: "invalid_user_id",
+  invalid_version: "invalid_version",
+  method_not_allowed: "method_not_allowed",
+  misconfigured: "misconfigured",
+  missing_file: "missing_file",
+  not_found: "not_found",
+  poll_closed: "poll_closed",
+  poll_not_found: "poll_not_found",
+  query_error: "query_error",
+  rate_limited: "rate_limited",
+  rpc_error: "rpc_error",
+  storage_error: "storage_error",
+  too_large: "too_large",
+  unauthorized: "unauthorized",
+  unsupported_type: "unsupported_type",
+  username_taken: "username_taken",
+  vote_rejected: "vote_rejected",
+} as const;
+
+export type GetDiscussion404 = {
+  /** Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check). */
+  error: GetDiscussion404Error;
+  /** Human-readable detail, for logging/debugging. Never contains raw Postgres/PostgREST error text (constraint names, column names, internal query shape) -- see safeDbErrorMessage() in supabase/functions/_shared/http.ts. Not meant to be shown verbatim to end users; Website should key UI copy off `error`. */
+  message: string;
+};
+
 export type UpdateDiscussionBody = {
   title?: string;
   body?: string;
   is_locked?: boolean;
 };
 
+export type UpdateDiscussion200Author = {
+  id: string;
+  username: string;
+  avatar_url: string | null;
+};
+
 export type UpdateDiscussion200 = {
   id: string;
   title: string;
-  body?: string;
+  body: string;
   author_id: string;
+  author: UpdateDiscussion200Author;
   category?: string | null;
   is_locked: boolean;
-  created_at?: string;
+  /** Count of non-deleted replies. Denormalized -- see the Phase 3 migration. */
+  reply_count: number;
+  /** Bumped when a new reply is posted. NOT bumped by reply edits or soft-deletes, or by editing the discussion itself. */
+  last_activity_at: string;
+  created_at: string;
+  updated_at: string;
 };
 
 /**
@@ -4953,11 +6283,15 @@ export type UpdateDiscussion400Error =
   (typeof UpdateDiscussion400Error)[keyof typeof UpdateDiscussion400Error];
 
 export const UpdateDiscussion400Error = {
+  account_has_content: "account_has_content",
   already_decided: "already_decided",
   already_voted: "already_voted",
   internal_error: "internal_error",
   invalid_body: "invalid_body",
   invalid_discussion_id: "invalid_discussion_id",
+  invalid_event_id: "invalid_event_id",
+  invalid_faq_id: "invalid_faq_id",
+  invalid_locale: "invalid_locale",
   invalid_news_id: "invalid_news_id",
   invalid_poll_id: "invalid_poll_id",
   invalid_project_id: "invalid_project_id",
@@ -4999,11 +6333,15 @@ export type UpdateDiscussion403Error =
   (typeof UpdateDiscussion403Error)[keyof typeof UpdateDiscussion403Error];
 
 export const UpdateDiscussion403Error = {
+  account_has_content: "account_has_content",
   already_decided: "already_decided",
   already_voted: "already_voted",
   internal_error: "internal_error",
   invalid_body: "invalid_body",
   invalid_discussion_id: "invalid_discussion_id",
+  invalid_event_id: "invalid_event_id",
+  invalid_faq_id: "invalid_faq_id",
+  invalid_locale: "invalid_locale",
   invalid_news_id: "invalid_news_id",
   invalid_poll_id: "invalid_poll_id",
   invalid_project_id: "invalid_project_id",
@@ -5045,11 +6383,15 @@ export type UpdateDiscussion404Error =
   (typeof UpdateDiscussion404Error)[keyof typeof UpdateDiscussion404Error];
 
 export const UpdateDiscussion404Error = {
+  account_has_content: "account_has_content",
   already_decided: "already_decided",
   already_voted: "already_voted",
   internal_error: "internal_error",
   invalid_body: "invalid_body",
   invalid_discussion_id: "invalid_discussion_id",
+  invalid_event_id: "invalid_event_id",
+  invalid_faq_id: "invalid_faq_id",
+  invalid_locale: "invalid_locale",
   invalid_news_id: "invalid_news_id",
   invalid_poll_id: "invalid_poll_id",
   invalid_project_id: "invalid_project_id",
@@ -5091,11 +6433,15 @@ export type DeleteDiscussion400Error =
   (typeof DeleteDiscussion400Error)[keyof typeof DeleteDiscussion400Error];
 
 export const DeleteDiscussion400Error = {
+  account_has_content: "account_has_content",
   already_decided: "already_decided",
   already_voted: "already_voted",
   internal_error: "internal_error",
   invalid_body: "invalid_body",
   invalid_discussion_id: "invalid_discussion_id",
+  invalid_event_id: "invalid_event_id",
+  invalid_faq_id: "invalid_faq_id",
+  invalid_locale: "invalid_locale",
   invalid_news_id: "invalid_news_id",
   invalid_poll_id: "invalid_poll_id",
   invalid_project_id: "invalid_project_id",
@@ -5137,11 +6483,15 @@ export type DeleteDiscussion404Error =
   (typeof DeleteDiscussion404Error)[keyof typeof DeleteDiscussion404Error];
 
 export const DeleteDiscussion404Error = {
+  account_has_content: "account_has_content",
   already_decided: "already_decided",
   already_voted: "already_voted",
   internal_error: "internal_error",
   invalid_body: "invalid_body",
   invalid_discussion_id: "invalid_discussion_id",
+  invalid_event_id: "invalid_event_id",
+  invalid_faq_id: "invalid_faq_id",
+  invalid_locale: "invalid_locale",
   invalid_news_id: "invalid_news_id",
   invalid_poll_id: "invalid_poll_id",
   invalid_project_id: "invalid_project_id",
@@ -5176,14 +6526,43 @@ export type DeleteDiscussion404 = {
   message: string;
 };
 
-export type ListDiscussionReplies200Item = {
+export type ListDiscussionRepliesParams = {
+  /**
+   * Max items to return (1-100, default 20).
+   * @minimum 1
+   * @maximum 100
+   */
+  limit?: number;
+  /**
+   * Opaque token from a previous page's next_cursor. Omit for the first page. Treat as opaque -- its encoding is an implementation detail and may change.
+   */
+  cursor?: string;
+};
+
+export type ListDiscussionReplies200ItemsItemAuthor = {
+  id: string;
+  username: string;
+  avatar_url: string | null;
+};
+
+export type ListDiscussionReplies200ItemsItem = {
   id: string;
   discussion_id: string;
   author_id: string;
+  author: ListDiscussionReplies200ItemsItemAuthor;
   /** null/omitted when deleted_at is set -- render as "[deleted]". */
   body?: string | null;
   deleted_at?: string | null;
-  created_at?: string;
+  /** Set when body is edited. Distinct from deleted_at/updated_at -- see the Phase 3 migration. */
+  edited_at?: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type ListDiscussionReplies200 = {
+  items: ListDiscussionReplies200ItemsItem[];
+  /** Pass as ?cursor= to fetch the next page. null once there are no more. */
+  next_cursor: string | null;
 };
 
 /**
@@ -5193,11 +6572,15 @@ export type ListDiscussionReplies400Error =
   (typeof ListDiscussionReplies400Error)[keyof typeof ListDiscussionReplies400Error];
 
 export const ListDiscussionReplies400Error = {
+  account_has_content: "account_has_content",
   already_decided: "already_decided",
   already_voted: "already_voted",
   internal_error: "internal_error",
   invalid_body: "invalid_body",
   invalid_discussion_id: "invalid_discussion_id",
+  invalid_event_id: "invalid_event_id",
+  invalid_faq_id: "invalid_faq_id",
+  invalid_locale: "invalid_locale",
   invalid_news_id: "invalid_news_id",
   invalid_poll_id: "invalid_poll_id",
   invalid_project_id: "invalid_project_id",
@@ -5236,14 +6619,24 @@ export type ReplyToDiscussionBody = {
   body: string;
 };
 
+export type ReplyToDiscussion201Author = {
+  id: string;
+  username: string;
+  avatar_url: string | null;
+};
+
 export type ReplyToDiscussion201 = {
   id: string;
   discussion_id: string;
   author_id: string;
+  author: ReplyToDiscussion201Author;
   /** null/omitted when deleted_at is set -- render as "[deleted]". */
   body?: string | null;
   deleted_at?: string | null;
-  created_at?: string;
+  /** Set when body is edited. Distinct from deleted_at/updated_at -- see the Phase 3 migration. */
+  edited_at?: string | null;
+  created_at: string;
+  updated_at: string;
 };
 
 /**
@@ -5253,11 +6646,15 @@ export type ReplyToDiscussion400Error =
   (typeof ReplyToDiscussion400Error)[keyof typeof ReplyToDiscussion400Error];
 
 export const ReplyToDiscussion400Error = {
+  account_has_content: "account_has_content",
   already_decided: "already_decided",
   already_voted: "already_voted",
   internal_error: "internal_error",
   invalid_body: "invalid_body",
   invalid_discussion_id: "invalid_discussion_id",
+  invalid_event_id: "invalid_event_id",
+  invalid_faq_id: "invalid_faq_id",
+  invalid_locale: "invalid_locale",
   invalid_news_id: "invalid_news_id",
   invalid_poll_id: "invalid_poll_id",
   invalid_project_id: "invalid_project_id",
@@ -5299,11 +6696,15 @@ export type ReplyToDiscussion401Error =
   (typeof ReplyToDiscussion401Error)[keyof typeof ReplyToDiscussion401Error];
 
 export const ReplyToDiscussion401Error = {
+  account_has_content: "account_has_content",
   already_decided: "already_decided",
   already_voted: "already_voted",
   internal_error: "internal_error",
   invalid_body: "invalid_body",
   invalid_discussion_id: "invalid_discussion_id",
+  invalid_event_id: "invalid_event_id",
+  invalid_faq_id: "invalid_faq_id",
+  invalid_locale: "invalid_locale",
   invalid_news_id: "invalid_news_id",
   invalid_poll_id: "invalid_poll_id",
   invalid_project_id: "invalid_project_id",
@@ -5345,11 +6746,15 @@ export type ReplyToDiscussion403Error =
   (typeof ReplyToDiscussion403Error)[keyof typeof ReplyToDiscussion403Error];
 
 export const ReplyToDiscussion403Error = {
+  account_has_content: "account_has_content",
   already_decided: "already_decided",
   already_voted: "already_voted",
   internal_error: "internal_error",
   invalid_body: "invalid_body",
   invalid_discussion_id: "invalid_discussion_id",
+  invalid_event_id: "invalid_event_id",
+  invalid_faq_id: "invalid_faq_id",
+  invalid_locale: "invalid_locale",
   invalid_news_id: "invalid_news_id",
   invalid_poll_id: "invalid_poll_id",
   invalid_project_id: "invalid_project_id",
@@ -5384,20 +6789,80 @@ export type ReplyToDiscussion403 = {
   message: string;
 };
 
+/**
+ * Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check).
+ */
+export type ReplyToDiscussion429Error =
+  (typeof ReplyToDiscussion429Error)[keyof typeof ReplyToDiscussion429Error];
+
+export const ReplyToDiscussion429Error = {
+  account_has_content: "account_has_content",
+  already_decided: "already_decided",
+  already_voted: "already_voted",
+  internal_error: "internal_error",
+  invalid_body: "invalid_body",
+  invalid_discussion_id: "invalid_discussion_id",
+  invalid_event_id: "invalid_event_id",
+  invalid_faq_id: "invalid_faq_id",
+  invalid_locale: "invalid_locale",
+  invalid_news_id: "invalid_news_id",
+  invalid_poll_id: "invalid_poll_id",
+  invalid_project_id: "invalid_project_id",
+  invalid_query: "invalid_query",
+  invalid_redirect: "invalid_redirect",
+  invalid_reply_id: "invalid_reply_id",
+  invalid_request_id: "invalid_request_id",
+  invalid_team_id: "invalid_team_id",
+  invalid_user_id: "invalid_user_id",
+  invalid_version: "invalid_version",
+  method_not_allowed: "method_not_allowed",
+  misconfigured: "misconfigured",
+  missing_file: "missing_file",
+  not_found: "not_found",
+  poll_closed: "poll_closed",
+  poll_not_found: "poll_not_found",
+  query_error: "query_error",
+  rate_limited: "rate_limited",
+  rpc_error: "rpc_error",
+  storage_error: "storage_error",
+  too_large: "too_large",
+  unauthorized: "unauthorized",
+  unsupported_type: "unsupported_type",
+  username_taken: "username_taken",
+  vote_rejected: "vote_rejected",
+} as const;
+
+export type ReplyToDiscussion429 = {
+  /** Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check). */
+  error: ReplyToDiscussion429Error;
+  /** Human-readable detail, for logging/debugging. Never contains raw Postgres/PostgREST error text (constraint names, column names, internal query shape) -- see safeDbErrorMessage() in supabase/functions/_shared/http.ts. Not meant to be shown verbatim to end users; Website should key UI copy off `error`. */
+  message: string;
+};
+
 export type UpdateDiscussionReplyBody = {
   body?: string;
   /** Set true to soft-delete. */
   deleted?: boolean;
 };
 
+export type UpdateDiscussionReply200Author = {
+  id: string;
+  username: string;
+  avatar_url: string | null;
+};
+
 export type UpdateDiscussionReply200 = {
   id: string;
   discussion_id: string;
   author_id: string;
+  author: UpdateDiscussionReply200Author;
   /** null/omitted when deleted_at is set -- render as "[deleted]". */
   body?: string | null;
   deleted_at?: string | null;
-  created_at?: string;
+  /** Set when body is edited. Distinct from deleted_at/updated_at -- see the Phase 3 migration. */
+  edited_at?: string | null;
+  created_at: string;
+  updated_at: string;
 };
 
 /**
@@ -5407,11 +6872,15 @@ export type UpdateDiscussionReply400Error =
   (typeof UpdateDiscussionReply400Error)[keyof typeof UpdateDiscussionReply400Error];
 
 export const UpdateDiscussionReply400Error = {
+  account_has_content: "account_has_content",
   already_decided: "already_decided",
   already_voted: "already_voted",
   internal_error: "internal_error",
   invalid_body: "invalid_body",
   invalid_discussion_id: "invalid_discussion_id",
+  invalid_event_id: "invalid_event_id",
+  invalid_faq_id: "invalid_faq_id",
+  invalid_locale: "invalid_locale",
   invalid_news_id: "invalid_news_id",
   invalid_poll_id: "invalid_poll_id",
   invalid_project_id: "invalid_project_id",
@@ -5453,11 +6922,15 @@ export type UpdateDiscussionReply403Error =
   (typeof UpdateDiscussionReply403Error)[keyof typeof UpdateDiscussionReply403Error];
 
 export const UpdateDiscussionReply403Error = {
+  account_has_content: "account_has_content",
   already_decided: "already_decided",
   already_voted: "already_voted",
   internal_error: "internal_error",
   invalid_body: "invalid_body",
   invalid_discussion_id: "invalid_discussion_id",
+  invalid_event_id: "invalid_event_id",
+  invalid_faq_id: "invalid_faq_id",
+  invalid_locale: "invalid_locale",
   invalid_news_id: "invalid_news_id",
   invalid_poll_id: "invalid_poll_id",
   invalid_project_id: "invalid_project_id",
@@ -5499,11 +6972,15 @@ export type UpdateDiscussionReply404Error =
   (typeof UpdateDiscussionReply404Error)[keyof typeof UpdateDiscussionReply404Error];
 
 export const UpdateDiscussionReply404Error = {
+  account_has_content: "account_has_content",
   already_decided: "already_decided",
   already_voted: "already_voted",
   internal_error: "internal_error",
   invalid_body: "invalid_body",
   invalid_discussion_id: "invalid_discussion_id",
+  invalid_event_id: "invalid_event_id",
+  invalid_faq_id: "invalid_faq_id",
+  invalid_locale: "invalid_locale",
   invalid_news_id: "invalid_news_id",
   invalid_poll_id: "invalid_poll_id",
   invalid_project_id: "invalid_project_id",
@@ -5534,6 +7011,1637 @@ export const UpdateDiscussionReply404Error = {
 export type UpdateDiscussionReply404 = {
   /** Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check). */
   error: UpdateDiscussionReply404Error;
+  /** Human-readable detail, for logging/debugging. Never contains raw Postgres/PostgREST error text (constraint names, column names, internal query shape) -- see safeDbErrorMessage() in supabase/functions/_shared/http.ts. Not meant to be shown verbatim to end users; Website should key UI copy off `error`. */
+  message: string;
+};
+
+export type ListEventsParams = {
+  status?: ListEventsStatus;
+  /**
+   * When true, only include events whose starts_at is in the future.
+   */
+  upcoming?: boolean;
+  /**
+   * Max items to return (1-100, default 20).
+   * @minimum 1
+   * @maximum 100
+   */
+  limit?: number;
+  /**
+   * Opaque token from a previous page's next_cursor. Omit for the first page. Treat as opaque -- its encoding is an implementation detail and may change.
+   */
+  cursor?: string;
+};
+
+export type ListEventsStatus =
+  (typeof ListEventsStatus)[keyof typeof ListEventsStatus];
+
+export const ListEventsStatus = {
+  draft: "draft",
+  published: "published",
+} as const;
+
+export type ListEvents200ItemsItemAuthor = {
+  id: string;
+  username: string;
+  avatar_url: string | null;
+};
+
+export type ListEvents200ItemsItemStatus =
+  (typeof ListEvents200ItemsItemStatus)[keyof typeof ListEvents200ItemsItemStatus];
+
+export const ListEvents200ItemsItemStatus = {
+  draft: "draft",
+  published: "published",
+} as const;
+
+export type ListEvents200ItemsItem = {
+  id: string;
+  title: string;
+  slug: string;
+  description: string;
+  /** Free-text venue or "Online" -- not a structured address. */
+  location?: string | null;
+  starts_at: string;
+  ends_at?: string | null;
+  /** External registration link. Coreverse-DB does not track registrations/attendees itself. */
+  registration_url?: string | null;
+  author_id: string;
+  author: ListEvents200ItemsItemAuthor;
+  status: ListEvents200ItemsItemStatus;
+  published_at?: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type ListEvents200 = {
+  items: ListEvents200ItemsItem[];
+  /** Pass as ?cursor= to fetch the next page. null once there are no more. */
+  next_cursor: string | null;
+};
+
+/**
+ * Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check).
+ */
+export type ListEvents400Error =
+  (typeof ListEvents400Error)[keyof typeof ListEvents400Error];
+
+export const ListEvents400Error = {
+  account_has_content: "account_has_content",
+  already_decided: "already_decided",
+  already_voted: "already_voted",
+  internal_error: "internal_error",
+  invalid_body: "invalid_body",
+  invalid_discussion_id: "invalid_discussion_id",
+  invalid_event_id: "invalid_event_id",
+  invalid_faq_id: "invalid_faq_id",
+  invalid_locale: "invalid_locale",
+  invalid_news_id: "invalid_news_id",
+  invalid_poll_id: "invalid_poll_id",
+  invalid_project_id: "invalid_project_id",
+  invalid_query: "invalid_query",
+  invalid_redirect: "invalid_redirect",
+  invalid_reply_id: "invalid_reply_id",
+  invalid_request_id: "invalid_request_id",
+  invalid_team_id: "invalid_team_id",
+  invalid_user_id: "invalid_user_id",
+  invalid_version: "invalid_version",
+  method_not_allowed: "method_not_allowed",
+  misconfigured: "misconfigured",
+  missing_file: "missing_file",
+  not_found: "not_found",
+  poll_closed: "poll_closed",
+  poll_not_found: "poll_not_found",
+  query_error: "query_error",
+  rate_limited: "rate_limited",
+  rpc_error: "rpc_error",
+  storage_error: "storage_error",
+  too_large: "too_large",
+  unauthorized: "unauthorized",
+  unsupported_type: "unsupported_type",
+  username_taken: "username_taken",
+  vote_rejected: "vote_rejected",
+} as const;
+
+export type ListEvents400 = {
+  /** Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check). */
+  error: ListEvents400Error;
+  /** Human-readable detail, for logging/debugging. Never contains raw Postgres/PostgREST error text (constraint names, column names, internal query shape) -- see safeDbErrorMessage() in supabase/functions/_shared/http.ts. Not meant to be shown verbatim to end users; Website should key UI copy off `error`. */
+  message: string;
+};
+
+export type CreateEventBody = {
+  title: string;
+  slug: string;
+  description: string;
+  location?: string | null;
+  starts_at: string;
+  ends_at?: string | null;
+  registration_url?: string | null;
+};
+
+export type CreateEvent201Author = {
+  id: string;
+  username: string;
+  avatar_url: string | null;
+};
+
+export type CreateEvent201Status =
+  (typeof CreateEvent201Status)[keyof typeof CreateEvent201Status];
+
+export const CreateEvent201Status = {
+  draft: "draft",
+  published: "published",
+} as const;
+
+export type CreateEvent201 = {
+  id: string;
+  title: string;
+  slug: string;
+  description: string;
+  /** Free-text venue or "Online" -- not a structured address. */
+  location?: string | null;
+  starts_at: string;
+  ends_at?: string | null;
+  /** External registration link. Coreverse-DB does not track registrations/attendees itself. */
+  registration_url?: string | null;
+  author_id: string;
+  author: CreateEvent201Author;
+  status: CreateEvent201Status;
+  published_at?: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+/**
+ * Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check).
+ */
+export type CreateEvent400Error =
+  (typeof CreateEvent400Error)[keyof typeof CreateEvent400Error];
+
+export const CreateEvent400Error = {
+  account_has_content: "account_has_content",
+  already_decided: "already_decided",
+  already_voted: "already_voted",
+  internal_error: "internal_error",
+  invalid_body: "invalid_body",
+  invalid_discussion_id: "invalid_discussion_id",
+  invalid_event_id: "invalid_event_id",
+  invalid_faq_id: "invalid_faq_id",
+  invalid_locale: "invalid_locale",
+  invalid_news_id: "invalid_news_id",
+  invalid_poll_id: "invalid_poll_id",
+  invalid_project_id: "invalid_project_id",
+  invalid_query: "invalid_query",
+  invalid_redirect: "invalid_redirect",
+  invalid_reply_id: "invalid_reply_id",
+  invalid_request_id: "invalid_request_id",
+  invalid_team_id: "invalid_team_id",
+  invalid_user_id: "invalid_user_id",
+  invalid_version: "invalid_version",
+  method_not_allowed: "method_not_allowed",
+  misconfigured: "misconfigured",
+  missing_file: "missing_file",
+  not_found: "not_found",
+  poll_closed: "poll_closed",
+  poll_not_found: "poll_not_found",
+  query_error: "query_error",
+  rate_limited: "rate_limited",
+  rpc_error: "rpc_error",
+  storage_error: "storage_error",
+  too_large: "too_large",
+  unauthorized: "unauthorized",
+  unsupported_type: "unsupported_type",
+  username_taken: "username_taken",
+  vote_rejected: "vote_rejected",
+} as const;
+
+export type CreateEvent400 = {
+  /** Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check). */
+  error: CreateEvent400Error;
+  /** Human-readable detail, for logging/debugging. Never contains raw Postgres/PostgREST error text (constraint names, column names, internal query shape) -- see safeDbErrorMessage() in supabase/functions/_shared/http.ts. Not meant to be shown verbatim to end users; Website should key UI copy off `error`. */
+  message: string;
+};
+
+/**
+ * Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check).
+ */
+export type CreateEvent401Error =
+  (typeof CreateEvent401Error)[keyof typeof CreateEvent401Error];
+
+export const CreateEvent401Error = {
+  account_has_content: "account_has_content",
+  already_decided: "already_decided",
+  already_voted: "already_voted",
+  internal_error: "internal_error",
+  invalid_body: "invalid_body",
+  invalid_discussion_id: "invalid_discussion_id",
+  invalid_event_id: "invalid_event_id",
+  invalid_faq_id: "invalid_faq_id",
+  invalid_locale: "invalid_locale",
+  invalid_news_id: "invalid_news_id",
+  invalid_poll_id: "invalid_poll_id",
+  invalid_project_id: "invalid_project_id",
+  invalid_query: "invalid_query",
+  invalid_redirect: "invalid_redirect",
+  invalid_reply_id: "invalid_reply_id",
+  invalid_request_id: "invalid_request_id",
+  invalid_team_id: "invalid_team_id",
+  invalid_user_id: "invalid_user_id",
+  invalid_version: "invalid_version",
+  method_not_allowed: "method_not_allowed",
+  misconfigured: "misconfigured",
+  missing_file: "missing_file",
+  not_found: "not_found",
+  poll_closed: "poll_closed",
+  poll_not_found: "poll_not_found",
+  query_error: "query_error",
+  rate_limited: "rate_limited",
+  rpc_error: "rpc_error",
+  storage_error: "storage_error",
+  too_large: "too_large",
+  unauthorized: "unauthorized",
+  unsupported_type: "unsupported_type",
+  username_taken: "username_taken",
+  vote_rejected: "vote_rejected",
+} as const;
+
+export type CreateEvent401 = {
+  /** Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check). */
+  error: CreateEvent401Error;
+  /** Human-readable detail, for logging/debugging. Never contains raw Postgres/PostgREST error text (constraint names, column names, internal query shape) -- see safeDbErrorMessage() in supabase/functions/_shared/http.ts. Not meant to be shown verbatim to end users; Website should key UI copy off `error`. */
+  message: string;
+};
+
+/**
+ * Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check).
+ */
+export type CreateEvent403Error =
+  (typeof CreateEvent403Error)[keyof typeof CreateEvent403Error];
+
+export const CreateEvent403Error = {
+  account_has_content: "account_has_content",
+  already_decided: "already_decided",
+  already_voted: "already_voted",
+  internal_error: "internal_error",
+  invalid_body: "invalid_body",
+  invalid_discussion_id: "invalid_discussion_id",
+  invalid_event_id: "invalid_event_id",
+  invalid_faq_id: "invalid_faq_id",
+  invalid_locale: "invalid_locale",
+  invalid_news_id: "invalid_news_id",
+  invalid_poll_id: "invalid_poll_id",
+  invalid_project_id: "invalid_project_id",
+  invalid_query: "invalid_query",
+  invalid_redirect: "invalid_redirect",
+  invalid_reply_id: "invalid_reply_id",
+  invalid_request_id: "invalid_request_id",
+  invalid_team_id: "invalid_team_id",
+  invalid_user_id: "invalid_user_id",
+  invalid_version: "invalid_version",
+  method_not_allowed: "method_not_allowed",
+  misconfigured: "misconfigured",
+  missing_file: "missing_file",
+  not_found: "not_found",
+  poll_closed: "poll_closed",
+  poll_not_found: "poll_not_found",
+  query_error: "query_error",
+  rate_limited: "rate_limited",
+  rpc_error: "rpc_error",
+  storage_error: "storage_error",
+  too_large: "too_large",
+  unauthorized: "unauthorized",
+  unsupported_type: "unsupported_type",
+  username_taken: "username_taken",
+  vote_rejected: "vote_rejected",
+} as const;
+
+export type CreateEvent403 = {
+  /** Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check). */
+  error: CreateEvent403Error;
+  /** Human-readable detail, for logging/debugging. Never contains raw Postgres/PostgREST error text (constraint names, column names, internal query shape) -- see safeDbErrorMessage() in supabase/functions/_shared/http.ts. Not meant to be shown verbatim to end users; Website should key UI copy off `error`. */
+  message: string;
+};
+
+/**
+ * Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check).
+ */
+export type CreateEvent409Error =
+  (typeof CreateEvent409Error)[keyof typeof CreateEvent409Error];
+
+export const CreateEvent409Error = {
+  account_has_content: "account_has_content",
+  already_decided: "already_decided",
+  already_voted: "already_voted",
+  internal_error: "internal_error",
+  invalid_body: "invalid_body",
+  invalid_discussion_id: "invalid_discussion_id",
+  invalid_event_id: "invalid_event_id",
+  invalid_faq_id: "invalid_faq_id",
+  invalid_locale: "invalid_locale",
+  invalid_news_id: "invalid_news_id",
+  invalid_poll_id: "invalid_poll_id",
+  invalid_project_id: "invalid_project_id",
+  invalid_query: "invalid_query",
+  invalid_redirect: "invalid_redirect",
+  invalid_reply_id: "invalid_reply_id",
+  invalid_request_id: "invalid_request_id",
+  invalid_team_id: "invalid_team_id",
+  invalid_user_id: "invalid_user_id",
+  invalid_version: "invalid_version",
+  method_not_allowed: "method_not_allowed",
+  misconfigured: "misconfigured",
+  missing_file: "missing_file",
+  not_found: "not_found",
+  poll_closed: "poll_closed",
+  poll_not_found: "poll_not_found",
+  query_error: "query_error",
+  rate_limited: "rate_limited",
+  rpc_error: "rpc_error",
+  storage_error: "storage_error",
+  too_large: "too_large",
+  unauthorized: "unauthorized",
+  unsupported_type: "unsupported_type",
+  username_taken: "username_taken",
+  vote_rejected: "vote_rejected",
+} as const;
+
+export type CreateEvent409 = {
+  /** Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check). */
+  error: CreateEvent409Error;
+  /** Human-readable detail, for logging/debugging. Never contains raw Postgres/PostgREST error text (constraint names, column names, internal query shape) -- see safeDbErrorMessage() in supabase/functions/_shared/http.ts. Not meant to be shown verbatim to end users; Website should key UI copy off `error`. */
+  message: string;
+};
+
+export type GetEvent200Author = {
+  id: string;
+  username: string;
+  avatar_url: string | null;
+};
+
+export type GetEvent200Status =
+  (typeof GetEvent200Status)[keyof typeof GetEvent200Status];
+
+export const GetEvent200Status = {
+  draft: "draft",
+  published: "published",
+} as const;
+
+export type GetEvent200 = {
+  id: string;
+  title: string;
+  slug: string;
+  description: string;
+  /** Free-text venue or "Online" -- not a structured address. */
+  location?: string | null;
+  starts_at: string;
+  ends_at?: string | null;
+  /** External registration link. Coreverse-DB does not track registrations/attendees itself. */
+  registration_url?: string | null;
+  author_id: string;
+  author: GetEvent200Author;
+  status: GetEvent200Status;
+  published_at?: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+/**
+ * Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check).
+ */
+export type GetEvent404Error =
+  (typeof GetEvent404Error)[keyof typeof GetEvent404Error];
+
+export const GetEvent404Error = {
+  account_has_content: "account_has_content",
+  already_decided: "already_decided",
+  already_voted: "already_voted",
+  internal_error: "internal_error",
+  invalid_body: "invalid_body",
+  invalid_discussion_id: "invalid_discussion_id",
+  invalid_event_id: "invalid_event_id",
+  invalid_faq_id: "invalid_faq_id",
+  invalid_locale: "invalid_locale",
+  invalid_news_id: "invalid_news_id",
+  invalid_poll_id: "invalid_poll_id",
+  invalid_project_id: "invalid_project_id",
+  invalid_query: "invalid_query",
+  invalid_redirect: "invalid_redirect",
+  invalid_reply_id: "invalid_reply_id",
+  invalid_request_id: "invalid_request_id",
+  invalid_team_id: "invalid_team_id",
+  invalid_user_id: "invalid_user_id",
+  invalid_version: "invalid_version",
+  method_not_allowed: "method_not_allowed",
+  misconfigured: "misconfigured",
+  missing_file: "missing_file",
+  not_found: "not_found",
+  poll_closed: "poll_closed",
+  poll_not_found: "poll_not_found",
+  query_error: "query_error",
+  rate_limited: "rate_limited",
+  rpc_error: "rpc_error",
+  storage_error: "storage_error",
+  too_large: "too_large",
+  unauthorized: "unauthorized",
+  unsupported_type: "unsupported_type",
+  username_taken: "username_taken",
+  vote_rejected: "vote_rejected",
+} as const;
+
+export type GetEvent404 = {
+  /** Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check). */
+  error: GetEvent404Error;
+  /** Human-readable detail, for logging/debugging. Never contains raw Postgres/PostgREST error text (constraint names, column names, internal query shape) -- see safeDbErrorMessage() in supabase/functions/_shared/http.ts. Not meant to be shown verbatim to end users; Website should key UI copy off `error`. */
+  message: string;
+};
+
+export type UpdateEventBodyStatus =
+  (typeof UpdateEventBodyStatus)[keyof typeof UpdateEventBodyStatus];
+
+export const UpdateEventBodyStatus = {
+  draft: "draft",
+  published: "published",
+} as const;
+
+export type UpdateEventBody = {
+  title?: string;
+  description?: string;
+  location?: string | null;
+  starts_at?: string;
+  ends_at?: string | null;
+  registration_url?: string | null;
+  status?: UpdateEventBodyStatus;
+};
+
+export type UpdateEvent200Author = {
+  id: string;
+  username: string;
+  avatar_url: string | null;
+};
+
+export type UpdateEvent200Status =
+  (typeof UpdateEvent200Status)[keyof typeof UpdateEvent200Status];
+
+export const UpdateEvent200Status = {
+  draft: "draft",
+  published: "published",
+} as const;
+
+export type UpdateEvent200 = {
+  id: string;
+  title: string;
+  slug: string;
+  description: string;
+  /** Free-text venue or "Online" -- not a structured address. */
+  location?: string | null;
+  starts_at: string;
+  ends_at?: string | null;
+  /** External registration link. Coreverse-DB does not track registrations/attendees itself. */
+  registration_url?: string | null;
+  author_id: string;
+  author: UpdateEvent200Author;
+  status: UpdateEvent200Status;
+  published_at?: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+/**
+ * Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check).
+ */
+export type UpdateEvent400Error =
+  (typeof UpdateEvent400Error)[keyof typeof UpdateEvent400Error];
+
+export const UpdateEvent400Error = {
+  account_has_content: "account_has_content",
+  already_decided: "already_decided",
+  already_voted: "already_voted",
+  internal_error: "internal_error",
+  invalid_body: "invalid_body",
+  invalid_discussion_id: "invalid_discussion_id",
+  invalid_event_id: "invalid_event_id",
+  invalid_faq_id: "invalid_faq_id",
+  invalid_locale: "invalid_locale",
+  invalid_news_id: "invalid_news_id",
+  invalid_poll_id: "invalid_poll_id",
+  invalid_project_id: "invalid_project_id",
+  invalid_query: "invalid_query",
+  invalid_redirect: "invalid_redirect",
+  invalid_reply_id: "invalid_reply_id",
+  invalid_request_id: "invalid_request_id",
+  invalid_team_id: "invalid_team_id",
+  invalid_user_id: "invalid_user_id",
+  invalid_version: "invalid_version",
+  method_not_allowed: "method_not_allowed",
+  misconfigured: "misconfigured",
+  missing_file: "missing_file",
+  not_found: "not_found",
+  poll_closed: "poll_closed",
+  poll_not_found: "poll_not_found",
+  query_error: "query_error",
+  rate_limited: "rate_limited",
+  rpc_error: "rpc_error",
+  storage_error: "storage_error",
+  too_large: "too_large",
+  unauthorized: "unauthorized",
+  unsupported_type: "unsupported_type",
+  username_taken: "username_taken",
+  vote_rejected: "vote_rejected",
+} as const;
+
+export type UpdateEvent400 = {
+  /** Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check). */
+  error: UpdateEvent400Error;
+  /** Human-readable detail, for logging/debugging. Never contains raw Postgres/PostgREST error text (constraint names, column names, internal query shape) -- see safeDbErrorMessage() in supabase/functions/_shared/http.ts. Not meant to be shown verbatim to end users; Website should key UI copy off `error`. */
+  message: string;
+};
+
+/**
+ * Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check).
+ */
+export type UpdateEvent403Error =
+  (typeof UpdateEvent403Error)[keyof typeof UpdateEvent403Error];
+
+export const UpdateEvent403Error = {
+  account_has_content: "account_has_content",
+  already_decided: "already_decided",
+  already_voted: "already_voted",
+  internal_error: "internal_error",
+  invalid_body: "invalid_body",
+  invalid_discussion_id: "invalid_discussion_id",
+  invalid_event_id: "invalid_event_id",
+  invalid_faq_id: "invalid_faq_id",
+  invalid_locale: "invalid_locale",
+  invalid_news_id: "invalid_news_id",
+  invalid_poll_id: "invalid_poll_id",
+  invalid_project_id: "invalid_project_id",
+  invalid_query: "invalid_query",
+  invalid_redirect: "invalid_redirect",
+  invalid_reply_id: "invalid_reply_id",
+  invalid_request_id: "invalid_request_id",
+  invalid_team_id: "invalid_team_id",
+  invalid_user_id: "invalid_user_id",
+  invalid_version: "invalid_version",
+  method_not_allowed: "method_not_allowed",
+  misconfigured: "misconfigured",
+  missing_file: "missing_file",
+  not_found: "not_found",
+  poll_closed: "poll_closed",
+  poll_not_found: "poll_not_found",
+  query_error: "query_error",
+  rate_limited: "rate_limited",
+  rpc_error: "rpc_error",
+  storage_error: "storage_error",
+  too_large: "too_large",
+  unauthorized: "unauthorized",
+  unsupported_type: "unsupported_type",
+  username_taken: "username_taken",
+  vote_rejected: "vote_rejected",
+} as const;
+
+export type UpdateEvent403 = {
+  /** Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check). */
+  error: UpdateEvent403Error;
+  /** Human-readable detail, for logging/debugging. Never contains raw Postgres/PostgREST error text (constraint names, column names, internal query shape) -- see safeDbErrorMessage() in supabase/functions/_shared/http.ts. Not meant to be shown verbatim to end users; Website should key UI copy off `error`. */
+  message: string;
+};
+
+/**
+ * Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check).
+ */
+export type UpdateEvent404Error =
+  (typeof UpdateEvent404Error)[keyof typeof UpdateEvent404Error];
+
+export const UpdateEvent404Error = {
+  account_has_content: "account_has_content",
+  already_decided: "already_decided",
+  already_voted: "already_voted",
+  internal_error: "internal_error",
+  invalid_body: "invalid_body",
+  invalid_discussion_id: "invalid_discussion_id",
+  invalid_event_id: "invalid_event_id",
+  invalid_faq_id: "invalid_faq_id",
+  invalid_locale: "invalid_locale",
+  invalid_news_id: "invalid_news_id",
+  invalid_poll_id: "invalid_poll_id",
+  invalid_project_id: "invalid_project_id",
+  invalid_query: "invalid_query",
+  invalid_redirect: "invalid_redirect",
+  invalid_reply_id: "invalid_reply_id",
+  invalid_request_id: "invalid_request_id",
+  invalid_team_id: "invalid_team_id",
+  invalid_user_id: "invalid_user_id",
+  invalid_version: "invalid_version",
+  method_not_allowed: "method_not_allowed",
+  misconfigured: "misconfigured",
+  missing_file: "missing_file",
+  not_found: "not_found",
+  poll_closed: "poll_closed",
+  poll_not_found: "poll_not_found",
+  query_error: "query_error",
+  rate_limited: "rate_limited",
+  rpc_error: "rpc_error",
+  storage_error: "storage_error",
+  too_large: "too_large",
+  unauthorized: "unauthorized",
+  unsupported_type: "unsupported_type",
+  username_taken: "username_taken",
+  vote_rejected: "vote_rejected",
+} as const;
+
+export type UpdateEvent404 = {
+  /** Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check). */
+  error: UpdateEvent404Error;
+  /** Human-readable detail, for logging/debugging. Never contains raw Postgres/PostgREST error text (constraint names, column names, internal query shape) -- see safeDbErrorMessage() in supabase/functions/_shared/http.ts. Not meant to be shown verbatim to end users; Website should key UI copy off `error`. */
+  message: string;
+};
+
+/**
+ * Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check).
+ */
+export type DeleteEvent400Error =
+  (typeof DeleteEvent400Error)[keyof typeof DeleteEvent400Error];
+
+export const DeleteEvent400Error = {
+  account_has_content: "account_has_content",
+  already_decided: "already_decided",
+  already_voted: "already_voted",
+  internal_error: "internal_error",
+  invalid_body: "invalid_body",
+  invalid_discussion_id: "invalid_discussion_id",
+  invalid_event_id: "invalid_event_id",
+  invalid_faq_id: "invalid_faq_id",
+  invalid_locale: "invalid_locale",
+  invalid_news_id: "invalid_news_id",
+  invalid_poll_id: "invalid_poll_id",
+  invalid_project_id: "invalid_project_id",
+  invalid_query: "invalid_query",
+  invalid_redirect: "invalid_redirect",
+  invalid_reply_id: "invalid_reply_id",
+  invalid_request_id: "invalid_request_id",
+  invalid_team_id: "invalid_team_id",
+  invalid_user_id: "invalid_user_id",
+  invalid_version: "invalid_version",
+  method_not_allowed: "method_not_allowed",
+  misconfigured: "misconfigured",
+  missing_file: "missing_file",
+  not_found: "not_found",
+  poll_closed: "poll_closed",
+  poll_not_found: "poll_not_found",
+  query_error: "query_error",
+  rate_limited: "rate_limited",
+  rpc_error: "rpc_error",
+  storage_error: "storage_error",
+  too_large: "too_large",
+  unauthorized: "unauthorized",
+  unsupported_type: "unsupported_type",
+  username_taken: "username_taken",
+  vote_rejected: "vote_rejected",
+} as const;
+
+export type DeleteEvent400 = {
+  /** Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check). */
+  error: DeleteEvent400Error;
+  /** Human-readable detail, for logging/debugging. Never contains raw Postgres/PostgREST error text (constraint names, column names, internal query shape) -- see safeDbErrorMessage() in supabase/functions/_shared/http.ts. Not meant to be shown verbatim to end users; Website should key UI copy off `error`. */
+  message: string;
+};
+
+/**
+ * Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check).
+ */
+export type DeleteEvent404Error =
+  (typeof DeleteEvent404Error)[keyof typeof DeleteEvent404Error];
+
+export const DeleteEvent404Error = {
+  account_has_content: "account_has_content",
+  already_decided: "already_decided",
+  already_voted: "already_voted",
+  internal_error: "internal_error",
+  invalid_body: "invalid_body",
+  invalid_discussion_id: "invalid_discussion_id",
+  invalid_event_id: "invalid_event_id",
+  invalid_faq_id: "invalid_faq_id",
+  invalid_locale: "invalid_locale",
+  invalid_news_id: "invalid_news_id",
+  invalid_poll_id: "invalid_poll_id",
+  invalid_project_id: "invalid_project_id",
+  invalid_query: "invalid_query",
+  invalid_redirect: "invalid_redirect",
+  invalid_reply_id: "invalid_reply_id",
+  invalid_request_id: "invalid_request_id",
+  invalid_team_id: "invalid_team_id",
+  invalid_user_id: "invalid_user_id",
+  invalid_version: "invalid_version",
+  method_not_allowed: "method_not_allowed",
+  misconfigured: "misconfigured",
+  missing_file: "missing_file",
+  not_found: "not_found",
+  poll_closed: "poll_closed",
+  poll_not_found: "poll_not_found",
+  query_error: "query_error",
+  rate_limited: "rate_limited",
+  rpc_error: "rpc_error",
+  storage_error: "storage_error",
+  too_large: "too_large",
+  unauthorized: "unauthorized",
+  unsupported_type: "unsupported_type",
+  username_taken: "username_taken",
+  vote_rejected: "vote_rejected",
+} as const;
+
+export type DeleteEvent404 = {
+  /** Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check). */
+  error: DeleteEvent404Error;
+  /** Human-readable detail, for logging/debugging. Never contains raw Postgres/PostgREST error text (constraint names, column names, internal query shape) -- see safeDbErrorMessage() in supabase/functions/_shared/http.ts. Not meant to be shown verbatim to end users; Website should key UI copy off `error`. */
+  message: string;
+};
+
+export type ListFaqParams = {
+  /**
+   * One of the Website's supported locales (see _shared/locales.ts). Defaults to "en".
+   */
+  locale?: string;
+  category?: string;
+};
+
+/**
+ * A single FAQ item flattened to one locale, as returned by GET /faq.
+ */
+export type ListFaq200Item = {
+  id: string;
+  category: string | null;
+  display_order: number;
+  locale: string;
+  question: string;
+  answer: string;
+};
+
+/**
+ * Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check).
+ */
+export type ListFaq400Error =
+  (typeof ListFaq400Error)[keyof typeof ListFaq400Error];
+
+export const ListFaq400Error = {
+  account_has_content: "account_has_content",
+  already_decided: "already_decided",
+  already_voted: "already_voted",
+  internal_error: "internal_error",
+  invalid_body: "invalid_body",
+  invalid_discussion_id: "invalid_discussion_id",
+  invalid_event_id: "invalid_event_id",
+  invalid_faq_id: "invalid_faq_id",
+  invalid_locale: "invalid_locale",
+  invalid_news_id: "invalid_news_id",
+  invalid_poll_id: "invalid_poll_id",
+  invalid_project_id: "invalid_project_id",
+  invalid_query: "invalid_query",
+  invalid_redirect: "invalid_redirect",
+  invalid_reply_id: "invalid_reply_id",
+  invalid_request_id: "invalid_request_id",
+  invalid_team_id: "invalid_team_id",
+  invalid_user_id: "invalid_user_id",
+  invalid_version: "invalid_version",
+  method_not_allowed: "method_not_allowed",
+  misconfigured: "misconfigured",
+  missing_file: "missing_file",
+  not_found: "not_found",
+  poll_closed: "poll_closed",
+  poll_not_found: "poll_not_found",
+  query_error: "query_error",
+  rate_limited: "rate_limited",
+  rpc_error: "rpc_error",
+  storage_error: "storage_error",
+  too_large: "too_large",
+  unauthorized: "unauthorized",
+  unsupported_type: "unsupported_type",
+  username_taken: "username_taken",
+  vote_rejected: "vote_rejected",
+} as const;
+
+export type ListFaq400 = {
+  /** Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check). */
+  error: ListFaq400Error;
+  /** Human-readable detail, for logging/debugging. Never contains raw Postgres/PostgREST error text (constraint names, column names, internal query shape) -- see safeDbErrorMessage() in supabase/functions/_shared/http.ts. Not meant to be shown verbatim to end users; Website should key UI copy off `error`. */
+  message: string;
+};
+
+/**
+ * At least one entry, keyed by locale code.
+ */
+export type CreateFaqItemBodyTranslations = {
+  [key: string]: {
+    question: string;
+    answer: string;
+  };
+};
+
+export type CreateFaqItemBody = {
+  category?: string | null;
+  display_order?: number;
+  /** At least one entry, keyed by locale code. */
+  translations: CreateFaqItemBodyTranslations;
+};
+
+/**
+ * Keyed by locale code (e.g. "en", "tr").
+ */
+export type CreateFaqItem201Translations = {
+  [key: string]: {
+    question: string;
+    answer: string;
+  };
+};
+
+/**
+ * A FAQ item with every locale it has a translation for, as returned by GET /faq/{faqId} and the write endpoints. Used for admin/editing views -- GET /faq (list) returns FaqEntry, flattened to one locale, instead.
+ */
+export type CreateFaqItem201 = {
+  id: string;
+  category: string | null;
+  display_order: number;
+  /** Keyed by locale code (e.g. "en", "tr"). */
+  translations: CreateFaqItem201Translations;
+  created_at: string;
+  updated_at: string;
+};
+
+/**
+ * Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check).
+ */
+export type CreateFaqItem400Error =
+  (typeof CreateFaqItem400Error)[keyof typeof CreateFaqItem400Error];
+
+export const CreateFaqItem400Error = {
+  account_has_content: "account_has_content",
+  already_decided: "already_decided",
+  already_voted: "already_voted",
+  internal_error: "internal_error",
+  invalid_body: "invalid_body",
+  invalid_discussion_id: "invalid_discussion_id",
+  invalid_event_id: "invalid_event_id",
+  invalid_faq_id: "invalid_faq_id",
+  invalid_locale: "invalid_locale",
+  invalid_news_id: "invalid_news_id",
+  invalid_poll_id: "invalid_poll_id",
+  invalid_project_id: "invalid_project_id",
+  invalid_query: "invalid_query",
+  invalid_redirect: "invalid_redirect",
+  invalid_reply_id: "invalid_reply_id",
+  invalid_request_id: "invalid_request_id",
+  invalid_team_id: "invalid_team_id",
+  invalid_user_id: "invalid_user_id",
+  invalid_version: "invalid_version",
+  method_not_allowed: "method_not_allowed",
+  misconfigured: "misconfigured",
+  missing_file: "missing_file",
+  not_found: "not_found",
+  poll_closed: "poll_closed",
+  poll_not_found: "poll_not_found",
+  query_error: "query_error",
+  rate_limited: "rate_limited",
+  rpc_error: "rpc_error",
+  storage_error: "storage_error",
+  too_large: "too_large",
+  unauthorized: "unauthorized",
+  unsupported_type: "unsupported_type",
+  username_taken: "username_taken",
+  vote_rejected: "vote_rejected",
+} as const;
+
+export type CreateFaqItem400 = {
+  /** Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check). */
+  error: CreateFaqItem400Error;
+  /** Human-readable detail, for logging/debugging. Never contains raw Postgres/PostgREST error text (constraint names, column names, internal query shape) -- see safeDbErrorMessage() in supabase/functions/_shared/http.ts. Not meant to be shown verbatim to end users; Website should key UI copy off `error`. */
+  message: string;
+};
+
+/**
+ * Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check).
+ */
+export type CreateFaqItem401Error =
+  (typeof CreateFaqItem401Error)[keyof typeof CreateFaqItem401Error];
+
+export const CreateFaqItem401Error = {
+  account_has_content: "account_has_content",
+  already_decided: "already_decided",
+  already_voted: "already_voted",
+  internal_error: "internal_error",
+  invalid_body: "invalid_body",
+  invalid_discussion_id: "invalid_discussion_id",
+  invalid_event_id: "invalid_event_id",
+  invalid_faq_id: "invalid_faq_id",
+  invalid_locale: "invalid_locale",
+  invalid_news_id: "invalid_news_id",
+  invalid_poll_id: "invalid_poll_id",
+  invalid_project_id: "invalid_project_id",
+  invalid_query: "invalid_query",
+  invalid_redirect: "invalid_redirect",
+  invalid_reply_id: "invalid_reply_id",
+  invalid_request_id: "invalid_request_id",
+  invalid_team_id: "invalid_team_id",
+  invalid_user_id: "invalid_user_id",
+  invalid_version: "invalid_version",
+  method_not_allowed: "method_not_allowed",
+  misconfigured: "misconfigured",
+  missing_file: "missing_file",
+  not_found: "not_found",
+  poll_closed: "poll_closed",
+  poll_not_found: "poll_not_found",
+  query_error: "query_error",
+  rate_limited: "rate_limited",
+  rpc_error: "rpc_error",
+  storage_error: "storage_error",
+  too_large: "too_large",
+  unauthorized: "unauthorized",
+  unsupported_type: "unsupported_type",
+  username_taken: "username_taken",
+  vote_rejected: "vote_rejected",
+} as const;
+
+export type CreateFaqItem401 = {
+  /** Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check). */
+  error: CreateFaqItem401Error;
+  /** Human-readable detail, for logging/debugging. Never contains raw Postgres/PostgREST error text (constraint names, column names, internal query shape) -- see safeDbErrorMessage() in supabase/functions/_shared/http.ts. Not meant to be shown verbatim to end users; Website should key UI copy off `error`. */
+  message: string;
+};
+
+/**
+ * Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check).
+ */
+export type CreateFaqItem403Error =
+  (typeof CreateFaqItem403Error)[keyof typeof CreateFaqItem403Error];
+
+export const CreateFaqItem403Error = {
+  account_has_content: "account_has_content",
+  already_decided: "already_decided",
+  already_voted: "already_voted",
+  internal_error: "internal_error",
+  invalid_body: "invalid_body",
+  invalid_discussion_id: "invalid_discussion_id",
+  invalid_event_id: "invalid_event_id",
+  invalid_faq_id: "invalid_faq_id",
+  invalid_locale: "invalid_locale",
+  invalid_news_id: "invalid_news_id",
+  invalid_poll_id: "invalid_poll_id",
+  invalid_project_id: "invalid_project_id",
+  invalid_query: "invalid_query",
+  invalid_redirect: "invalid_redirect",
+  invalid_reply_id: "invalid_reply_id",
+  invalid_request_id: "invalid_request_id",
+  invalid_team_id: "invalid_team_id",
+  invalid_user_id: "invalid_user_id",
+  invalid_version: "invalid_version",
+  method_not_allowed: "method_not_allowed",
+  misconfigured: "misconfigured",
+  missing_file: "missing_file",
+  not_found: "not_found",
+  poll_closed: "poll_closed",
+  poll_not_found: "poll_not_found",
+  query_error: "query_error",
+  rate_limited: "rate_limited",
+  rpc_error: "rpc_error",
+  storage_error: "storage_error",
+  too_large: "too_large",
+  unauthorized: "unauthorized",
+  unsupported_type: "unsupported_type",
+  username_taken: "username_taken",
+  vote_rejected: "vote_rejected",
+} as const;
+
+export type CreateFaqItem403 = {
+  /** Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check). */
+  error: CreateFaqItem403Error;
+  /** Human-readable detail, for logging/debugging. Never contains raw Postgres/PostgREST error text (constraint names, column names, internal query shape) -- see safeDbErrorMessage() in supabase/functions/_shared/http.ts. Not meant to be shown verbatim to end users; Website should key UI copy off `error`. */
+  message: string;
+};
+
+/**
+ * Keyed by locale code (e.g. "en", "tr").
+ */
+export type GetFaqItem200Translations = {
+  [key: string]: {
+    question: string;
+    answer: string;
+  };
+};
+
+/**
+ * A FAQ item with every locale it has a translation for, as returned by GET /faq/{faqId} and the write endpoints. Used for admin/editing views -- GET /faq (list) returns FaqEntry, flattened to one locale, instead.
+ */
+export type GetFaqItem200 = {
+  id: string;
+  category: string | null;
+  display_order: number;
+  /** Keyed by locale code (e.g. "en", "tr"). */
+  translations: GetFaqItem200Translations;
+  created_at: string;
+  updated_at: string;
+};
+
+/**
+ * Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check).
+ */
+export type GetFaqItem404Error =
+  (typeof GetFaqItem404Error)[keyof typeof GetFaqItem404Error];
+
+export const GetFaqItem404Error = {
+  account_has_content: "account_has_content",
+  already_decided: "already_decided",
+  already_voted: "already_voted",
+  internal_error: "internal_error",
+  invalid_body: "invalid_body",
+  invalid_discussion_id: "invalid_discussion_id",
+  invalid_event_id: "invalid_event_id",
+  invalid_faq_id: "invalid_faq_id",
+  invalid_locale: "invalid_locale",
+  invalid_news_id: "invalid_news_id",
+  invalid_poll_id: "invalid_poll_id",
+  invalid_project_id: "invalid_project_id",
+  invalid_query: "invalid_query",
+  invalid_redirect: "invalid_redirect",
+  invalid_reply_id: "invalid_reply_id",
+  invalid_request_id: "invalid_request_id",
+  invalid_team_id: "invalid_team_id",
+  invalid_user_id: "invalid_user_id",
+  invalid_version: "invalid_version",
+  method_not_allowed: "method_not_allowed",
+  misconfigured: "misconfigured",
+  missing_file: "missing_file",
+  not_found: "not_found",
+  poll_closed: "poll_closed",
+  poll_not_found: "poll_not_found",
+  query_error: "query_error",
+  rate_limited: "rate_limited",
+  rpc_error: "rpc_error",
+  storage_error: "storage_error",
+  too_large: "too_large",
+  unauthorized: "unauthorized",
+  unsupported_type: "unsupported_type",
+  username_taken: "username_taken",
+  vote_rejected: "vote_rejected",
+} as const;
+
+export type GetFaqItem404 = {
+  /** Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check). */
+  error: GetFaqItem404Error;
+  /** Human-readable detail, for logging/debugging. Never contains raw Postgres/PostgREST error text (constraint names, column names, internal query shape) -- see safeDbErrorMessage() in supabase/functions/_shared/http.ts. Not meant to be shown verbatim to end users; Website should key UI copy off `error`. */
+  message: string;
+};
+
+export type UpdateFaqItemBody = {
+  category?: string | null;
+  display_order?: number;
+};
+
+/**
+ * Keyed by locale code (e.g. "en", "tr").
+ */
+export type UpdateFaqItem200Translations = {
+  [key: string]: {
+    question: string;
+    answer: string;
+  };
+};
+
+/**
+ * A FAQ item with every locale it has a translation for, as returned by GET /faq/{faqId} and the write endpoints. Used for admin/editing views -- GET /faq (list) returns FaqEntry, flattened to one locale, instead.
+ */
+export type UpdateFaqItem200 = {
+  id: string;
+  category: string | null;
+  display_order: number;
+  /** Keyed by locale code (e.g. "en", "tr"). */
+  translations: UpdateFaqItem200Translations;
+  created_at: string;
+  updated_at: string;
+};
+
+/**
+ * Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check).
+ */
+export type UpdateFaqItem400Error =
+  (typeof UpdateFaqItem400Error)[keyof typeof UpdateFaqItem400Error];
+
+export const UpdateFaqItem400Error = {
+  account_has_content: "account_has_content",
+  already_decided: "already_decided",
+  already_voted: "already_voted",
+  internal_error: "internal_error",
+  invalid_body: "invalid_body",
+  invalid_discussion_id: "invalid_discussion_id",
+  invalid_event_id: "invalid_event_id",
+  invalid_faq_id: "invalid_faq_id",
+  invalid_locale: "invalid_locale",
+  invalid_news_id: "invalid_news_id",
+  invalid_poll_id: "invalid_poll_id",
+  invalid_project_id: "invalid_project_id",
+  invalid_query: "invalid_query",
+  invalid_redirect: "invalid_redirect",
+  invalid_reply_id: "invalid_reply_id",
+  invalid_request_id: "invalid_request_id",
+  invalid_team_id: "invalid_team_id",
+  invalid_user_id: "invalid_user_id",
+  invalid_version: "invalid_version",
+  method_not_allowed: "method_not_allowed",
+  misconfigured: "misconfigured",
+  missing_file: "missing_file",
+  not_found: "not_found",
+  poll_closed: "poll_closed",
+  poll_not_found: "poll_not_found",
+  query_error: "query_error",
+  rate_limited: "rate_limited",
+  rpc_error: "rpc_error",
+  storage_error: "storage_error",
+  too_large: "too_large",
+  unauthorized: "unauthorized",
+  unsupported_type: "unsupported_type",
+  username_taken: "username_taken",
+  vote_rejected: "vote_rejected",
+} as const;
+
+export type UpdateFaqItem400 = {
+  /** Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check). */
+  error: UpdateFaqItem400Error;
+  /** Human-readable detail, for logging/debugging. Never contains raw Postgres/PostgREST error text (constraint names, column names, internal query shape) -- see safeDbErrorMessage() in supabase/functions/_shared/http.ts. Not meant to be shown verbatim to end users; Website should key UI copy off `error`. */
+  message: string;
+};
+
+/**
+ * Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check).
+ */
+export type UpdateFaqItem403Error =
+  (typeof UpdateFaqItem403Error)[keyof typeof UpdateFaqItem403Error];
+
+export const UpdateFaqItem403Error = {
+  account_has_content: "account_has_content",
+  already_decided: "already_decided",
+  already_voted: "already_voted",
+  internal_error: "internal_error",
+  invalid_body: "invalid_body",
+  invalid_discussion_id: "invalid_discussion_id",
+  invalid_event_id: "invalid_event_id",
+  invalid_faq_id: "invalid_faq_id",
+  invalid_locale: "invalid_locale",
+  invalid_news_id: "invalid_news_id",
+  invalid_poll_id: "invalid_poll_id",
+  invalid_project_id: "invalid_project_id",
+  invalid_query: "invalid_query",
+  invalid_redirect: "invalid_redirect",
+  invalid_reply_id: "invalid_reply_id",
+  invalid_request_id: "invalid_request_id",
+  invalid_team_id: "invalid_team_id",
+  invalid_user_id: "invalid_user_id",
+  invalid_version: "invalid_version",
+  method_not_allowed: "method_not_allowed",
+  misconfigured: "misconfigured",
+  missing_file: "missing_file",
+  not_found: "not_found",
+  poll_closed: "poll_closed",
+  poll_not_found: "poll_not_found",
+  query_error: "query_error",
+  rate_limited: "rate_limited",
+  rpc_error: "rpc_error",
+  storage_error: "storage_error",
+  too_large: "too_large",
+  unauthorized: "unauthorized",
+  unsupported_type: "unsupported_type",
+  username_taken: "username_taken",
+  vote_rejected: "vote_rejected",
+} as const;
+
+export type UpdateFaqItem403 = {
+  /** Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check). */
+  error: UpdateFaqItem403Error;
+  /** Human-readable detail, for logging/debugging. Never contains raw Postgres/PostgREST error text (constraint names, column names, internal query shape) -- see safeDbErrorMessage() in supabase/functions/_shared/http.ts. Not meant to be shown verbatim to end users; Website should key UI copy off `error`. */
+  message: string;
+};
+
+/**
+ * Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check).
+ */
+export type UpdateFaqItem404Error =
+  (typeof UpdateFaqItem404Error)[keyof typeof UpdateFaqItem404Error];
+
+export const UpdateFaqItem404Error = {
+  account_has_content: "account_has_content",
+  already_decided: "already_decided",
+  already_voted: "already_voted",
+  internal_error: "internal_error",
+  invalid_body: "invalid_body",
+  invalid_discussion_id: "invalid_discussion_id",
+  invalid_event_id: "invalid_event_id",
+  invalid_faq_id: "invalid_faq_id",
+  invalid_locale: "invalid_locale",
+  invalid_news_id: "invalid_news_id",
+  invalid_poll_id: "invalid_poll_id",
+  invalid_project_id: "invalid_project_id",
+  invalid_query: "invalid_query",
+  invalid_redirect: "invalid_redirect",
+  invalid_reply_id: "invalid_reply_id",
+  invalid_request_id: "invalid_request_id",
+  invalid_team_id: "invalid_team_id",
+  invalid_user_id: "invalid_user_id",
+  invalid_version: "invalid_version",
+  method_not_allowed: "method_not_allowed",
+  misconfigured: "misconfigured",
+  missing_file: "missing_file",
+  not_found: "not_found",
+  poll_closed: "poll_closed",
+  poll_not_found: "poll_not_found",
+  query_error: "query_error",
+  rate_limited: "rate_limited",
+  rpc_error: "rpc_error",
+  storage_error: "storage_error",
+  too_large: "too_large",
+  unauthorized: "unauthorized",
+  unsupported_type: "unsupported_type",
+  username_taken: "username_taken",
+  vote_rejected: "vote_rejected",
+} as const;
+
+export type UpdateFaqItem404 = {
+  /** Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check). */
+  error: UpdateFaqItem404Error;
+  /** Human-readable detail, for logging/debugging. Never contains raw Postgres/PostgREST error text (constraint names, column names, internal query shape) -- see safeDbErrorMessage() in supabase/functions/_shared/http.ts. Not meant to be shown verbatim to end users; Website should key UI copy off `error`. */
+  message: string;
+};
+
+/**
+ * Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check).
+ */
+export type DeleteFaqItem400Error =
+  (typeof DeleteFaqItem400Error)[keyof typeof DeleteFaqItem400Error];
+
+export const DeleteFaqItem400Error = {
+  account_has_content: "account_has_content",
+  already_decided: "already_decided",
+  already_voted: "already_voted",
+  internal_error: "internal_error",
+  invalid_body: "invalid_body",
+  invalid_discussion_id: "invalid_discussion_id",
+  invalid_event_id: "invalid_event_id",
+  invalid_faq_id: "invalid_faq_id",
+  invalid_locale: "invalid_locale",
+  invalid_news_id: "invalid_news_id",
+  invalid_poll_id: "invalid_poll_id",
+  invalid_project_id: "invalid_project_id",
+  invalid_query: "invalid_query",
+  invalid_redirect: "invalid_redirect",
+  invalid_reply_id: "invalid_reply_id",
+  invalid_request_id: "invalid_request_id",
+  invalid_team_id: "invalid_team_id",
+  invalid_user_id: "invalid_user_id",
+  invalid_version: "invalid_version",
+  method_not_allowed: "method_not_allowed",
+  misconfigured: "misconfigured",
+  missing_file: "missing_file",
+  not_found: "not_found",
+  poll_closed: "poll_closed",
+  poll_not_found: "poll_not_found",
+  query_error: "query_error",
+  rate_limited: "rate_limited",
+  rpc_error: "rpc_error",
+  storage_error: "storage_error",
+  too_large: "too_large",
+  unauthorized: "unauthorized",
+  unsupported_type: "unsupported_type",
+  username_taken: "username_taken",
+  vote_rejected: "vote_rejected",
+} as const;
+
+export type DeleteFaqItem400 = {
+  /** Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check). */
+  error: DeleteFaqItem400Error;
+  /** Human-readable detail, for logging/debugging. Never contains raw Postgres/PostgREST error text (constraint names, column names, internal query shape) -- see safeDbErrorMessage() in supabase/functions/_shared/http.ts. Not meant to be shown verbatim to end users; Website should key UI copy off `error`. */
+  message: string;
+};
+
+/**
+ * Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check).
+ */
+export type DeleteFaqItem404Error =
+  (typeof DeleteFaqItem404Error)[keyof typeof DeleteFaqItem404Error];
+
+export const DeleteFaqItem404Error = {
+  account_has_content: "account_has_content",
+  already_decided: "already_decided",
+  already_voted: "already_voted",
+  internal_error: "internal_error",
+  invalid_body: "invalid_body",
+  invalid_discussion_id: "invalid_discussion_id",
+  invalid_event_id: "invalid_event_id",
+  invalid_faq_id: "invalid_faq_id",
+  invalid_locale: "invalid_locale",
+  invalid_news_id: "invalid_news_id",
+  invalid_poll_id: "invalid_poll_id",
+  invalid_project_id: "invalid_project_id",
+  invalid_query: "invalid_query",
+  invalid_redirect: "invalid_redirect",
+  invalid_reply_id: "invalid_reply_id",
+  invalid_request_id: "invalid_request_id",
+  invalid_team_id: "invalid_team_id",
+  invalid_user_id: "invalid_user_id",
+  invalid_version: "invalid_version",
+  method_not_allowed: "method_not_allowed",
+  misconfigured: "misconfigured",
+  missing_file: "missing_file",
+  not_found: "not_found",
+  poll_closed: "poll_closed",
+  poll_not_found: "poll_not_found",
+  query_error: "query_error",
+  rate_limited: "rate_limited",
+  rpc_error: "rpc_error",
+  storage_error: "storage_error",
+  too_large: "too_large",
+  unauthorized: "unauthorized",
+  unsupported_type: "unsupported_type",
+  username_taken: "username_taken",
+  vote_rejected: "vote_rejected",
+} as const;
+
+export type DeleteFaqItem404 = {
+  /** Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check). */
+  error: DeleteFaqItem404Error;
+  /** Human-readable detail, for logging/debugging. Never contains raw Postgres/PostgREST error text (constraint names, column names, internal query shape) -- see safeDbErrorMessage() in supabase/functions/_shared/http.ts. Not meant to be shown verbatim to end users; Website should key UI copy off `error`. */
+  message: string;
+};
+
+export type UpsertFaqTranslationBody = {
+  question: string;
+  answer: string;
+};
+
+/**
+ * Keyed by locale code (e.g. "en", "tr").
+ */
+export type UpsertFaqTranslation200Translations = {
+  [key: string]: {
+    question: string;
+    answer: string;
+  };
+};
+
+/**
+ * A FAQ item with every locale it has a translation for, as returned by GET /faq/{faqId} and the write endpoints. Used for admin/editing views -- GET /faq (list) returns FaqEntry, flattened to one locale, instead.
+ */
+export type UpsertFaqTranslation200 = {
+  id: string;
+  category: string | null;
+  display_order: number;
+  /** Keyed by locale code (e.g. "en", "tr"). */
+  translations: UpsertFaqTranslation200Translations;
+  created_at: string;
+  updated_at: string;
+};
+
+/**
+ * Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check).
+ */
+export type UpsertFaqTranslation400Error =
+  (typeof UpsertFaqTranslation400Error)[keyof typeof UpsertFaqTranslation400Error];
+
+export const UpsertFaqTranslation400Error = {
+  account_has_content: "account_has_content",
+  already_decided: "already_decided",
+  already_voted: "already_voted",
+  internal_error: "internal_error",
+  invalid_body: "invalid_body",
+  invalid_discussion_id: "invalid_discussion_id",
+  invalid_event_id: "invalid_event_id",
+  invalid_faq_id: "invalid_faq_id",
+  invalid_locale: "invalid_locale",
+  invalid_news_id: "invalid_news_id",
+  invalid_poll_id: "invalid_poll_id",
+  invalid_project_id: "invalid_project_id",
+  invalid_query: "invalid_query",
+  invalid_redirect: "invalid_redirect",
+  invalid_reply_id: "invalid_reply_id",
+  invalid_request_id: "invalid_request_id",
+  invalid_team_id: "invalid_team_id",
+  invalid_user_id: "invalid_user_id",
+  invalid_version: "invalid_version",
+  method_not_allowed: "method_not_allowed",
+  misconfigured: "misconfigured",
+  missing_file: "missing_file",
+  not_found: "not_found",
+  poll_closed: "poll_closed",
+  poll_not_found: "poll_not_found",
+  query_error: "query_error",
+  rate_limited: "rate_limited",
+  rpc_error: "rpc_error",
+  storage_error: "storage_error",
+  too_large: "too_large",
+  unauthorized: "unauthorized",
+  unsupported_type: "unsupported_type",
+  username_taken: "username_taken",
+  vote_rejected: "vote_rejected",
+} as const;
+
+export type UpsertFaqTranslation400 = {
+  /** Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check). */
+  error: UpsertFaqTranslation400Error;
+  /** Human-readable detail, for logging/debugging. Never contains raw Postgres/PostgREST error text (constraint names, column names, internal query shape) -- see safeDbErrorMessage() in supabase/functions/_shared/http.ts. Not meant to be shown verbatim to end users; Website should key UI copy off `error`. */
+  message: string;
+};
+
+/**
+ * Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check).
+ */
+export type UpsertFaqTranslation403Error =
+  (typeof UpsertFaqTranslation403Error)[keyof typeof UpsertFaqTranslation403Error];
+
+export const UpsertFaqTranslation403Error = {
+  account_has_content: "account_has_content",
+  already_decided: "already_decided",
+  already_voted: "already_voted",
+  internal_error: "internal_error",
+  invalid_body: "invalid_body",
+  invalid_discussion_id: "invalid_discussion_id",
+  invalid_event_id: "invalid_event_id",
+  invalid_faq_id: "invalid_faq_id",
+  invalid_locale: "invalid_locale",
+  invalid_news_id: "invalid_news_id",
+  invalid_poll_id: "invalid_poll_id",
+  invalid_project_id: "invalid_project_id",
+  invalid_query: "invalid_query",
+  invalid_redirect: "invalid_redirect",
+  invalid_reply_id: "invalid_reply_id",
+  invalid_request_id: "invalid_request_id",
+  invalid_team_id: "invalid_team_id",
+  invalid_user_id: "invalid_user_id",
+  invalid_version: "invalid_version",
+  method_not_allowed: "method_not_allowed",
+  misconfigured: "misconfigured",
+  missing_file: "missing_file",
+  not_found: "not_found",
+  poll_closed: "poll_closed",
+  poll_not_found: "poll_not_found",
+  query_error: "query_error",
+  rate_limited: "rate_limited",
+  rpc_error: "rpc_error",
+  storage_error: "storage_error",
+  too_large: "too_large",
+  unauthorized: "unauthorized",
+  unsupported_type: "unsupported_type",
+  username_taken: "username_taken",
+  vote_rejected: "vote_rejected",
+} as const;
+
+export type UpsertFaqTranslation403 = {
+  /** Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check). */
+  error: UpsertFaqTranslation403Error;
+  /** Human-readable detail, for logging/debugging. Never contains raw Postgres/PostgREST error text (constraint names, column names, internal query shape) -- see safeDbErrorMessage() in supabase/functions/_shared/http.ts. Not meant to be shown verbatim to end users; Website should key UI copy off `error`. */
+  message: string;
+};
+
+/**
+ * Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check).
+ */
+export type UpsertFaqTranslation404Error =
+  (typeof UpsertFaqTranslation404Error)[keyof typeof UpsertFaqTranslation404Error];
+
+export const UpsertFaqTranslation404Error = {
+  account_has_content: "account_has_content",
+  already_decided: "already_decided",
+  already_voted: "already_voted",
+  internal_error: "internal_error",
+  invalid_body: "invalid_body",
+  invalid_discussion_id: "invalid_discussion_id",
+  invalid_event_id: "invalid_event_id",
+  invalid_faq_id: "invalid_faq_id",
+  invalid_locale: "invalid_locale",
+  invalid_news_id: "invalid_news_id",
+  invalid_poll_id: "invalid_poll_id",
+  invalid_project_id: "invalid_project_id",
+  invalid_query: "invalid_query",
+  invalid_redirect: "invalid_redirect",
+  invalid_reply_id: "invalid_reply_id",
+  invalid_request_id: "invalid_request_id",
+  invalid_team_id: "invalid_team_id",
+  invalid_user_id: "invalid_user_id",
+  invalid_version: "invalid_version",
+  method_not_allowed: "method_not_allowed",
+  misconfigured: "misconfigured",
+  missing_file: "missing_file",
+  not_found: "not_found",
+  poll_closed: "poll_closed",
+  poll_not_found: "poll_not_found",
+  query_error: "query_error",
+  rate_limited: "rate_limited",
+  rpc_error: "rpc_error",
+  storage_error: "storage_error",
+  too_large: "too_large",
+  unauthorized: "unauthorized",
+  unsupported_type: "unsupported_type",
+  username_taken: "username_taken",
+  vote_rejected: "vote_rejected",
+} as const;
+
+export type UpsertFaqTranslation404 = {
+  /** Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check). */
+  error: UpsertFaqTranslation404Error;
+  /** Human-readable detail, for logging/debugging. Never contains raw Postgres/PostgREST error text (constraint names, column names, internal query shape) -- see safeDbErrorMessage() in supabase/functions/_shared/http.ts. Not meant to be shown verbatim to end users; Website should key UI copy off `error`. */
+  message: string;
+};
+
+/**
+ * Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check).
+ */
+export type DeleteFaqTranslation400Error =
+  (typeof DeleteFaqTranslation400Error)[keyof typeof DeleteFaqTranslation400Error];
+
+export const DeleteFaqTranslation400Error = {
+  account_has_content: "account_has_content",
+  already_decided: "already_decided",
+  already_voted: "already_voted",
+  internal_error: "internal_error",
+  invalid_body: "invalid_body",
+  invalid_discussion_id: "invalid_discussion_id",
+  invalid_event_id: "invalid_event_id",
+  invalid_faq_id: "invalid_faq_id",
+  invalid_locale: "invalid_locale",
+  invalid_news_id: "invalid_news_id",
+  invalid_poll_id: "invalid_poll_id",
+  invalid_project_id: "invalid_project_id",
+  invalid_query: "invalid_query",
+  invalid_redirect: "invalid_redirect",
+  invalid_reply_id: "invalid_reply_id",
+  invalid_request_id: "invalid_request_id",
+  invalid_team_id: "invalid_team_id",
+  invalid_user_id: "invalid_user_id",
+  invalid_version: "invalid_version",
+  method_not_allowed: "method_not_allowed",
+  misconfigured: "misconfigured",
+  missing_file: "missing_file",
+  not_found: "not_found",
+  poll_closed: "poll_closed",
+  poll_not_found: "poll_not_found",
+  query_error: "query_error",
+  rate_limited: "rate_limited",
+  rpc_error: "rpc_error",
+  storage_error: "storage_error",
+  too_large: "too_large",
+  unauthorized: "unauthorized",
+  unsupported_type: "unsupported_type",
+  username_taken: "username_taken",
+  vote_rejected: "vote_rejected",
+} as const;
+
+export type DeleteFaqTranslation400 = {
+  /** Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check). */
+  error: DeleteFaqTranslation400Error;
+  /** Human-readable detail, for logging/debugging. Never contains raw Postgres/PostgREST error text (constraint names, column names, internal query shape) -- see safeDbErrorMessage() in supabase/functions/_shared/http.ts. Not meant to be shown verbatim to end users; Website should key UI copy off `error`. */
+  message: string;
+};
+
+/**
+ * Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check).
+ */
+export type DeleteFaqTranslation404Error =
+  (typeof DeleteFaqTranslation404Error)[keyof typeof DeleteFaqTranslation404Error];
+
+export const DeleteFaqTranslation404Error = {
+  account_has_content: "account_has_content",
+  already_decided: "already_decided",
+  already_voted: "already_voted",
+  internal_error: "internal_error",
+  invalid_body: "invalid_body",
+  invalid_discussion_id: "invalid_discussion_id",
+  invalid_event_id: "invalid_event_id",
+  invalid_faq_id: "invalid_faq_id",
+  invalid_locale: "invalid_locale",
+  invalid_news_id: "invalid_news_id",
+  invalid_poll_id: "invalid_poll_id",
+  invalid_project_id: "invalid_project_id",
+  invalid_query: "invalid_query",
+  invalid_redirect: "invalid_redirect",
+  invalid_reply_id: "invalid_reply_id",
+  invalid_request_id: "invalid_request_id",
+  invalid_team_id: "invalid_team_id",
+  invalid_user_id: "invalid_user_id",
+  invalid_version: "invalid_version",
+  method_not_allowed: "method_not_allowed",
+  misconfigured: "misconfigured",
+  missing_file: "missing_file",
+  not_found: "not_found",
+  poll_closed: "poll_closed",
+  poll_not_found: "poll_not_found",
+  query_error: "query_error",
+  rate_limited: "rate_limited",
+  rpc_error: "rpc_error",
+  storage_error: "storage_error",
+  too_large: "too_large",
+  unauthorized: "unauthorized",
+  unsupported_type: "unsupported_type",
+  username_taken: "username_taken",
+  vote_rejected: "vote_rejected",
+} as const;
+
+export type DeleteFaqTranslation404 = {
+  /** Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check). */
+  error: DeleteFaqTranslation404Error;
   /** Human-readable detail, for logging/debugging. Never contains raw Postgres/PostgREST error text (constraint names, column names, internal query shape) -- see safeDbErrorMessage() in supabase/functions/_shared/http.ts. Not meant to be shown verbatim to end users; Website should key UI copy off `error`. */
   message: string;
 };
@@ -5595,11 +8703,15 @@ export type SearchDocs400Error =
   (typeof SearchDocs400Error)[keyof typeof SearchDocs400Error];
 
 export const SearchDocs400Error = {
+  account_has_content: "account_has_content",
   already_decided: "already_decided",
   already_voted: "already_voted",
   internal_error: "internal_error",
   invalid_body: "invalid_body",
   invalid_discussion_id: "invalid_discussion_id",
+  invalid_event_id: "invalid_event_id",
+  invalid_faq_id: "invalid_faq_id",
+  invalid_locale: "invalid_locale",
   invalid_news_id: "invalid_news_id",
   invalid_poll_id: "invalid_poll_id",
   invalid_project_id: "invalid_project_id",
@@ -5676,11 +8788,15 @@ export type ReindexDocs400Error =
   (typeof ReindexDocs400Error)[keyof typeof ReindexDocs400Error];
 
 export const ReindexDocs400Error = {
+  account_has_content: "account_has_content",
   already_decided: "already_decided",
   already_voted: "already_voted",
   internal_error: "internal_error",
   invalid_body: "invalid_body",
   invalid_discussion_id: "invalid_discussion_id",
+  invalid_event_id: "invalid_event_id",
+  invalid_faq_id: "invalid_faq_id",
+  invalid_locale: "invalid_locale",
   invalid_news_id: "invalid_news_id",
   invalid_poll_id: "invalid_poll_id",
   invalid_project_id: "invalid_project_id",
@@ -5722,11 +8838,15 @@ export type ReindexDocs401Error =
   (typeof ReindexDocs401Error)[keyof typeof ReindexDocs401Error];
 
 export const ReindexDocs401Error = {
+  account_has_content: "account_has_content",
   already_decided: "already_decided",
   already_voted: "already_voted",
   internal_error: "internal_error",
   invalid_body: "invalid_body",
   invalid_discussion_id: "invalid_discussion_id",
+  invalid_event_id: "invalid_event_id",
+  invalid_faq_id: "invalid_faq_id",
+  invalid_locale: "invalid_locale",
   invalid_news_id: "invalid_news_id",
   invalid_poll_id: "invalid_poll_id",
   invalid_project_id: "invalid_project_id",

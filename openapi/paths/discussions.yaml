@@ -9,15 +9,48 @@ list:
         in: query
         required: false
         schema: { type: string }
+      - name: q
+        in: query
+        required: false
+        schema: { type: string }
+        description: >
+          Full-text search over title + body ('simple' config, plain
+          query -- same convention as docs search). Combines with
+          category if both are given.
+      - name: sort
+        in: query
+        required: false
+        schema: { type: string, enum: [recent, active, replies], default: recent }
+        description: >
+          recent = created_at desc (default, cursor-paginated). active =
+          last_activity_at desc. replies = reply_count desc. active/replies
+          are single-page only for now -- next_cursor is always null, and
+          passing cursor with either of them is a 400.
+      - $ref: '../parameters/Pagination.yaml#/limit'
+      - $ref: '../parameters/Pagination.yaml#/cursor'
     responses:
       '200':
-        description: Discussions.
+        description: A page of discussions, newest first.
         content:
           application/json:
             schema:
-              type: array
-              items:
-                $ref: '../schemas/Discussion.yaml'
+              type: object
+              required: [items, next_cursor]
+              properties:
+                items:
+                  type: array
+                  items:
+                    $ref: '../schemas/DiscussionSummary.yaml'
+                next_cursor:
+                  type: string
+                  nullable: true
+                  description: Pass as ?cursor= to fetch the next page. null once there are no more.
+      '400':
+        description: Invalid category, q, sort, limit, or cursor (or cursor used with a non-recent sort).
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/Error.yaml'
   post:
     summary: Start a discussion
     operationId: createDiscussion
@@ -54,8 +87,66 @@ list:
           application/json:
             schema:
               $ref: '../schemas/Error.yaml'
+      '429':
+        description: Rate limited (10 discussions/hour per user). Retry-After header is seconds.
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/Error.yaml'
+
+categories:
+  get:
+    summary: Distinct discussion categories with counts
+    operationId: listDiscussionCategories
+    tags: [discussions]
+    security: []
+    description: >
+      For a filter UI. Categories are free text (trimmed + lowercased at
+      write time), not a fixed/localized set -- see the Phase 3 plan notes.
+    responses:
+      '200':
+        description: Categories, most-used first.
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                type: object
+                required: [category, count]
+                properties:
+                  category: { type: string }
+                  count: { type: integer }
 
 byId:
+  get:
+    summary: Fetch one discussion (full body)
+    operationId: getDiscussion
+    tags: [discussions]
+    security: []
+    parameters:
+      - name: discussionId
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    responses:
+      '200':
+        description: The discussion.
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/Discussion.yaml'
+      '400':
+        description: Invalid discussion id.
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/Error.yaml'
+      '404':
+        description: No discussion with that id.
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/Error.yaml'
   patch:
     summary: Update or lock/unlock a discussion (author while unlocked, or moderator)
     operationId: updateDiscussion
@@ -140,17 +231,27 @@ replies:
         in: path
         required: true
         schema: { type: string, format: uuid }
+      - $ref: '../parameters/Pagination.yaml#/limit'
+      - $ref: '../parameters/Pagination.yaml#/cursor'
     responses:
       '200':
-        description: Replies (including soft-deleted tombstones).
+        description: A page of replies (including soft-deleted tombstones), oldest first.
         content:
           application/json:
             schema:
-              type: array
-              items:
-                $ref: '../schemas/DiscussionReply.yaml'
+              type: object
+              required: [items, next_cursor]
+              properties:
+                items:
+                  type: array
+                  items:
+                    $ref: '../schemas/DiscussionReply.yaml'
+                next_cursor:
+                  type: string
+                  nullable: true
+                  description: Pass as ?cursor= to fetch the next page. null once there are no more.
       '400':
-        description: Invalid discussion id.
+        description: Invalid discussion id, limit, or cursor.
         content:
           application/json:
             schema:
@@ -196,6 +297,12 @@ replies:
               $ref: '../schemas/Error.yaml'
       '403':
         description: The discussion is locked.
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/Error.yaml'
+      '429':
+        description: Rate limited (30 replies/hour per user). Retry-After header is seconds.
         content:
           application/json:
             schema:

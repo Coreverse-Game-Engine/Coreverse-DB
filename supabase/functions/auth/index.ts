@@ -25,23 +25,12 @@
 
 import { serve, } from '@std/http/server';
 import { createAnonClient, } from '../_shared/supabase-client.ts';
-import { createServiceClient, } from '../_shared/service-client.ts';
 import { allowedOrigins, errorResponse, jsonResponse, withCors, } from '../_shared/http.ts';
+import { callerIp, hitRateLimit, } from '../_shared/rate-limit.ts';
 import { PasswordResetSchema, RESET_REDIRECT_PATH_PATTERN, } from './schemas.ts';
 
 const EMAIL_LIMIT = { maxHits: 3, windowSeconds: 15 * 60, }; // 3 / 15 min, per email
 const IP_LIMIT = { maxHits: 10, windowSeconds: 60 * 60, }; // 10 / hour, per IP
-
-function callerIp(req: Request,): string {
-  // Supabase's Edge Functions gateway sets x-forwarded-for; take the
-  // first (client-side) hop. Falls back to a fixed key rather than
-  // "unknown" so that -- in the local/dev case where the header is
-  // absent -- every request doesn't share a single "unknown" bucket
-  // with every other unrelated dev request.
-  const forwardedFor = req.headers.get('x-forwarded-for',);
-  const first = forwardedFor?.split(',',)[0]?.trim();
-  return first || 'no-forwarded-for-header';
-}
 
 serve(withCors(async (req,) => {
   const url = new URL(req.url,);
@@ -63,9 +52,7 @@ serve(withCors(async (req,) => {
     const redirectError = validateRedirectTo(redirectTo,);
     if (redirectError) return errorResponse('invalid_redirect', redirectError, 400,);
 
-    const serviceClient = createServiceClient();
-
-    const emailAllowed = await hitRateLimit(serviceClient, `pwreset:email:${email}`, EMAIL_LIMIT,);
+    const emailAllowed = await hitRateLimit(`pwreset:email:${email}`, EMAIL_LIMIT,);
     if (!emailAllowed) {
       return errorResponse(
         'rate_limited',
@@ -75,7 +62,7 @@ serve(withCors(async (req,) => {
       );
     }
 
-    const ipAllowed = await hitRateLimit(serviceClient, `pwreset:ip:${callerIp(req,)}`, IP_LIMIT,);
+    const ipAllowed = await hitRateLimit(`pwreset:ip:${callerIp(req,)}`, IP_LIMIT,);
     if (!ipAllowed) {
       return errorResponse(
         'rate_limited',
@@ -104,27 +91,6 @@ serve(withCors(async (req,) => {
     );
   }
 },),);
-
-async function hitRateLimit(
-  serviceClient: ReturnType<typeof createServiceClient>,
-  key: string,
-  limit: { maxHits: number; windowSeconds: number },
-): Promise<boolean> {
-  const { data, error, } = await serviceClient
-    .schema('identity',)
-    .rpc('hit_rate_limit', {
-      p_key: key,
-      p_max_hits: limit.maxHits,
-      p_window_seconds: limit.windowSeconds,
-    },);
-
-  // An unexpected RPC failure is a genuine 500, not a 429 -- surface it
-  // as such rather than silently reporting "rate limited" for a problem
-  // that has nothing to do with the caller's request volume. The
-  // outer try/catch in the handler turns this into internal_error.
-  if (error) throw new Error(`hit_rate_limit RPC failed: ${error.message}`,);
-  return data === true;
-}
 
 // zod's .url() only confirms `redirectTo` parses as a URL -- it says
 // nothing about whether it's a URL we're willing to hand a live

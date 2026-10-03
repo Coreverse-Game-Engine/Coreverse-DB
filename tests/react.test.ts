@@ -2,7 +2,7 @@ import { existsSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
 // src/react.ts is a pure `export * from "./generated/react/*"` barrel for
-// the "@coreverse/db-client/react" subpath (see package.json `exports`).
+// the "@Coreverse-Game-Engine/db-client/react" subpath (see package.json `exports`).
 // Like src/index.ts, it only re-exports Orval output that is not checked
 // into git and requires `pnpm run generate` to exist first -- see
 // tests/index.test.ts for the same guard/rationale.

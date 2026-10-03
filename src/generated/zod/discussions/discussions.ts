@@ -11,20 +11,69 @@ import * as zod from "zod";
 /**
  * @summary List discussions
  */
+export const listDiscussionsQuerySortDefault = `recent`;
+export const listDiscussionsQueryLimitDefault = 20;
+export const listDiscussionsQueryLimitMax = 100;
+
 export const ListDiscussionsQueryParams = zod.object({
   category: zod.string().optional(),
+  q: zod
+    .string()
+    .optional()
+    .describe(
+      "Full-text search over title + body ('simple' config, plain query -- same convention as docs search). Combines with category if both are given.\n",
+    ),
+  sort: zod
+    .enum(["recent", "active", "replies"])
+    .default(listDiscussionsQuerySortDefault)
+    .describe(
+      "recent = created_at desc (default, cursor-paginated). active = last_activity_at desc. replies = reply_count desc. active\/replies are single-page only for now -- next_cursor is always null, and passing cursor with either of them is a 400.\n",
+    ),
+  limit: zod
+    .int()
+    .min(1)
+    .max(listDiscussionsQueryLimitMax)
+    .default(listDiscussionsQueryLimitDefault)
+    .describe("Max items to return (1-100, default 20)."),
+  cursor: zod
+    .string()
+    .optional()
+    .describe(
+      "Opaque token from a previous page's next_cursor. Omit for the first page. Treat as opaque -- its encoding is an implementation detail and may change.\n",
+    ),
 });
 
-export const ListDiscussionsResponseItem = zod.object({
-  id: zod.uuid(),
-  title: zod.string(),
-  body: zod.string().optional(),
-  author_id: zod.uuid(),
-  category: zod.string().nullish(),
-  is_locked: zod.boolean(),
-  created_at: zod.iso.datetime({ offset: true }).optional(),
+export const ListDiscussionsResponse = zod.object({
+  items: zod.array(
+    zod.object({
+      id: zod.uuid(),
+      title: zod.string(),
+      excerpt: zod
+        .string()
+        .describe(
+          "body truncated to ~280 chars, word-boundary aware. Fetch GET \/discussions\/{id} for the full body.",
+        ),
+      author_id: zod.uuid(),
+      author: zod.object({
+        id: zod.uuid(),
+        username: zod.string(),
+        avatar_url: zod.string().nullable(),
+      }),
+      category: zod.string().nullish(),
+      is_locked: zod.boolean(),
+      reply_count: zod.int(),
+      last_activity_at: zod.iso.datetime({ offset: true }),
+      created_at: zod.iso.datetime({ offset: true }),
+      updated_at: zod.iso.datetime({ offset: true }),
+    }),
+  ),
+  next_cursor: zod
+    .string()
+    .nullable()
+    .describe(
+      "Pass as ?cursor= to fetch the next page. null once there are no more.",
+    ),
 });
-export const ListDiscussionsResponse = zod.array(ListDiscussionsResponseItem);
 
 /**
  * @summary Start a discussion
@@ -38,11 +87,72 @@ export const CreateDiscussionBody = zod.object({
 export const CreateDiscussionResponse = zod.object({
   id: zod.uuid(),
   title: zod.string(),
-  body: zod.string().optional(),
+  body: zod.string(),
   author_id: zod.uuid(),
+  author: zod.object({
+    id: zod.uuid(),
+    username: zod.string(),
+    avatar_url: zod.string().nullable(),
+  }),
   category: zod.string().nullish(),
   is_locked: zod.boolean(),
-  created_at: zod.iso.datetime({ offset: true }).optional(),
+  reply_count: zod
+    .int()
+    .describe(
+      "Count of non-deleted replies. Denormalized -- see the Phase 3 migration.",
+    ),
+  last_activity_at: zod.iso
+    .datetime({ offset: true })
+    .describe(
+      "Bumped when a new reply is posted. NOT bumped by reply edits or soft-deletes, or by editing the discussion itself.\n",
+    ),
+  created_at: zod.iso.datetime({ offset: true }),
+  updated_at: zod.iso.datetime({ offset: true }),
+});
+
+/**
+ * For a filter UI. Categories are free text (trimmed + lowercased at write time), not a fixed/localized set -- see the Phase 3 plan notes.
+ * @summary Distinct discussion categories with counts
+ */
+export const ListDiscussionCategoriesResponseItem = zod.object({
+  category: zod.string(),
+  count: zod.int(),
+});
+export const ListDiscussionCategoriesResponse = zod.array(
+  ListDiscussionCategoriesResponseItem,
+);
+
+/**
+ * @summary Fetch one discussion (full body)
+ */
+export const GetDiscussionParams = zod.object({
+  discussionId: zod.uuid(),
+});
+
+export const GetDiscussionResponse = zod.object({
+  id: zod.uuid(),
+  title: zod.string(),
+  body: zod.string(),
+  author_id: zod.uuid(),
+  author: zod.object({
+    id: zod.uuid(),
+    username: zod.string(),
+    avatar_url: zod.string().nullable(),
+  }),
+  category: zod.string().nullish(),
+  is_locked: zod.boolean(),
+  reply_count: zod
+    .int()
+    .describe(
+      "Count of non-deleted replies. Denormalized -- see the Phase 3 migration.",
+    ),
+  last_activity_at: zod.iso
+    .datetime({ offset: true })
+    .describe(
+      "Bumped when a new reply is posted. NOT bumped by reply edits or soft-deletes, or by editing the discussion itself.\n",
+    ),
+  created_at: zod.iso.datetime({ offset: true }),
+  updated_at: zod.iso.datetime({ offset: true }),
 });
 
 /**
@@ -61,11 +171,27 @@ export const UpdateDiscussionBody = zod.object({
 export const UpdateDiscussionResponse = zod.object({
   id: zod.uuid(),
   title: zod.string(),
-  body: zod.string().optional(),
+  body: zod.string(),
   author_id: zod.uuid(),
+  author: zod.object({
+    id: zod.uuid(),
+    username: zod.string(),
+    avatar_url: zod.string().nullable(),
+  }),
   category: zod.string().nullish(),
   is_locked: zod.boolean(),
-  created_at: zod.iso.datetime({ offset: true }).optional(),
+  reply_count: zod
+    .int()
+    .describe(
+      "Count of non-deleted replies. Denormalized -- see the Phase 3 migration.",
+    ),
+  last_activity_at: zod.iso
+    .datetime({ offset: true })
+    .describe(
+      "Bumped when a new reply is posted. NOT bumped by reply edits or soft-deletes, or by editing the discussion itself.\n",
+    ),
+  created_at: zod.iso.datetime({ offset: true }),
+  updated_at: zod.iso.datetime({ offset: true }),
 });
 
 /**
@@ -84,22 +210,59 @@ export const ListDiscussionRepliesParams = zod.object({
   discussionId: zod.uuid(),
 });
 
-export const ListDiscussionRepliesResponseItem = zod.object({
-  id: zod.uuid(),
-  discussion_id: zod.uuid(),
-  author_id: zod.uuid(),
-  body: zod
+export const listDiscussionRepliesQueryLimitDefault = 20;
+export const listDiscussionRepliesQueryLimitMax = 100;
+
+export const ListDiscussionRepliesQueryParams = zod.object({
+  limit: zod
+    .int()
+    .min(1)
+    .max(listDiscussionRepliesQueryLimitMax)
+    .default(listDiscussionRepliesQueryLimitDefault)
+    .describe("Max items to return (1-100, default 20)."),
+  cursor: zod
     .string()
-    .nullish()
+    .optional()
     .describe(
-      'null\/omitted when deleted_at is set -- render as \"[deleted]\".',
+      "Opaque token from a previous page's next_cursor. Omit for the first page. Treat as opaque -- its encoding is an implementation detail and may change.\n",
     ),
-  deleted_at: zod.iso.datetime({ offset: true }).nullish(),
-  created_at: zod.iso.datetime({ offset: true }).optional(),
 });
-export const ListDiscussionRepliesResponse = zod.array(
-  ListDiscussionRepliesResponseItem,
-);
+
+export const ListDiscussionRepliesResponse = zod.object({
+  items: zod.array(
+    zod.object({
+      id: zod.uuid(),
+      discussion_id: zod.uuid(),
+      author_id: zod.uuid(),
+      author: zod.object({
+        id: zod.uuid(),
+        username: zod.string(),
+        avatar_url: zod.string().nullable(),
+      }),
+      body: zod
+        .string()
+        .nullish()
+        .describe(
+          'null\/omitted when deleted_at is set -- render as \"[deleted]\".',
+        ),
+      deleted_at: zod.iso.datetime({ offset: true }).nullish(),
+      edited_at: zod.iso
+        .datetime({ offset: true })
+        .nullish()
+        .describe(
+          "Set when body is edited. Distinct from deleted_at\/updated_at -- see the Phase 3 migration.",
+        ),
+      created_at: zod.iso.datetime({ offset: true }),
+      updated_at: zod.iso.datetime({ offset: true }),
+    }),
+  ),
+  next_cursor: zod
+    .string()
+    .nullable()
+    .describe(
+      "Pass as ?cursor= to fetch the next page. null once there are no more.",
+    ),
+});
 
 /**
  * @summary Reply to a discussion (rejected if the discussion is locked)
@@ -116,6 +279,11 @@ export const ReplyToDiscussionResponse = zod.object({
   id: zod.uuid(),
   discussion_id: zod.uuid(),
   author_id: zod.uuid(),
+  author: zod.object({
+    id: zod.uuid(),
+    username: zod.string(),
+    avatar_url: zod.string().nullable(),
+  }),
   body: zod
     .string()
     .nullish()
@@ -123,7 +291,14 @@ export const ReplyToDiscussionResponse = zod.object({
       'null\/omitted when deleted_at is set -- render as \"[deleted]\".',
     ),
   deleted_at: zod.iso.datetime({ offset: true }).nullish(),
-  created_at: zod.iso.datetime({ offset: true }).optional(),
+  edited_at: zod.iso
+    .datetime({ offset: true })
+    .nullish()
+    .describe(
+      "Set when body is edited. Distinct from deleted_at\/updated_at -- see the Phase 3 migration.",
+    ),
+  created_at: zod.iso.datetime({ offset: true }),
+  updated_at: zod.iso.datetime({ offset: true }),
 });
 
 /**
@@ -143,6 +318,11 @@ export const UpdateDiscussionReplyResponse = zod.object({
   id: zod.uuid(),
   discussion_id: zod.uuid(),
   author_id: zod.uuid(),
+  author: zod.object({
+    id: zod.uuid(),
+    username: zod.string(),
+    avatar_url: zod.string().nullable(),
+  }),
   body: zod
     .string()
     .nullish()
@@ -150,5 +330,12 @@ export const UpdateDiscussionReplyResponse = zod.object({
       'null\/omitted when deleted_at is set -- render as \"[deleted]\".',
     ),
   deleted_at: zod.iso.datetime({ offset: true }).nullish(),
-  created_at: zod.iso.datetime({ offset: true }).optional(),
+  edited_at: zod.iso
+    .datetime({ offset: true })
+    .nullish()
+    .describe(
+      "Set when body is edited. Distinct from deleted_at\/updated_at -- see the Phase 3 migration.",
+    ),
+  created_at: zod.iso.datetime({ offset: true }),
+  updated_at: zod.iso.datetime({ offset: true }),
 });

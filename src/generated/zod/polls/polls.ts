@@ -9,21 +9,83 @@
 import * as zod from "zod";
 
 /**
+ * my_option_id is only ever the caller's own vote -- pass a bearer token to get it populated, omit it to always get null (never another user's vote).
  * @summary List polls (with their options)
  */
-export const ListPollsResponseItem = zod.object({
-  id: zod.uuid(),
-  question: zod.string(),
-  closes_at: zod.iso.datetime({ offset: true }).nullish(),
-  options: zod.array(
+export const listPollsQueryLimitDefault = 20;
+export const listPollsQueryLimitMax = 100;
+
+export const ListPollsQueryParams = zod.object({
+  status: zod.enum(["open", "closed"]).optional(),
+  include: zod
+    .enum(["results"])
+    .optional()
+    .describe(
+      "include=results embeds full per-option counts (one extra call per poll on the page -- keep limit modest when using this).",
+    ),
+  limit: zod
+    .int()
+    .min(1)
+    .max(listPollsQueryLimitMax)
+    .default(listPollsQueryLimitDefault)
+    .describe("Max items to return (1-100, default 20)."),
+  cursor: zod
+    .string()
+    .optional()
+    .describe(
+      "Opaque token from a previous page's next_cursor. Omit for the first page. Treat as opaque -- its encoding is an implementation detail and may change.\n",
+    ),
+});
+
+export const ListPollsResponse = zod.object({
+  items: zod.array(
     zod.object({
       id: zod.uuid(),
-      label: zod.string(),
-      display_order: zod.int().optional(),
+      question: zod.string(),
+      closes_at: zod.iso.datetime({ offset: true }).nullish(),
+      is_closed: zod
+        .boolean()
+        .describe(
+          "Computed from closes_at at read time (closes_at !== null && closes_at <= now).",
+        ),
+      total_votes: zod
+        .int()
+        .describe(
+          "Aggregate across all users (content.poll_vote_totals()) -- always present, 0 on a brand-new poll.",
+        ),
+      my_option_id: zod
+        .uuid()
+        .nullable()
+        .describe(
+          "The caller's own vote, if any. Always null for an anonymous caller or one who hasn't voted -- never another user's vote (poll_votes_self_read RLS).\n",
+        ),
+      results: zod
+        .array(
+          zod.object({
+            option_id: zod.uuid(),
+            label: zod.string(),
+            vote_count: zod.int(),
+          }),
+        )
+        .optional()
+        .describe("Only present when the request used ?include=results."),
+      options: zod.array(
+        zod.object({
+          id: zod.uuid(),
+          label: zod.string(),
+          display_order: zod.int().optional(),
+        }),
+      ),
+      created_at: zod.iso.datetime({ offset: true }),
     }),
   ),
+  next_cursor: zod
+    .string()
+    .nullable()
+    .describe(
+      "Pass as ?cursor= to fetch the next page. null once there are no more.",
+    ),
 });
-export const ListPollsResponse = zod.array(ListPollsResponseItem);
 
 /**
  * @summary Create a poll with its options (moderator/admin only)
@@ -40,6 +102,32 @@ export const CreatePollResponse = zod.object({
   id: zod.uuid(),
   question: zod.string(),
   closes_at: zod.iso.datetime({ offset: true }).nullish(),
+  is_closed: zod
+    .boolean()
+    .describe(
+      "Computed from closes_at at read time (closes_at !== null && closes_at <= now).",
+    ),
+  total_votes: zod
+    .int()
+    .describe(
+      "Aggregate across all users (content.poll_vote_totals()) -- always present, 0 on a brand-new poll.",
+    ),
+  my_option_id: zod
+    .uuid()
+    .nullable()
+    .describe(
+      "The caller's own vote, if any. Always null for an anonymous caller or one who hasn't voted -- never another user's vote (poll_votes_self_read RLS).\n",
+    ),
+  results: zod
+    .array(
+      zod.object({
+        option_id: zod.uuid(),
+        label: zod.string(),
+        vote_count: zod.int(),
+      }),
+    )
+    .optional()
+    .describe("Only present when the request used ?include=results."),
   options: zod.array(
     zod.object({
       id: zod.uuid(),
@@ -47,6 +135,7 @@ export const CreatePollResponse = zod.object({
       display_order: zod.int().optional(),
     }),
   ),
+  created_at: zod.iso.datetime({ offset: true }),
 });
 
 /**

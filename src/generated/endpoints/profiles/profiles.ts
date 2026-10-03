@@ -7,6 +7,12 @@
  * OpenAPI spec version: 0.4.2
  */
 import type {
+  CheckUsernameAvailability200,
+  CheckUsernameAvailability400,
+  CheckUsernameAvailability429,
+  CheckUsernameAvailabilityParams,
+  DeleteMyAccount401,
+  DeleteMyAccount409,
   DeleteMyAvatar200,
   DeleteMyAvatar401,
   DeleteMyAvatar404,
@@ -140,6 +146,114 @@ export const updateMyProfile = async (
     },
     body: JSON.stringify(updateMyProfileBody),
   });
+};
+
+export type deleteMyAccountResponse204 = {
+  data: void;
+  status: 204;
+};
+
+export type deleteMyAccountResponse401 = {
+  data: DeleteMyAccount401;
+  status: 401;
+};
+
+export type deleteMyAccountResponse409 = {
+  data: DeleteMyAccount409;
+  status: 409;
+};
+
+export type deleteMyAccountResponseSuccess = deleteMyAccountResponse204 & {
+  headers: Headers;
+};
+export type deleteMyAccountResponseError = (
+  deleteMyAccountResponse401 | deleteMyAccountResponse409
+) & {
+  headers: Headers;
+};
+
+export type deleteMyAccountResponse =
+  deleteMyAccountResponseSuccess | deleteMyAccountResponseError;
+
+export const getDeleteMyAccountUrl = () => {
+  return `/profiles/me`;
+};
+
+/**
+ * Deletes the Auth user and (via cascade) the profile row -- not reversible. Fails with 409 if the account still owns or authored content that isn't safe to silently delete or orphan (a team it sole-owns, news/events/discussions/discussion replies/FAQ items it authored, a project it owns); the response lists exactly which. Resolve each listed blocker (transfer ownership, delete the content, etc.) and retry.
+ * @summary Delete the caller's own account
+ */
+export const deleteMyAccount = async (
+  options?: Parameters<typeof coreverseFetch>[1],
+): Promise<deleteMyAccountResponse> => {
+  return coreverseFetch<deleteMyAccountResponse>(getDeleteMyAccountUrl(), {
+    ...options,
+    method: "DELETE",
+  });
+};
+
+export type checkUsernameAvailabilityResponse200 = {
+  data: CheckUsernameAvailability200;
+  status: 200;
+};
+
+export type checkUsernameAvailabilityResponse400 = {
+  data: CheckUsernameAvailability400;
+  status: 400;
+};
+
+export type checkUsernameAvailabilityResponse429 = {
+  data: CheckUsernameAvailability429;
+  status: 429;
+};
+
+export type checkUsernameAvailabilityResponseSuccess =
+  checkUsernameAvailabilityResponse200 & {
+    headers: Headers;
+  };
+export type checkUsernameAvailabilityResponseError = (
+  checkUsernameAvailabilityResponse400 | checkUsernameAvailabilityResponse429
+) & {
+  headers: Headers;
+};
+
+export type checkUsernameAvailabilityResponse =
+  | checkUsernameAvailabilityResponseSuccess
+  | checkUsernameAvailabilityResponseError;
+
+export const getCheckUsernameAvailabilityUrl = (
+  params: CheckUsernameAvailabilityParams,
+) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : String(value));
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/profiles/username-availability?${stringifiedParams}`
+    : `/profiles/username-availability`;
+};
+
+/**
+ * Public (no session required) -- a signed-out user picking a username at signup needs this too. Rate-limited per caller IP (30/min). If the caller does have a session, their own current username counts as available (re-checking the value already in an edit form must not report it as taken).
+ * @summary Check whether a username is available
+ */
+export const checkUsernameAvailability = async (
+  params: CheckUsernameAvailabilityParams,
+  options?: Parameters<typeof coreverseFetch>[1],
+): Promise<checkUsernameAvailabilityResponse> => {
+  return coreverseFetch<checkUsernameAvailabilityResponse>(
+    getCheckUsernameAvailabilityUrl(params),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
 };
 
 export type uploadMyAvatarResponse200 = {

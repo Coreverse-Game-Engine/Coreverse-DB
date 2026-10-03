@@ -24,17 +24,20 @@
 //
 // Coverage: this hook fires for every Supabase Auth email type once
 // configured, not just password recovery -- if e.g. signup
-// confirmations (auth.email.enable_confirmations) or magic links are
-// ever enabled, those route through here too. Only 'recovery' has real,
-// localized copy (render.ts's RESET_EMAIL_COPY, mirrored from the
-// Website's own translations). Any other action_type gets a plain
-// English fallback with a working link rather than being silently
-// dropped or erroring -- returning a non-2xx here fails the underlying
-// Auth action for the end user, not just the email, so an unhandled
-// action_type must never turn into e.g. "signup failed". Before
-// enabling this hook in an environment where anything besides recovery
-// is active, add real per-locale copy for that action_type in
-// render.ts instead of relying on the fallback.
+// confirmations (auth.email.enable_confirmations), magic links or
+// invites are ever enabled, those route through here too.
+// render.ts's RESET_EMAIL_COPY (recovery, every WEBSITE_LOCALES entry,
+// mirrored verbatim from the Website's translations) and ACTION_COPY
+// (signup/magiclink/invite/reauthentication, en+tr only, falling back
+// to en for any other locale) cover those action types. Anything else
+// -- and 'email_change', deliberately left generic, see render.ts's
+// module comment -- gets a plain English fallback with a working link
+// rather than being silently dropped or erroring: returning a non-2xx
+// here fails the underlying Auth action for the end user, not just the
+// email, so an unhandled action_type must never turn into e.g.
+// "signup failed". Before enabling any of these in an environment,
+// add/extend the real copy in render.ts's ACTION_COPY rather than
+// relying on the fallback or the en-only entries.
 //
 // Split from render.ts (the pure, testable logic -- action link
 // construction, per-locale copy selection) so that index.test.ts can
@@ -91,6 +94,7 @@ Deno.serve(async (req: Request,): Promise<Response> => {
     email_data.email_action_type,
     locale,
     actionLink,
+    email_data.token,
   );
 
   const senderEmail = Deno.env.get('BREVO_SENDER_EMAIL',) ?? 'coreverseengine@gmail.com';
