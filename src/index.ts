@@ -25,7 +25,7 @@ export * from "./generated/endpoints/auth/auth";
 // unique across tags (e.g. two tags could both emit an `Ok` or `Error`
 // alias), so each tag gets its own namespace object instead of risking a
 // silent collision. Usage:
-//   import { releasesSchemas } from "@coreverse/db-client";
+//   import { releasesSchemas } from "@Coreverse-Game-Engine/db-client";
 //   releasesSchemas.ListReleasesResponse.parse(payload);
 export * as releasesSchemas from "./generated/zod/releases/releases";
 export * as teamsSchemas from "./generated/zod/teams/teams";
