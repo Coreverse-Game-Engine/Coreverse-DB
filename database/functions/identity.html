@@ -205,6 +205,12 @@
 <tr><td><code>remove_member</code></td><td><code>(p_team_id uuid, p_target uuid)</code></td><td>Owner can remove any member/admin; an admin can remove members only — not other admins or the owner</td></tr>
 </tbody></table>
 </div>
+<h2 id="username"><a class="header" href="#username">Username</a></h2>
+<p>Unlike every function above, <code>is_username_available</code> is <code>SECURITY INVOKER</code>, not <code>SECURITY DEFINER</code> -- it grants no access the caller didn't already have (<code>identity.profiles</code> is publicly readable via <code>profiles_public_read</code>), it's just a correct exact-match query wrapped in a stable function for <code>GET /profiles/username-availability</code> to call.</p>
+<div class="table-wrapper"><table><thead><tr><th>Function</th><th>Signature</th><th>Does</th></tr></thead><tbody>
+<tr><td><code>is_username_available</code></td><td><code>(p_username text) → boolean</code></td><td>Case-insensitive exact match against every profile's username, excluding the caller's own row (<code>id is distinct from auth.uid()</code>)</td></tr>
+</tbody></table>
+</div>
 <h2 id="rules-encoded-across-these-functions"><a class="header" href="#rules-encoded-across-these-functions">Rules encoded across these functions</a></h2>
 <ul>
 <li>At most one <strong>pending</strong> request per <code>(team, user)</code> — enforced by a unique partial index, so a conflicting create raises a constraint violation rather than a silent duplicate.</li>

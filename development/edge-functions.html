@@ -211,9 +211,12 @@ server-to-server, with a Standard Webhooks signature
 → Send Email hook, pointing at this function's URL, and set
 <code>SEND_EMAIL_HOOK_SECRET</code> to the secret the Dashboard generates. It fires
 for <em>every</em> Supabase Auth email type once configured (not just password
-recovery) — see the comment at the top of <code>send-email/index.ts</code> before
-enabling any other Auth email flow (signup confirmation, magic link,
-etc.) in an environment that has this hook configured.</p>
+recovery) — <code>recovery</code>, <code>signup</code>, <code>magiclink</code>, <code>invite</code> and
+<code>reauthentication</code> all have real copy (<code>render.ts</code>'s
+<code>RESET_EMAIL_COPY</code>/<code>ACTION_COPY</code>); anything else, including
+<code>email_change</code> (deliberately left uncovered — see <code>render.ts</code>'s module
+comment), falls back to a generic English message with a working link
+rather than failing the underlying Auth action.</p>
 <p>Its file layout still mirrors the schemas.ts/index.ts split above, just
 with different names: <code>render.ts</code> holds the pure, testable logic
 (per-locale copy, action-link construction — no <code>Deno.serve</code>, no
