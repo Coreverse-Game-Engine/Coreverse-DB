@@ -26,22 +26,11 @@
 import { serve, } from '@std/http/server';
 import { createAnonClient, } from '../_shared/supabase-client.ts';
 import { allowedOrigins, errorResponse, jsonResponse, withCors, } from '../_shared/http.ts';
-import { hitRateLimit, } from '../_shared/rate-limit.ts';
+import { callerIp, hitRateLimit, } from '../_shared/rate-limit.ts';
 import { PasswordResetSchema, RESET_REDIRECT_PATH_PATTERN, } from './schemas.ts';
 
 const EMAIL_LIMIT = { maxHits: 3, windowSeconds: 15 * 60, }; // 3 / 15 min, per email
 const IP_LIMIT = { maxHits: 10, windowSeconds: 60 * 60, }; // 10 / hour, per IP
-
-function callerIp(req: Request,): string {
-  // Supabase's Edge Functions gateway sets x-forwarded-for; take the
-  // first (client-side) hop. Falls back to a fixed key rather than
-  // "unknown" so that -- in the local/dev case where the header is
-  // absent -- every request doesn't share a single "unknown" bucket
-  // with every other unrelated dev request.
-  const forwardedFor = req.headers.get('x-forwarded-for',);
-  const first = forwardedFor?.split(',',)[0]?.trim();
-  return first || 'no-forwarded-for-header';
-}
 
 serve(withCors(async (req,) => {
   const url = new URL(req.url,);

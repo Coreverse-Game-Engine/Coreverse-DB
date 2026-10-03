@@ -1,7 +1,7 @@
 import { z, } from 'zod';
 import { WEBSITE_LOCALES, } from '../_shared/locales.ts';
 
-// FAQ is the first translated content in this domain -- see the Faz 4
+// FAQ is the first translated content in this domain -- see the Phase 4
 // migration's design notes for why translations are a separate
 // per-locale row (content.faq_translations) rather than a jsonb blob
 // on content.faq_items.

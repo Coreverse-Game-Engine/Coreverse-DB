@@ -3,7 +3,7 @@
 
 begin;
 
-select plan(15);
+select plan(20);
 
 
 -- ---------------------------------------------------------------------
@@ -357,6 +357,76 @@ select throws_like(
     $$,
          '%owner cannot leave%',
          'the owner cannot leave the team'
+       );
+
+reset role;
+
+
+-- ---------------------------------------------------------------------
+-- identity.is_username_available
+--
+-- Fixture users 1/2/3 already have profiles (with generated usernames)
+-- via trg_handle_new_auth_user, fired when they were inserted into
+-- auth.users above -- looked up dynamically rather than hardcoded,
+-- since the generator's exact output isn't this test's concern.
+-- ---------------------------------------------------------------------
+
+set local role authenticated;
+
+set local "request.jwt.claims"
+  to '{"sub":"cccccccc-0000-0000-0000-000000000001","role":"authenticated"}';
+
+select is(
+         (
+           select identity.is_username_available(
+                    (select username from identity.profiles where id = 'cccccccc-0000-0000-0000-000000000001')
+                  )
+         ),
+         true,
+         'is_username_available treats the caller''s own current username as available'
+       );
+
+select is(
+         (
+           select identity.is_username_available(
+                    (select username from identity.profiles where id = 'cccccccc-0000-0000-0000-000000000002')
+                  )
+         ),
+         false,
+         'is_username_available reports another user''s username as taken'
+       );
+
+select is(
+         (select identity.is_username_available('func-test-definitely-unused-handle')),
+         true,
+         'is_username_available reports an unused username as available'
+       );
+
+select is(
+         (
+           select identity.is_username_available(
+                    upper((select username from identity.profiles where id = 'cccccccc-0000-0000-0000-000000000002'))
+                  )
+         ),
+         false,
+         'is_username_available is case-insensitive'
+       );
+
+reset role;
+
+
+set local role anon;
+
+set local "request.jwt.claims" to '{"role":"anon"}';
+
+select is(
+         (
+           select identity.is_username_available(
+                    (select username from identity.profiles where id = 'cccccccc-0000-0000-0000-000000000002')
+                  )
+         ),
+         false,
+         'is_username_available reports a taken username as unavailable for anon too (auth.uid() is null)'
        );
 
 reset role;

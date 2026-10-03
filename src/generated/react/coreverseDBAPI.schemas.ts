@@ -292,7 +292,7 @@ export interface Discussion {
   author: DiscussionAuthor;
   category?: string | null;
   is_locked: boolean;
-  /** Count of non-deleted replies. Denormalized -- see the Faz 3 migration. */
+  /** Count of non-deleted replies. Denormalized -- see the Phase 3 migration. */
   reply_count: number;
   /** Bumped when a new reply is posted. NOT bumped by reply edits or soft-deletes, or by editing the discussion itself. */
   last_activity_at: string;
@@ -314,7 +314,7 @@ export interface DiscussionReply {
   /** null/omitted when deleted_at is set -- render as "[deleted]". */
   body?: string | null;
   deleted_at?: string | null;
-  /** Set when body is edited. Distinct from deleted_at/updated_at -- see the Faz 3 migration. */
+  /** Set when body is edited. Distinct from deleted_at/updated_at -- see the Phase 3 migration. */
   edited_at?: string | null;
   created_at: string;
   updated_at: string;
@@ -5354,7 +5354,7 @@ export type CreateDiscussion201 = {
   author: CreateDiscussion201Author;
   category?: string | null;
   is_locked: boolean;
-  /** Count of non-deleted replies. Denormalized -- see the Faz 3 migration. */
+  /** Count of non-deleted replies. Denormalized -- see the Phase 3 migration. */
   reply_count: number;
   /** Bumped when a new reply is posted. NOT bumped by reply edits or soft-deletes, or by editing the discussion itself. */
   last_activity_at: string;
@@ -5519,7 +5519,7 @@ export type GetDiscussion200 = {
   author: GetDiscussion200Author;
   category?: string | null;
   is_locked: boolean;
-  /** Count of non-deleted replies. Denormalized -- see the Faz 3 migration. */
+  /** Count of non-deleted replies. Denormalized -- see the Phase 3 migration. */
   reply_count: number;
   /** Bumped when a new reply is posted. NOT bumped by reply edits or soft-deletes, or by editing the discussion itself. */
   last_activity_at: string;
@@ -5639,7 +5639,7 @@ export type UpdateDiscussion200 = {
   author: UpdateDiscussion200Author;
   category?: string | null;
   is_locked: boolean;
-  /** Count of non-deleted replies. Denormalized -- see the Faz 3 migration. */
+  /** Count of non-deleted replies. Denormalized -- see the Phase 3 migration. */
   reply_count: number;
   /** Bumped when a new reply is posted. NOT bumped by reply edits or soft-deletes, or by editing the discussion itself. */
   last_activity_at: string;
@@ -5904,7 +5904,7 @@ export type ListDiscussionReplies200ItemsItem = {
   /** null/omitted when deleted_at is set -- render as "[deleted]". */
   body?: string | null;
   deleted_at?: string | null;
-  /** Set when body is edited. Distinct from deleted_at/updated_at -- see the Faz 3 migration. */
+  /** Set when body is edited. Distinct from deleted_at/updated_at -- see the Phase 3 migration. */
   edited_at?: string | null;
   created_at: string;
   updated_at: string;
@@ -5980,7 +5980,7 @@ export type ReplyToDiscussion201 = {
   /** null/omitted when deleted_at is set -- render as "[deleted]". */
   body?: string | null;
   deleted_at?: string | null;
-  /** Set when body is edited. Distinct from deleted_at/updated_at -- see the Faz 3 migration. */
+  /** Set when body is edited. Distinct from deleted_at/updated_at -- see the Phase 3 migration. */
   edited_at?: string | null;
   created_at: string;
   updated_at: string;
@@ -6190,7 +6190,7 @@ export type UpdateDiscussionReply200 = {
   /** null/omitted when deleted_at is set -- render as "[deleted]". */
   body?: string | null;
   deleted_at?: string | null;
-  /** Set when body is edited. Distinct from deleted_at/updated_at -- see the Faz 3 migration. */
+  /** Set when body is edited. Distinct from deleted_at/updated_at -- see the Phase 3 migration. */
   edited_at?: string | null;
   created_at: string;
   updated_at: string;

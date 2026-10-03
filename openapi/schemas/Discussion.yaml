@@ -30,7 +30,7 @@ properties:
     type: boolean
   reply_count:
     type: integer
-    description: Count of non-deleted replies. Denormalized -- see the Faz 3 migration.
+    description: Count of non-deleted replies. Denormalized -- see the Phase 3 migration.
   last_activity_at:
     type: string
     format: date-time

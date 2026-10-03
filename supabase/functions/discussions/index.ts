@@ -13,7 +13,7 @@
 // one a uuid-formatted variable. The 'categories' literal is checked
 // explicitly, before any UUID parsing is attempted, so there's no
 // runtime ambiguity -- a discussionId can never actually BE the string
-// "categories". This is the same shape of overlap the pre-Faz-1 replies
+// "categories". This is the same shape of overlap the pre-Phase-1 replies
 // route had, but unlike that case there's no clean restructuring
 // available without an awkward URL, so this one is intentionally left
 // as a static-literal-vs-dynamic-param sibling (a very standard REST

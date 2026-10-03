@@ -30,7 +30,7 @@ properties:
     type: string
     format: date-time
     nullable: true
-    description: Set when body is edited. Distinct from deleted_at/updated_at -- see the Faz 3 migration.
+    description: Set when body is edited. Distinct from deleted_at/updated_at -- see the Phase 3 migration.
   created_at:
     type: string
     format: date-time

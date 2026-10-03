@@ -99,7 +99,7 @@ export const CreateDiscussionResponse = zod.object({
   reply_count: zod
     .int()
     .describe(
-      "Count of non-deleted replies. Denormalized -- see the Faz 3 migration.",
+      "Count of non-deleted replies. Denormalized -- see the Phase 3 migration.",
     ),
   last_activity_at: zod.iso
     .datetime({ offset: true })
@@ -111,7 +111,7 @@ export const CreateDiscussionResponse = zod.object({
 });
 
 /**
- * For a filter UI. Categories are free text (trimmed + lowercased at write time), not a fixed/localized set -- see the Faz 3 plan notes.
+ * For a filter UI. Categories are free text (trimmed + lowercased at write time), not a fixed/localized set -- see the Phase 3 plan notes.
  * @summary Distinct discussion categories with counts
  */
 export const ListDiscussionCategoriesResponseItem = zod.object({
@@ -144,7 +144,7 @@ export const GetDiscussionResponse = zod.object({
   reply_count: zod
     .int()
     .describe(
-      "Count of non-deleted replies. Denormalized -- see the Faz 3 migration.",
+      "Count of non-deleted replies. Denormalized -- see the Phase 3 migration.",
     ),
   last_activity_at: zod.iso
     .datetime({ offset: true })
@@ -183,7 +183,7 @@ export const UpdateDiscussionResponse = zod.object({
   reply_count: zod
     .int()
     .describe(
-      "Count of non-deleted replies. Denormalized -- see the Faz 3 migration.",
+      "Count of non-deleted replies. Denormalized -- see the Phase 3 migration.",
     ),
   last_activity_at: zod.iso
     .datetime({ offset: true })
@@ -250,7 +250,7 @@ export const ListDiscussionRepliesResponse = zod.object({
         .datetime({ offset: true })
         .nullish()
         .describe(
-          "Set when body is edited. Distinct from deleted_at\/updated_at -- see the Faz 3 migration.",
+          "Set when body is edited. Distinct from deleted_at\/updated_at -- see the Phase 3 migration.",
         ),
       created_at: zod.iso.datetime({ offset: true }),
       updated_at: zod.iso.datetime({ offset: true }),
@@ -295,7 +295,7 @@ export const ReplyToDiscussionResponse = zod.object({
     .datetime({ offset: true })
     .nullish()
     .describe(
-      "Set when body is edited. Distinct from deleted_at\/updated_at -- see the Faz 3 migration.",
+      "Set when body is edited. Distinct from deleted_at\/updated_at -- see the Phase 3 migration.",
     ),
   created_at: zod.iso.datetime({ offset: true }),
   updated_at: zod.iso.datetime({ offset: true }),
@@ -334,7 +334,7 @@ export const UpdateDiscussionReplyResponse = zod.object({
     .datetime({ offset: true })
     .nullish()
     .describe(
-      "Set when body is edited. Distinct from deleted_at\/updated_at -- see the Faz 3 migration.",
+      "Set when body is edited. Distinct from deleted_at\/updated_at -- see the Phase 3 migration.",
     ),
   created_at: zod.iso.datetime({ offset: true }),
   updated_at: zod.iso.datetime({ offset: true }),

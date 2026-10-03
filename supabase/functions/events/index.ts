@@ -6,7 +6,7 @@
 //
 // Same shape as the news function: thin PostgREST pass-through, all
 // authorization is RLS (identity.is_platform_moderator()). See
-// news/index.ts and the Faz 4 migration for why this is modeled on
+// news/index.ts and the Phase 4 migration for why this is modeled on
 // news rather than on discussions.
 
 import { serve, } from '@std/http/server';
