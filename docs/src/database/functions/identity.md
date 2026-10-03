@@ -36,6 +36,14 @@ All of these are `SECURITY DEFINER` PL/pgSQL functions in the `identity` schema.
 | `demote_to_member` | `(p_team_id uuid, p_target uuid)` | Owner demotes an admin to member                                                                    |
 | `remove_member`    | `(p_team_id uuid, p_target uuid)` | Owner can remove any member/admin; an admin can remove members only — not other admins or the owner |
 
+## Username
+
+Unlike every function above, `is_username_available` is `SECURITY INVOKER`, not `SECURITY DEFINER` -- it grants no access the caller didn't already have (`identity.profiles` is publicly readable via `profiles_public_read`), it's just a correct exact-match query wrapped in a stable function for `GET /profiles/username-availability` to call.
+
+| Function                    | Signature                       | Does                                                                                                                             |
+|-----------------------------|---------------------------------|----------------------------------------------------------------------------------------------------------------------------------|
+| `is_username_available`     | `(p_username text) → boolean`   | Case-insensitive exact match against every profile's username, excluding the caller's own row (`id is distinct from auth.uid()`) |
+
 ## Rules encoded across these functions
 
 - At most one **pending** request per `(team, user)` — enforced by a unique partial index, so a conflicting create raises a constraint violation rather than a silent duplicate.
