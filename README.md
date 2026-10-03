@@ -232,7 +232,7 @@ API errors use the shared `Error` OpenAPI schema, allowing generated clients and
 
 ## TypeScript Client
 
-The repository also contains the `@coreverse/db-client` package, a typed TypeScript client generated from the OpenAPI contract.
+The repository also contains the `@Coreverse-Game-Engine/db-client` package, a typed TypeScript client generated from the OpenAPI contract.
 
 ```text
 openapi/openapi.yaml

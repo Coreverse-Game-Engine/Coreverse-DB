@@ -100,6 +100,7 @@
 # Operations
 
 - [Deployment](operations/deployment.md)
+- [Production Verification](operations/production-verification.md)
 - [Environments](operations/environments.md)
 - [Database Backup](operations/database-backup.md)
 - [Database Restore](operations/database-restore.md)

@@ -12,7 +12,7 @@ the next regeneration anyway.
                                   output from the fetch client) -- generated
   - src/generated/react/        (TanStack Query hooks wrapping the fetch
                                   client, tags-split, added for the
-                                  "@coreverse/db-client/react" subpath
+                                  "@Coreverse-Game-Engine/db-client/react" subpath
                                   export -- see src/react.ts) -- NOT yet
                                   generated in this environment (no network
                                   access here). Run `pnpm install && pnpm

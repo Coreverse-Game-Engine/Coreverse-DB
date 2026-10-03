@@ -1,6 +1,6 @@
 # Introduction
 
-**Coreverse DB** is the centralized data-access and backend layer for the Coreverse ecosystem. It combines a Supabase/PostgreSQL database, a domain-oriented Supabase Edge Function API, a contract-first OpenAPI 3.1 specification, and a generated TypeScript client (`@coreverse/db-client`) into a single versioned backend repository.
+**Coreverse DB** is the centralized data-access and backend layer for the Coreverse ecosystem. It combines a Supabase/PostgreSQL database, a domain-oriented Supabase Edge Function API, a contract-first OpenAPI 3.1 specification, and a generated TypeScript client (`@Coreverse-Game-Engine/db-client`) into a single versioned backend repository.
 
 ## Why this repository exists
 
