@@ -4,7 +4,7 @@
  * Coreverse DB API
  * Centralized data-access API for the Coreverse ecosystem. Coreverse DB defines and serves all data operations; Coreverse Launcher and Coreverse Website consume this API and never access Postgres/Supabase directly.
  *
- * OpenAPI spec version: 0.4.2
+ * OpenAPI spec version: 0.5.0
  */
 import * as zod from "zod";
 
@@ -195,29 +195,4 @@ export const DeleteMyAvatarResponse = zod.object({
     ),
   created_at: zod.iso.datetime({ offset: true }),
   updated_at: zod.iso.datetime({ offset: true }),
-});
-
-/**
- * Clears avatar_path and best-effort removes the underlying object from the avatars bucket. 404 if the profile has no avatar set.
- * @summary Remove the caller's own avatar
- */
-export const DeleteMyAvatarResponse = zod.object({
-  id: zod.uuid(),
-  full_name: zod
-    .string()
-    .describe(
-      "Free-text display name, no format or uniqueness constraint. Distinct from username.",
-    ),
-  username: zod
-    .string()
-    .nullish()
-    .describe(
-      "Unique (case-insensitive), alphanumeric\/underscore handle, 3-24 characters. Every profile has one in practice (assigned at signup, backfilled for pre-existing users), but it's nullable at the schema level rather than required.\n",
-    ),
-  avatar_url: zod
-    .url()
-    .nullish()
-    .describe(
-      "Public\/signed URL resolved from the stored avatar_path, not the raw path itself.",
-    ),
 });

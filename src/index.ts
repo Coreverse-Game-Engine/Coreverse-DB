@@ -17,6 +17,8 @@ export * from "./generated/endpoints/projects/projects";
 export * from "./generated/endpoints/news/news";
 export * from "./generated/endpoints/polls/polls";
 export * from "./generated/endpoints/discussions/discussions";
+export * from "./generated/endpoints/events/events";
+export * from "./generated/endpoints/faq/faq";
 export * from "./generated/endpoints/docs/docs";
 export * from "./generated/endpoints/auth/auth";
 
@@ -35,5 +37,7 @@ export * as projectsSchemas from "./generated/zod/projects/projects";
 export * as newsSchemas from "./generated/zod/news/news";
 export * as pollsSchemas from "./generated/zod/polls/polls";
 export * as discussionsSchemas from "./generated/zod/discussions/discussions";
+export * as eventsSchemas from "./generated/zod/events/events";
+export * as faqSchemas from "./generated/zod/faq/faq";
 export * as docsSchemas from "./generated/zod/docs/docs";
 export * as authSchemas from "./generated/zod/auth/auth";

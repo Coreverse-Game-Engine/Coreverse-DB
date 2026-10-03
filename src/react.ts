@@ -24,5 +24,7 @@ export * from "./generated/react/projects/projects";
 export * from "./generated/react/news/news";
 export * from "./generated/react/polls/polls";
 export * from "./generated/react/discussions/discussions";
+export * from "./generated/react/events/events";
+export * from "./generated/react/faq/faq";
 export * from "./generated/react/docs/docs";
 export * from "./generated/react/auth/auth";
