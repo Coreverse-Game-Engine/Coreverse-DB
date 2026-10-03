@@ -1,4 +1,4 @@
--- Faz 4 (Coreverse-DB v0.5.0 plan): two new, independent content
+-- Phase 4 (Coreverse-DB v0.5.0 plan): two new, independent content
 -- domains -- events and faq.
 --
 -- Design notes:
@@ -10,7 +10,7 @@
 --     announcements, not user-generated threads. Registration is via
 --     an external registration_url; there is deliberately no
 --     registration/attendee tracking table in this domain (see the
---     original Faz 3 plan notes).
+--     original Phase 3 plan notes).
 --   * content.events keeps keyset pagination ordered by (created_at,
 --     id), same as every other list endpoint in this domain (see
 --     _shared/pagination.ts) -- NOT ordered by starts_at. The shared
@@ -67,7 +67,7 @@ create table content.events (
 comment on column content.events.registration_url is
   'External registration link (e.g. an eventbrite/lu.ma/form URL). '
     'Coreverse-DB deliberately does not track registrations/attendees '
-    'itself -- see the Faz 3 plan notes this domain was scoped from.';
+    'itself -- see the Phase 3 plan notes this domain was scoped from.';
 
 create index idx_events_status
   on content.events (status);

@@ -1,5 +1,10 @@
 import { assert, assertEquals, assertFalse, } from '@std/assert';
-import { AVATAR_MAX_BYTES, UpdateProfileSchema, validateAvatarFile, } from './schemas.ts';
+import {
+  AVATAR_MAX_BYTES,
+  UpdateProfileSchema,
+  UsernameAvailabilityQuerySchema,
+  validateAvatarFile,
+} from './schemas.ts';
 
 function fakeFile(type: string, size: number,): File {
   // Building an actual `size`-byte Blob for every test case would be
@@ -48,6 +53,23 @@ Deno.test('UpdateProfileSchema rejects a username with disallowed characters', (
   assertFalse(UpdateProfileSchema.safeParse({ username: 'alice.99', },).success,);
   assertFalse(UpdateProfileSchema.safeParse({ username: 'alice 99', },).success,);
   assertFalse(UpdateProfileSchema.safeParse({ username: 'alice-99', },).success,);
+});
+
+// ---------------------------------------------------------------------
+// UsernameAvailabilityQuerySchema
+// ---------------------------------------------------------------------
+
+Deno.test('UsernameAvailabilityQuerySchema accepts a well-formed username', () => {
+  assert(UsernameAvailabilityQuerySchema.safeParse({ username: 'alice_99', },).success,);
+});
+
+Deno.test('UsernameAvailabilityQuerySchema rejects a missing username', () => {
+  assertFalse(UsernameAvailabilityQuerySchema.safeParse({ username: undefined, },).success,);
+});
+
+Deno.test('UsernameAvailabilityQuerySchema rejects the same malformed values PATCH would', () => {
+  assertFalse(UsernameAvailabilityQuerySchema.safeParse({ username: 'ab', },).success,);
+  assertFalse(UsernameAvailabilityQuerySchema.safeParse({ username: 'alice.99', },).success,);
 });
 
 // ---------------------------------------------------------------------

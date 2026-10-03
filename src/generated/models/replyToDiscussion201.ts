@@ -16,7 +16,7 @@ export type ReplyToDiscussion201 = {
   /** null/omitted when deleted_at is set -- render as "[deleted]". */
   body?: string | null;
   deleted_at?: string | null;
-  /** Set when body is edited. Distinct from deleted_at/updated_at -- see the Faz 3 migration. */
+  /** Set when body is edited. Distinct from deleted_at/updated_at -- see the Phase 3 migration. */
   edited_at?: string | null;
   created_at: string;
   updated_at: string;

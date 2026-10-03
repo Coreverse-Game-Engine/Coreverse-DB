@@ -1,4 +1,4 @@
--- Faz 3 (Coreverse-DB v0.5.0 plan, community field gaps):
+-- Phase 3 (Coreverse-DB v0.5.0 plan, community field gaps):
 --   - content.discussions: denormalized reply_count / last_activity_at
 --     (avoids an aggregate subquery on every list request), plus a
 --     'simple'-config search_vector, same convention as
@@ -162,7 +162,7 @@ comment on column content.news.cover_image_path is
 -- is moderator/admin-only, matching news' own RLS
 -- (identity.is_platform_moderator()) -- so a raw path in
 -- CreateNewsSchema/UpdateNewsSchema isn't the same "arbitrary storage
--- object" hazard avatar_path was on PATCH /profiles/me before the Faz 1
+-- object" hazard avatar_path was on PATCH /profiles/me before the Phase 1
 -- fix (supabase/functions/profiles/schemas.ts): that endpoint was
 -- writable by any authenticated user about their own profile, this one
 -- already requires an elevated, trusted role to write at all.

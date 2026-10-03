@@ -5,7 +5,7 @@ import { z, } from 'zod';
 // row -- otherwise ?category= filtering and the categories aggregate
 // (content.discussion_categories()) fragment into near-duplicate
 // buckets. Categories are still free text, not a fixed/localized set
-// (deliberate -- see the Faz 3 plan notes), this is just consistent
+// (deliberate -- see the Phase 3 plan notes), this is just consistent
 // casing/whitespace, not a controlled vocabulary.
 export const normalizeCategory = (value: string,) => value.trim().toLowerCase();
 

@@ -9,7 +9,7 @@ import { z, } from 'zod';
 // on PATCH /profiles/me was -- it's "a trusted role can set a path in
 // the news-covers bucket for an article they're already allowed to
 // edit". The bucket's own RLS (news_covers_moderator_write, see the
-// Faz 3 migration) still gates what actually gets uploaded there.
+// Phase 3 migration) still gates what actually gets uploaded there.
 
 export const CreateNewsSchema = z.object({
   title: z.string().min(1,).max(200,),

@@ -64,7 +64,7 @@ serve(withCors(async (req,) => {
       const pollIds = paged.items.map((p,) => p.id);
 
       // total_votes: one batch RPC for the whole page (see
-      // content.poll_vote_totals in the Faz 3 migration), not one call
+      // content.poll_vote_totals in the Phase 3 migration), not one call
       // per poll.
       const totalsByPoll = new Map<string, number>();
       if (pollIds.length > 0) {

@@ -16,7 +16,7 @@ export interface Discussion {
   author: DiscussionAuthor;
   category?: string | null;
   is_locked: boolean;
-  /** Count of non-deleted replies. Denormalized -- see the Faz 3 migration. */
+  /** Count of non-deleted replies. Denormalized -- see the Phase 3 migration. */
   reply_count: number;
   /** Bumped when a new reply is posted. NOT bumped by reply edits or soft-deletes, or by editing the discussion itself. */
   last_activity_at: string;

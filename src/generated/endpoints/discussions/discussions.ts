@@ -177,7 +177,7 @@ export const getListDiscussionCategoriesUrl = () => {
 };
 
 /**
- * For a filter UI. Categories are free text (trimmed + lowercased at write time), not a fixed/localized set -- see the Faz 3 plan notes.
+ * For a filter UI. Categories are free text (trimmed + lowercased at write time), not a fixed/localized set -- see the Phase 3 plan notes.
  * @summary Distinct discussion categories with counts
  */
 export const listDiscussionCategories = async (
