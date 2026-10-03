@@ -35,6 +35,10 @@ tags:
     description: Polls with anonymous aggregated results.
   - name: discussions
     description: Community discussions and replies.
+  - name: events
+    description: Platform events (moderator/admin write, public read of published items).
+  - name: faq
+    description: Translated FAQ entries (moderator/admin write, public read).
   - name: docs
     description: Documentation catalog and full-text search (index only -- pages are read from their own base_url).
 paths:
@@ -68,6 +72,8 @@ paths:
     $ref: './paths/requests.yaml#/cancel'
   /profiles/me:
     $ref: './paths/profiles.yaml#/me'
+  /profiles/username-availability:
+    $ref: './paths/profiles.yaml#/usernameAvailability'
   /profiles/me/avatar:
     $ref: './paths/profiles.yaml#/avatar'
   /auth/password-reset:
@@ -98,6 +104,16 @@ paths:
     $ref: './paths/discussions.yaml#/replies'
   /discussions/{discussionId}/replies/{replyId}:
     $ref: './paths/discussions.yaml#/replyById'
+  /events:
+    $ref: './paths/events.yaml#/list'
+  /events/{eventId}:
+    $ref: './paths/events.yaml#/byId'
+  /faq:
+    $ref: './paths/faq.yaml#/list'
+  /faq/{faqId}:
+    $ref: './paths/faq.yaml#/byId'
+  /faq/{faqId}/translations/{locale}:
+    $ref: './paths/faq.yaml#/translation'
   /docs/sources:
     $ref: './paths/docs.yaml#/sources'
   /docs/search:
@@ -146,6 +162,12 @@ components:
       $ref: './schemas/Discussion.yaml'
     DiscussionReply:
       $ref: './schemas/DiscussionReply.yaml'
+    Event:
+      $ref: './schemas/Event.yaml'
+    FaqEntry:
+      $ref: './schemas/FaqEntry.yaml'
+    FaqItem:
+      $ref: './schemas/FaqItem.yaml'
     DocSource:
       $ref: './schemas/DocSource.yaml'
     DocSearchResult:

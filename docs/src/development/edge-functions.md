@@ -39,9 +39,12 @@ Configure it once per environment at Dashboard → Authentication → Hooks
 → Send Email hook, pointing at this function's URL, and set
 `SEND_EMAIL_HOOK_SECRET` to the secret the Dashboard generates. It fires
 for *every* Supabase Auth email type once configured (not just password
-recovery) — see the comment at the top of `send-email/index.ts` before
-enabling any other Auth email flow (signup confirmation, magic link,
-etc.) in an environment that has this hook configured.
+recovery) — `recovery`, `signup`, `magiclink`, `invite` and
+`reauthentication` all have real copy (`render.ts`'s
+`RESET_EMAIL_COPY`/`ACTION_COPY`); anything else, including
+`email_change` (deliberately left uncovered — see `render.ts`'s module
+comment), falls back to a generic English message with a working link
+rather than failing the underlying Auth action.
 
 Its file layout still mirrors the schemas.ts/index.ts split above, just
 with different names: `render.ts` holds the pure, testable logic

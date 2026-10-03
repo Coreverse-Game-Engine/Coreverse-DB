@@ -12,11 +12,15 @@ properties:
       PR (nothing enforces this automatically yet; it's a review-time
       check).
     enum:
+      - account_has_content
       - already_decided
       - already_voted
       - internal_error
       - invalid_body
       - invalid_discussion_id
+      - invalid_event_id
+      - invalid_faq_id
+      - invalid_locale
       - invalid_news_id
       - invalid_poll_id
       - invalid_project_id
