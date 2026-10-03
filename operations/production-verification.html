@@ -1,0 +1,287 @@
+<!DOCTYPE HTML>
+<html lang="en" class="light" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Production Verification - Coreverse DB Documentation</title>
+
+
+        <!-- Custom HTML head -->
+        
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="../favicon.svg">
+        <link rel="shortcut icon" href="../favicon.png">
+        <link rel="stylesheet" href="../css/variables.css">
+        <link rel="stylesheet" href="../css/general.css">
+        <link rel="stylesheet" href="../css/chrome.css">
+        <link rel="stylesheet" href="../css/print.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="../FontAwesome/css/font-awesome.css">
+        <link rel="stylesheet" href="../fonts/fonts.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" href="../highlight.css">
+        <link rel="stylesheet" href="../tomorrow-night.css">
+        <link rel="stylesheet" href="../ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+
+    </head>
+    <body class="sidebar-visible no-js">
+    <div id="body-container">
+        <!-- Provide site root to javascript -->
+        <script>
+            var path_to_root = "../";
+            var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "navy" : "light";
+        </script>
+
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                var theme = localStorage.getItem('mdbook-theme');
+                var sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            var theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            var html = document.querySelector('html');
+            html.classList.remove('light')
+            html.classList.add(theme);
+            var body = document.querySelector('body');
+            body.classList.remove('no-js')
+            body.classList.add('js');
+        </script>
+
+        <input type="checkbox" id="sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            var body = document.querySelector('body');
+            var sidebar = null;
+            var sidebar_toggle = document.getElementById("sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+            }
+            sidebar_toggle.checked = sidebar === 'visible';
+            body.classList.remove('sidebar-visible');
+            body.classList.add("sidebar-" + sidebar);
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <div class="sidebar-scrollbox">
+                <ol class="chapter"><li class="chapter-item expanded affix "><a href="../introduction.html">Introduction</a></li><li class="chapter-item expanded affix "><li class="part-title">Getting Started</li><li class="chapter-item expanded "><a href="../getting-started/overview.html"><strong aria-hidden="true">1.</strong> Overview</a></li><li class="chapter-item expanded "><a href="../getting-started/requirements.html"><strong aria-hidden="true">2.</strong> Requirements</a></li><li class="chapter-item expanded "><a href="../getting-started/local-development.html"><strong aria-hidden="true">3.</strong> Local Development</a></li><li class="chapter-item expanded "><a href="../getting-started/configuration.html"><strong aria-hidden="true">4.</strong> Configuration</a></li><li class="chapter-item expanded "><a href="../getting-started/database-reset.html"><strong aria-hidden="true">5.</strong> Database Reset</a></li><li class="chapter-item expanded affix "><li class="part-title">Architecture</li><li class="chapter-item expanded "><a href="../architecture/overview.html"><strong aria-hidden="true">6.</strong> Overview</a></li><li class="chapter-item expanded "><a href="../architecture/system-architecture.html"><strong aria-hidden="true">7.</strong> System Architecture</a></li><li class="chapter-item expanded "><a href="../architecture/database-architecture.html"><strong aria-hidden="true">8.</strong> Database Architecture</a></li><li class="chapter-item expanded "><a href="../architecture/security-model.html"><strong aria-hidden="true">9.</strong> Security Model</a></li><li class="chapter-item expanded "><a href="../architecture/data-flow.html"><strong aria-hidden="true">10.</strong> Data Flow</a></li><li class="chapter-item expanded affix "><li class="part-title">Database</li><li class="chapter-item expanded "><a href="../database/overview.html"><strong aria-hidden="true">11.</strong> Overview</a></li><li class="chapter-item expanded "><a href="../database/schema.html"><strong aria-hidden="true">12.</strong> Schema</a></li><li class="chapter-item expanded "><a href="../database/extensions.html"><strong aria-hidden="true">13.</strong> Extensions</a></li><li class="chapter-item expanded "><a href="../database/conventions.html"><strong aria-hidden="true">14.</strong> Conventions</a></li><li class="chapter-item expanded "><a href="../database/domains/releases.html"><strong aria-hidden="true">15.</strong> Releases</a></li><li class="chapter-item expanded "><a href="../database/domains/identity.html"><strong aria-hidden="true">16.</strong> Identity</a></li><li class="chapter-item expanded "><a href="../database/domains/content.html"><strong aria-hidden="true">17.</strong> Content</a></li><li class="chapter-item expanded "><a href="../database/domains/storage.html"><strong aria-hidden="true">18.</strong> Storage</a></li><li class="chapter-item expanded "><a href="../database/tables/profiles.html"><strong aria-hidden="true">19.</strong> Profiles</a></li><li class="chapter-item expanded "><a href="../database/tables/teams.html"><strong aria-hidden="true">20.</strong> Teams</a></li><li class="chapter-item expanded "><a href="../database/tables/projects.html"><strong aria-hidden="true">21.</strong> Projects</a></li><li class="chapter-item expanded "><a href="../database/tables/releases.html"><strong aria-hidden="true">22.</strong> Releases</a></li><li class="chapter-item expanded "><a href="../database/tables/discussions.html"><strong aria-hidden="true">23.</strong> Discussions</a></li><li class="chapter-item expanded "><a href="../database/tables/polls.html"><strong aria-hidden="true">24.</strong> Polls</a></li><li class="chapter-item expanded "><a href="../database/tables/news.html"><strong aria-hidden="true">25.</strong> News</a></li><li class="chapter-item expanded "><a href="../database/tables/requests.html"><strong aria-hidden="true">26.</strong> Requests</a></li><li class="chapter-item expanded "><a href="../database/functions/overview.html"><strong aria-hidden="true">27.</strong> Overview</a></li><li class="chapter-item expanded "><a href="../database/functions/identity.html"><strong aria-hidden="true">28.</strong> Identity</a></li><li class="chapter-item expanded "><a href="../database/functions/releases.html"><strong aria-hidden="true">29.</strong> Releases</a></li><li class="chapter-item expanded "><a href="../database/functions/content.html"><strong aria-hidden="true">30.</strong> Content</a></li><li class="chapter-item expanded "><a href="../database/triggers.html"><strong aria-hidden="true">31.</strong> Triggers</a></li><li class="chapter-item expanded affix "><li class="part-title">Security</li><li class="chapter-item expanded "><a href="../security/overview.html"><strong aria-hidden="true">32.</strong> Overview</a></li><li class="chapter-item expanded "><a href="../security/authentication.html"><strong aria-hidden="true">33.</strong> Authentication</a></li><li class="chapter-item expanded "><a href="../security/authorization.html"><strong aria-hidden="true">34.</strong> Authorization</a></li><li class="chapter-item expanded "><a href="../security/rls.html"><strong aria-hidden="true">35.</strong> Row Level Security</a></li><li class="chapter-item expanded "><a href="../security/policies.html"><strong aria-hidden="true">36.</strong> Policies</a></li><li class="chapter-item expanded "><a href="../security/storage-security.html"><strong aria-hidden="true">37.</strong> Storage Security</a></li><li class="chapter-item expanded affix "><li class="part-title">API</li><li class="chapter-item expanded "><a href="../api/overview.html"><strong aria-hidden="true">38.</strong> Overview</a></li><li class="chapter-item expanded "><a href="../api/authentication.html"><strong aria-hidden="true">39.</strong> Authentication</a></li><li class="chapter-item expanded "><a href="../api/conventions.html"><strong aria-hidden="true">40.</strong> Conventions</a></li><li class="chapter-item expanded "><a href="../api/errors.html"><strong aria-hidden="true">41.</strong> Errors</a></li><li class="chapter-item expanded "><a href="../api/resources/auth.html"><strong aria-hidden="true">42.</strong> Auth</a></li><li class="chapter-item expanded "><a href="../api/resources/profiles.html"><strong aria-hidden="true">43.</strong> Profiles</a></li><li class="chapter-item expanded "><a href="../api/resources/teams.html"><strong aria-hidden="true">44.</strong> Teams</a></li><li class="chapter-item expanded "><a href="../api/resources/projects.html"><strong aria-hidden="true">45.</strong> Projects</a></li><li class="chapter-item expanded "><a href="../api/resources/releases.html"><strong aria-hidden="true">46.</strong> Releases</a></li><li class="chapter-item expanded "><a href="../api/resources/discussions.html"><strong aria-hidden="true">47.</strong> Discussions</a></li><li class="chapter-item expanded "><a href="../api/resources/polls.html"><strong aria-hidden="true">48.</strong> Polls</a></li><li class="chapter-item expanded "><a href="../api/resources/news.html"><strong aria-hidden="true">49.</strong> News</a></li><li class="chapter-item expanded "><a href="../api/resources/requests.html"><strong aria-hidden="true">50.</strong> Requests</a></li><li class="chapter-item expanded affix "><li class="part-title">OpenAPI</li><li class="chapter-item expanded "><a href="../openapi/overview.html"><strong aria-hidden="true">51.</strong> Overview</a></li><li class="chapter-item expanded "><a href="../openapi/specification.html"><strong aria-hidden="true">52.</strong> Specification</a></li><li class="chapter-item expanded "><a href="../openapi/paths.html"><strong aria-hidden="true">53.</strong> Paths</a></li><li class="chapter-item expanded "><a href="../openapi/schemas.html"><strong aria-hidden="true">54.</strong> Schemas</a></li><li class="chapter-item expanded affix "><li class="part-title">Development</li><li class="chapter-item expanded "><a href="../development/workflow.html"><strong aria-hidden="true">55.</strong> Workflow</a></li><li class="chapter-item expanded "><a href="../development/migrations.html"><strong aria-hidden="true">56.</strong> Migrations</a></li><li class="chapter-item expanded "><a href="../development/writing-migrations.html"><strong aria-hidden="true">57.</strong> Writing Migrations</a></li><li class="chapter-item expanded "><a href="../development/database-testing.html"><strong aria-hidden="true">58.</strong> Database Testing</a></li><li class="chapter-item expanded "><a href="../development/pgtap.html"><strong aria-hidden="true">59.</strong> pgTAP</a></li><li class="chapter-item expanded "><a href="../development/rls-testing.html"><strong aria-hidden="true">60.</strong> RLS Testing</a></li><li class="chapter-item expanded "><a href="../development/edge-functions.html"><strong aria-hidden="true">61.</strong> Edge Functions</a></li><li class="chapter-item expanded affix "><li class="part-title">Operations</li><li class="chapter-item expanded "><a href="../operations/deployment.html"><strong aria-hidden="true">62.</strong> Deployment</a></li><li class="chapter-item expanded "><a href="../operations/production-verification.html" class="active"><strong aria-hidden="true">63.</strong> Production Verification</a></li><li class="chapter-item expanded "><a href="../operations/environments.html"><strong aria-hidden="true">64.</strong> Environments</a></li><li class="chapter-item expanded "><a href="../operations/database-backup.html"><strong aria-hidden="true">65.</strong> Database Backup</a></li><li class="chapter-item expanded "><a href="../operations/database-restore.html"><strong aria-hidden="true">66.</strong> Database Restore</a></li><li class="chapter-item expanded "><a href="../operations/monitoring.html"><strong aria-hidden="true">67.</strong> Monitoring</a></li><li class="chapter-item expanded "><a href="../operations/troubleshooting.html"><strong aria-hidden="true">68.</strong> Troubleshooting</a></li><li class="chapter-item expanded affix "><li class="part-title">Reference</li><li class="chapter-item expanded "><a href="../reference/cli-commands.html"><strong aria-hidden="true">69.</strong> CLI Commands</a></li><li class="chapter-item expanded "><a href="../reference/environment-variables.html"><strong aria-hidden="true">70.</strong> Environment Variables</a></li><li class="chapter-item expanded "><a href="../reference/database-conventions.html"><strong aria-hidden="true">71.</strong> Database Conventions</a></li><li class="chapter-item expanded "><a href="../reference/error-codes.html"><strong aria-hidden="true">72.</strong> Error Codes</a></li><li class="chapter-item expanded "><a href="../reference/glossary.html"><strong aria-hidden="true">73.</strong> Glossary</a></li><li class="chapter-item expanded affix "><li class="part-title">Contributing</li><li class="chapter-item expanded "><a href="../contributing/overview.html"><strong aria-hidden="true">74.</strong> Overview</a></li><li class="chapter-item expanded "><a href="../contributing/code-style.html"><strong aria-hidden="true">75.</strong> Code Style</a></li><li class="chapter-item expanded "><a href="../contributing/sql-style.html"><strong aria-hidden="true">76.</strong> SQL Style</a></li><li class="chapter-item expanded "><a href="../contributing/testing.html"><strong aria-hidden="true">77.</strong> Testing</a></li><li class="chapter-item expanded "><a href="../contributing/migration-rules.html"><strong aria-hidden="true">78.</strong> Migration Rules</a></li><li class="chapter-item expanded "><a href="../contributing/pull-requests.html"><strong aria-hidden="true">79.</strong> Pull Requests</a></li></ol>
+            </div>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <!-- Track and set sidebar scroll position -->
+        <script>
+            var sidebarScrollbox = document.querySelector('#sidebar .sidebar-scrollbox');
+            sidebarScrollbox.addEventListener('click', function(e) {
+                if (e.target.tagName === 'A') {
+                    sessionStorage.setItem('sidebar-scroll', sidebarScrollbox.scrollTop);
+                }
+            }, { passive: true });
+            var sidebarScrollTop = sessionStorage.getItem('sidebar-scroll');
+            sessionStorage.removeItem('sidebar-scroll');
+            if (sidebarScrollTop) {
+                // preserve sidebar scroll position when navigating via links within sidebar
+                sidebarScrollbox.scrollTop = sidebarScrollTop;
+            } else {
+                // scroll sidebar to current active section when navigating via "next/previous chapter" buttons
+                var activeSection = document.querySelector('#sidebar .active');
+                if (activeSection) {
+                    activeSection.scrollIntoView({ block: 'center' });
+                }
+            }
+        </script>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                                <div id="menu-bar-hover-placeholder"></div>
+                <div id="menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="sidebar-toggle" class="icon-button" for="sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                            <i class="fa fa-bars"></i>
+                        </label>
+                        <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                            <i class="fa fa-paint-brush"></i>
+                        </button>
+                        <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                        </ul>
+                        <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S" aria-controls="searchbar">
+                            <i class="fa fa-search"></i>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">Coreverse DB Documentation</h1>
+
+                    <div class="right-buttons">
+                        <a href="../print.html" title="Print this book" aria-label="Print this book">
+                            <i id="print-button" class="fa fa-print"></i>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <h1 id="production-verification-v050-rollout"><a class="header" href="#production-verification-v050-rollout">Production Verification (v0.5.0 rollout)</a></h1>
+<p>The runbook for taking a backend release from "CI is green" to "verified in production". It has three parts that map to the scripts in <code>scripts/ops/</code>:</p>
+<div class="table-wrapper"><table><thead><tr><th>Part</th><th>What</th><th>Script</th></tr></thead><tbody>
+<tr><td><strong>6A</strong></td><td>Run every local/CI gate</td><td><code>scripts/ops/verify-local.sh</code></td></tr>
+<tr><td><strong>6B</strong></td><td>Roll the backend out to the hosted project</td><td><code>scripts/ops/deploy.sh</code></td></tr>
+<tr><td><strong>6C</strong></td><td>Smoke test + manual checks against production</td><td><code>scripts/ops/smoke.mjs</code></td></tr>
+</tbody></table>
+</div>
+<p>6A and the <em>preparation</em> half of 6B (backup, secrets, dashboard review) are independent and can run in parallel. 6C needs 6B finished.</p>
+<h2 id="0-before-anything-secrets-hygiene"><a class="header" href="#0-before-anything-secrets-hygiene">0. Before anything: secrets hygiene</a></h2>
+<p><code>.env.local</code>, <code>supabase/.env.production</code> and <code>supabase/functions/.env.local</code> hold real credentials. They are gitignored, but never include them in archives, tickets or chats. If any of them has left your machine, rotate <strong>before</strong> deploying: service-role/secret key, database password, <code>BREVO_API_KEY</code>, <code>SEND_EMAIL_HOOK_SECRET</code> (regenerate in Dashboard → Authentication → Hooks), <code>DOCS_REINDEX_TOKEN</code>. Then update the files and re-upload with <code>deploy.sh --apply --secrets</code>.</p>
+<h2 id="6a--verification-gates"><a class="header" href="#6a--verification-gates">6A — Verification gates</a></h2>
+<pre><code class="language-bash">bash scripts/ops/verify-local.sh          # needs pnpm, deno, supabase CLI + Docker
+</code></pre>
+<p>Runs, in CI order: <code>static-checks.mjs</code> and <code>check-version-sync</code>, <code>pnpm install --frozen-lockfile</code>, <code>redocly lint</code>, <code>pnpm run verify</code> (generate → no drift → typecheck), <code>vitest</code>, <code>tsup</code> build, <code>deno test</code>, <code>deno fmt --check</code>, <code>supabase db lint</code> and <code>supabase test db</code> (pgTAP).</p>
+<p>A step whose tool is missing is reported as <strong>SKIP</strong>, never PASS, and the script exits non-zero (<code>ALLOW_SKIP=1</code> to accept, <code>SKIP_PGTAP=1</code> when Docker is unavailable). Do not proceed to 6B with unreviewed skips for <code>redocly lint</code>, <code>pnpm run verify</code> or pgTAP.</p>
+<p><code>scripts/ops/static-checks.mjs</code> needs only Node. It checks <code>$ref</code> targets against <code>orval.config.ts</code>'s allow-list, OpenAPI paths against Edge Function directories, tags against the SDK barrels, <code>SUMMARY.md</code> against the pages on disk, version sync, migration filename hygiene, and stale migration filenames cited in docs or comments. Barrel gaps are warnings until Faz 7 (<code>--strict</code> makes them fatal).</p>
+<p>Known: if <code>pnpm run verify</code> fails at <code>git diff --exit-code src/generated</code>, regenerate and commit <code>src/generated</code> — that is drift detection working, not a bug.</p>
+<h2 id="6b--rollout"><a class="header" href="#6b--rollout">6B — Rollout</a></h2>
+<p>Preparation (parallel with 6A):</p>
+<ol>
+<li>Take a production backup (<a href="database-backup.html">Database Backup</a>) and note where it is.</li>
+<li><code>supabase link --project-ref &lt;ref&gt;</code> and confirm <code>supabase/.temp/project-ref</code>.</li>
+<li>Confirm secrets exist (<code>supabase secrets list</code>): <code>WEBSITE_ALLOWED_ORIGINS</code>, <code>SEND_EMAIL_HOOK_SECRET</code>, <code>BREVO_API_KEY</code>, <code>BREVO_SENDER_EMAIL</code>, <code>BREVO_SENDER_NAME</code>, <code>DOCS_REINDEX_TOKEN</code>. <code>WEBSITE_ALLOWED_ORIGINS</code> must list the production Website origin exactly (scheme + host, no trailing slash).</li>
+<li>Review the destructive-ish migration: <code>20261003095018_account_deletion_readiness.sql</code> changes <code>ON DELETE</code> on several foreign keys. Run it on a copy of production data first if you can (restore the backup into a scratch project), and check the row counts in the affected tables are unchanged afterwards.</li>
+</ol>
+<p>Execution (after 6A is green, from a clean commit):</p>
+<pre><code class="language-bash">bash scripts/ops/deploy.sh                 # dry run: plan + `supabase db push --dry-run`
+bash scripts/ops/deploy.sh --apply         # confirms each mutating step
+</code></pre>
+<p>Order matters: migrations → secrets → functions. <code>send-email</code> is deployed with the JWT gate off because <code>supabase/config.toml</code> declares <code>[functions.send-email] verify_jwt = false</code>; Auth's hook call carries a signature, not a user JWT.</p>
+<p>Dashboard checks that live outside the repository (<code>config.toml</code> is local-only):</p>
+<ul>
+<li>Authentication → Hooks → Send Email: enabled, URL <code>&lt;project&gt;/functions/v1/send-email</code>, secret equals <code>SEND_EMAIL_HOOK_SECRET</code>.</li>
+<li>Authentication → URL Configuration: Site URL and Redirect URLs cover the Website origin(s), including the <code>/*/reset-password</code> pattern.</li>
+<li>Authentication → Rate limits and password policy reviewed; local values in <code>config.toml</code> are not applied to the hosted project.</li>
+</ul>
+<p>The one-off <code>supabase/maintenance/drop_legacy_identity_objects.sql</code> is <strong>not</strong> part of this rollout. Run its sections by hand only once their preconditions hold in production.</p>
+<h2 id="6c--smoke-test-and-manual-checks"><a class="header" href="#6c--smoke-test-and-manual-checks">6C — Smoke test and manual checks</a></h2>
+<p>Automated, read-only (no data changes, no email sent). <code>COREVERSE_ANON_KEY</code> and <code>COREVERSE_TEST_TOKEN</code> are optional; checks that need them are skipped when unset:</p>
+<pre><code class="language-bash">COREVERSE_BASE_URL=https://&lt;ref&gt;.supabase.co/functions/v1 \
+COREVERSE_ALLOWED_ORIGIN=https://&lt;website-origin&gt; \
+COREVERSE_ANON_KEY=&lt;publishable key&gt; \
+COREVERSE_TEST_TOKEN=&lt;test-user-jwt&gt; \
+node scripts/ops/smoke.mjs
+</code></pre>
+<p>It covers: the gateway (anonymous requests with no credentials, exactly as the SDK sends them), events and FAQ (including <code>locale=tr</code>), the <code>{items, next_cursor}</code> envelope on news/polls/discussions/events with cursor following, discussion sort/search/categories, username availability, unauthenticated 401s (including <code>DELETE /profiles/me</code>), error body shape, and CORS for the allowed and a foreign origin. The same script works against <code>supabase start</code> by pointing <code>COREVERSE_BASE_URL</code> at <code>http://127.0.0.1:54321/functions/v1</code>.</p>
+<p><strong>If the first check fails with 401 "Missing authorization header":</strong> the function was deployed with the platform JWT gate on, so signed-out SDK callers cannot reach public endpoints. Redeploy the affected functions with <code>--no-verify-jwt</code> (or add <code>[functions.&lt;name&gt;] verify_jwt = false</code> to <code>config.toml</code>); the functions authenticate callers themselves.</p>
+<p>Manual checks (need a human, a test account, or a mailbox):</p>
+<div class="table-wrapper"><table><thead><tr><th>Check</th><th>How</th><th>Expect</th></tr></thead><tbody>
+<tr><td>Account deletion with blockers</td><td><code>DELETE /profiles/me</code> as a test user who owns a team or has authored news/discussions</td><td><code>409</code> with an itemized <code>blockers</code> array; account still exists</td></tr>
+<tr><td>Account deletion without blockers</td><td><code>DELETE /profiles/me</code> as a fresh test user (optionally after a poll vote)</td><td><code>204</code>/success; user gone from Auth; no orphan rows</td></tr>
+<tr><td>Recovery e-mail</td><td><code>POST /auth/password-reset</code> for a test mailbox, <code>en</code> and <code>tr</code></td><td>Localized mail from the configured sender, link lands on the Website reset page</td></tr>
+<tr><td>Signup / magic link / invite / reauthentication</td><td>Trigger each that is enabled</td><td>en/tr copy; any other locale falls back to en</td></tr>
+<tr><td><code>email_change</code></td><td>Change the e-mail on a test user</td><td>Generic English fallback mail with a working link (deliberately not localized yet); decide whether that is acceptable</td></tr>
+<tr><td>Avatar</td><td>Upload then <code>DELETE /profiles/me/avatar</code></td><td>URL cache-busts on change; delete returns to no avatar</td></tr>
+<tr><td>Writes from a moderator</td><td>Create and publish an event and a FAQ item, then delete them</td><td>Visible in <code>GET /events</code> and <code>GET /faq</code>; gone after delete</td></tr>
+</tbody></table>
+</div>
+<p>Record results (pass/fail per row, commit hash, date) in the release PR. Any failure is a stop: roll forward with a fix, or restore per <a href="database-restore.html">Database Restore</a> if a migration misbehaved.</p>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="../operations/deployment.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <i class="fa fa-angle-left"></i>
+                            </a>
+
+                            <a rel="next prefetch" href="../operations/environments.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <i class="fa fa-angle-right"></i>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="../operations/deployment.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+
+                    <a rel="next prefetch" href="../operations/environments.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+            </nav>
+
+        </div>
+
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="../elasticlunr.min.js"></script>
+        <script src="../mark.min.js"></script>
+        <script src="../searcher.js"></script>
+
+        <script src="../clipboard.min.js"></script>
+        <script src="../highlight.js"></script>
+        <script src="../book.js"></script>
+
+        <!-- Custom JS scripts -->
+
+
+    </div>
+    </body>
+</html>
