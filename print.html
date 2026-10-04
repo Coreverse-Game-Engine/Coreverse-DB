@@ -401,7 +401,7 @@ Row Level Security (RLS)
        └── Triggers
 </code></pre>
 <ul>
-<li><strong>The platform JWT gate</strong> (Supabase <code>verify_jwt</code>) sits in front of every Edge Function except <code>send-email</code>, <code>auth</code> and <code>profiles</code>, so signed-out callers are rejected before any Coreverse code runs; the two signed-out operations are listed in <a href="architecture/../security/authentication.html#the-platform-jwt-gate">Security › Authentication</a>.</li>
+<li><strong>The platform JWT gate</strong> (Supabase <code>verify_jwt</code>) stays on in front of <code>teams</code>, <code>requests</code> and <code>projects</code>. It is off for the functions that serve signed-out callers (public reads of releases, news, events, FAQ, polls, discussions and docs, plus <code>auth</code>, <code>profiles</code> and <code>send-email</code>); those authenticate the caller themselves (<code>withTokenCheck</code>, <code>auth.getUser()</code>), so a signed-out visitor can read public content but every write answers <code>401</code>. See <a href="architecture/../security/authentication.html#the-platform-jwt-gate">Security › Authentication</a>.</li>
 <li><strong>Authentication</strong> is entirely Supabase Auth's responsibility — Coreverse DB never stores or handles a password. See <a href="architecture/../security/authentication.html">Security › Authentication</a>.</li>
 <li><strong>Request shape</strong> validation (types, required fields, enum values) happens in the Edge Function with Zod, before anything touches the database.</li>
 <li><strong>Authorization</strong> — who can see or change which row — is enforced by PostgreSQL itself via RLS, not by application code, so it holds even if an Edge Function has a bug. See <a href="architecture/../security/rls.html">Row Level Security</a> and <a href="architecture/../security/policies.html">Policies</a>.</li>
@@ -879,21 +879,40 @@ Row Level Security (RLS)
 <h2 id="in-edge-functions"><a class="header" href="#in-edge-functions">In Edge Functions</a></h2>
 <p>Each function builds a Supabase client scoped to the caller by forwarding their <code>Authorization</code> header (<code>_shared/supabase-client.ts</code>). There is no separate application-level session or token — the same JWT that authenticates against Supabase Auth is what RLS policies evaluate via <code>auth.uid()</code>.</p>
 <h2 id="the-platform-jwt-gate"><a class="header" href="#the-platform-jwt-gate">The platform JWT gate</a></h2>
-<p>Supabase verifies the <code>Authorization: Bearer &lt;JWT&gt;</code> header <strong>before</strong> an Edge Function runs (<code>verify_jwt</code>, on by default). Coreverse DB keeps that gate <strong>on</strong> for every function except <code>send-email</code>, <code>auth</code> and <code>profiles</code> (declared in <code>supabase/config.toml</code>). The consequence is deliberate: <strong>a signed-out visitor cannot read anything.</strong> Releases, news, events, FAQ, polls, discussions and docs all answer <code>401</code> (<code>Missing authorization header</code>) without a valid session, even though the functions themselves and the RLS policies would let <code>anon</code> read published rows.</p>
-<p>That is why the API reference marks some operations "Public": it describes what the function and RLS require of the <em>caller</em> (no particular user), not what the gateway lets through. For clients, the rule is simple — send the signed-in user's Supabase access token on every request, and treat a signed-out state as "show a sign-in prompt", not "call the public endpoint".</p>
-<h3 id="signed-out-operations"><a class="header" href="#signed-out-operations">Signed-out operations</a></h3>
-<p>Exactly two operations work without a JWT, because their callers cannot have one:</p>
-<div class="table-wrapper"><table><thead><tr><th>Operation</th><th>Function</th><th>Why it must be reachable signed out</th><th>Protection</th></tr></thead><tbody>
-<tr><td><code>POST /auth/password-reset</code></td><td><code>auth</code></td><td>The person is recovering an account they cannot sign in to</td><td>Rate limited per email (3 / 15 min) and per IP (10 / hour); identical response whether or not the account exists; <code>redirectTo</code> checked against <code>WEBSITE_ALLOWED_ORIGINS</code></td></tr>
-<tr><td><code>GET /profiles/username-availability</code></td><td><code>profiles</code></td><td>The signup form checks a username before the account exists</td><td>Rate limited per IP (30 / min)</td></tr>
+<p>Supabase can verify the <code>Authorization: Bearer &lt;JWT&gt;</code> header <strong>before</strong> an Edge Function runs (<code>verify_jwt</code>, on by default). Coreverse DB turns that gate <strong>off</strong> for the functions below (declared in <code>supabase/config.toml</code>) and keeps it <strong>on</strong> for <code>teams</code>, <code>requests</code> and <code>projects</code>, where every route needs a signed-in user.</p>
+<div class="table-wrapper"><table><thead><tr><th>Function</th><th>Gate</th><th>Why</th></tr></thead><tbody>
+<tr><td><code>releases</code>, <code>news</code>, <code>events</code>, <code>faq</code>, <code>polls</code>, <code>discussions</code>, <code>docs</code></td><td>off</td><td>A signed-out visitor may <strong>read</strong> public content</td></tr>
+<tr><td><code>auth</code></td><td>off</td><td>Password reset is used by someone who cannot sign in</td></tr>
+<tr><td><code>profiles</code></td><td>off</td><td>The signup form checks a username before the account exists</td></tr>
+<tr><td><code>send-email</code></td><td>off</td><td>Supabase Auth's hook call carries a signature, not a user JWT</td></tr>
+<tr><td><code>teams</code>, <code>requests</code>, <code>projects</code></td><td>on</td><td>Every route needs a signed-in user; the gateway stays a second line of defence</td></tr>
 </tbody></table>
 </div>
-<p><code>auth</code> is that one route only. <code>profiles</code> also serves <code>/profiles/me</code> and <code>/profiles/me/avatar</code>; with the gate off for the function, those routes are protected by the check inside it — <code>supabase.auth.getUser()</code> followed by <code>401 unauthorized</code> — and by RLS. <code>scripts/ops/static-checks.mjs</code> pins the list of exempt functions and fails if that check disappears, and <code>scripts/ops/smoke.mjs</code> confirms against a running API that signed-out reads are rejected and that <code>/profiles/me</code> answers <code>401</code> from the function itself.</p>
-<p>Adding a function to this list is a security decision: it removes the gateway as a second line of defence for that function. Do it only for an operation that is meant to work signed out, and update the check and this page in the same change.</p>
+<p>So a signed-out visitor <strong>can read</strong> releases, published news, events, FAQ, polls (with aggregated results), discussions and replies, and docs search. They cannot write anything. What a reader sees is decided by RLS exactly as before: <code>anon</code> only ever gets <code>published</code> news and events, never drafts, and never another user's vote.</p>
+<h3 id="how-the-public-content-functions-authenticate-without-the-gate"><a class="header" href="#how-the-public-content-functions-authenticate-without-the-gate">How the public-content functions authenticate without the gate</a></h3>
+<p>Taking the gateway away would let a bad token or an anonymous write reach the function's own code, so every public-content function wraps its handler in <code>withTokenCheck</code> (<code>supabase/functions/_shared/caller.ts</code>):</p>
+<ul>
+<li><strong>No <code>Authorization</code> header, or only the project's anon key</strong> → treated as signed out. Reads go through; the request runs as <code>anon</code>.</li>
+<li><strong>A token that is not a usable JWT, or has expired</strong> → <code>401 unauthorized</code> before anything else runs, on reads as well as writes. The client should refresh the session.</li>
+<li><strong>Any write (<code>POST</code>, <code>PUT</code>, <code>PATCH</code>, <code>DELETE</code>) without a user token</strong> → <code>401 unauthorized</code> (<code>A valid session is required.</code>). This is the response a client turns into "show the sign-in screen"; the Website does exactly that when a signed-out visitor tries to comment, reply, vote or post.</li>
+<li>A write with a user token then continues to the route's own checks: <code>supabase.auth.getUser()</code> (which asks GoTrue, so a forged token fails here), role checks through RLS, rate limits.</li>
+</ul>
+<p><code>classifyCaller</code> decodes the token payload <strong>without</strong> verifying the signature. That only decides whether to answer <code>401</code> earlier; it never grants anything. Every authorization decision uses the verified token, via PostgREST and RLS or <code>auth.getUser()</code>.</p>
+<p><code>docs</code> is the one function that lets an anonymous write through (<code>{ anonymousWrites: true }</code>), because <code>POST /docs/reindex</code> is authenticated by the <code>X-Reindex-Token</code> shared secret instead of a user JWT.</p>
+<p><code>profiles</code> is not wrapped in <code>withTokenCheck</code>: it serves one public route (<code>GET /profiles/username-availability</code>, rate limited per IP) and authenticates <code>/profiles/me</code> and <code>/profiles/me/avatar</code> itself with <code>supabase.auth.getUser()</code> followed by <code>401 unauthorized</code>. <code>auth</code> is one route only (<code>POST /auth/password-reset</code>) and is rate limited per email and per IP.</p>
+<div class="table-wrapper"><table><thead><tr><th>Signed-out operation</th><th>Function</th><th>Protection</th></tr></thead><tbody>
+<tr><td>All <code>GET</code> routes of the public-content functions</td><td>see above</td><td>Read-only; row visibility is RLS (<code>anon</code> policies), results are aggregates; unusable tokens are rejected</td></tr>
+<tr><td><code>POST /auth/password-reset</code></td><td><code>auth</code></td><td>Rate limited per email (3 / 15 min) and per IP (10 / hour); identical response whether or not the account exists; <code>redirectTo</code> checked against <code>WEBSITE_ALLOWED_ORIGINS</code></td></tr>
+<tr><td><code>GET /profiles/username-availability</code></td><td><code>profiles</code></td><td>Rate limited per IP (30 / min)</td></tr>
+</tbody></table>
+</div>
+<p>Signed-out reads have <strong>no per-caller rate limit</strong> of their own; only the platform's limits apply. Put a CDN or the platform's rate limiting in front if the read endpoints are ever abused.</p>
+<p><code>scripts/ops/static-checks.mjs</code> pins the exact list of gate-exempt functions, fails if a public-content function loses <code>withTokenCheck</code>, if anything other than <code>docs</code> allows anonymous writes, or if <code>profiles</code> / <code>auth</code> lose their in-function protection. <code>scripts/ops/smoke.mjs</code> confirms against a running API that signed-out reads succeed, that signed-out writes and bad tokens are rejected <strong>by the function</strong>, and that <code>teams</code>, <code>requests</code> and <code>projects</code> still reject signed-out callers at the gateway.</p>
+<p>Adding a function to the exempt list is a security decision: it removes the gateway as a second line of defence for that function. Update the check and this page in the same change.</p>
 <h2 id="other-exceptions-to-user-jwt-authentication"><a class="header" href="#other-exceptions-to-user-jwt-authentication">Other exceptions to user-JWT authentication</a></h2>
 <p>Two operations don't authenticate a user at all:</p>
 <ul>
-<li><strong><code>/docs/reindex</code></strong> — authenticated by a shared <code>X-Reindex-Token</code> secret, because the caller is CI in another repository, not a signed-in person. See <a href="security/authorization.html">Authorization</a>. The <code>docs</code> function is <strong>not</strong> exempt from the platform JWT gate, so the CI job must also send a JWT the gateway accepts; the shared secret is checked in addition to it, not instead of it.</li>
+<li><strong><code>/docs/reindex</code></strong> — authenticated by a shared <code>X-Reindex-Token</code> secret, because the caller is CI in another repository, not a signed-in person. See <a href="security/authorization.html">Authorization</a>. The <code>docs</code> function runs without the platform JWT gate, so the CI job needs no JWT at all; the secret is the only credential and is checked before anything is written.</li>
 <li><strong><code>/projects/{id}/download</code></strong> — the <em>initial</em> access check still uses the caller's own JWT; only the signed-URL minting step afterward uses a service-role client.</li>
 </ul>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="authorization"><a class="header" href="#authorization">Authorization</a></h1>
@@ -986,9 +1005,16 @@ set row_security = off
 <p>Authenticated operations accept a Supabase Auth JWT via the standard bearer scheme:</p>
 <pre><code class="language-http">Authorization: Bearer &lt;JWT&gt;
 </code></pre>
-<p><strong>Every request needs a valid Supabase Auth JWT</strong>, with two exceptions: <code>POST /auth/password-reset</code> and <code>GET /profiles/username-availability</code>, the only operations a signed-out user must be able to call. The platform rejects any other request without a valid JWT with <code>401</code> before the function runs — including read operations such as the release listing, published news, poll results, events, FAQ and docs search. The SDK sends the token it gets from <code>getAuthToken</code>; when there is no session it sends none, so a signed-out client should not call those endpoints at all. See <a href="api/../security/authentication.html#the-platform-jwt-gate">Security › Authentication</a>.</p>
+<p><strong>Reading public content needs no token.</strong> Releases, published news, events, FAQ, polls and their aggregated results, discussions and replies, and docs search all answer a signed-out request with <code>200</code>. Everything that creates, changes or deletes something, and everything that is about <em>you</em> (your profile, teams, projects, your own vote), needs a valid Supabase Auth JWT.</p>
+<p>What a client should do:</p>
+<ul>
+<li><strong>Signed in:</strong> send the session's access token on every request (the SDK does this through <code>getAuthToken</code>). Public reads also work with it, and some responses add per-user fields (for example <code>my_option_id</code> on polls).</li>
+<li><strong>Signed out:</strong> send no token. Reads work. A write answers <code>401</code> with the body <code>{ "error": "unauthorized", "message": "A valid session is required." }</code>; treat that as "show the sign-in screen", and retry after sign-in.</li>
+<li><strong><code>401</code> on a read:</strong> the token you sent is malformed or expired. Refresh the session (or drop the token) and retry.</li>
+</ul>
+<p><code>teams</code>, <code>requests</code> and <code>projects</code> have no signed-out routes at all; the platform rejects a request without a valid JWT before the function runs. The only other signed-out operations are <code>POST /auth/password-reset</code> and <code>GET /profiles/username-availability</code>. See <a href="api/../security/authentication.html#the-platform-jwt-gate">Security › Authentication</a> for how this is enforced.</p>
 <h2 id="per-operation-security-in-the-contract"><a class="header" href="#per-operation-security-in-the-contract">Per-operation security in the contract</a></h2>
-<p>Every operation in <code>openapi/paths/*.yaml</code> declares its own <code>security</code> requirement — public, optional-bearer, or required-bearer — matching what the underlying Edge Function and database RLS actually enforce. A "public" operation is one that needs no <em>particular user</em> inside the function; it is still behind the platform JWT gate unless it is one of the two signed-out operations above. This was made explicit (rather than left as one blanket API-wide default) specifically so the generated client and any API consumer can tell, from the spec alone, which calls need a signed-in user.</p>
+<p>Every operation in <code>openapi/paths/*.yaml</code> declares its own <code>security</code> requirement — public, optional-bearer, or required-bearer — matching what the underlying Edge Function and database RLS actually enforce. A "public" operation is one that needs no <em>particular user</em>, and a signed-out caller can use it (this holds for every public operation except those in <code>teams</code>, <code>requests</code> and <code>projects</code>, which are always behind the platform gate). This was made explicit (rather than left as one blanket API-wide default) specifically so the generated client and any API consumer can tell, from the spec alone, which calls need a signed-in user.</p>
 <h2 id="the-x-reindex-token-exception"><a class="header" href="#the-x-reindex-token-exception">The <code>X-Reindex-Token</code> exception</a></h2>
 <p><code>POST /docs/reindex</code> does not use bearer auth at all. It's authenticated by a shared secret header, <code>X-Reindex-Token</code>, because the caller is another repository's CI pipeline (after an mdBook build), not a person with a Supabase session. See <a href="api/../security/authentication.html">Security › Authentication</a> for the reasoning.</p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="conventions-1"><a class="header" href="#conventions-1">Conventions</a></h1>
@@ -1417,12 +1443,17 @@ server-to-server, with a Standard Webhooks signature
 <li>must be deployed with <code>supabase functions deploy send-email --no-verify-jwt</code>
 (the normal JWT check would reject Auth's own signed request).</li>
 </ul>
-<p><code>auth</code> and <code>profiles</code> are also declared <code>verify_jwt = false</code> in
-<code>supabase/config.toml</code>, for a different reason: each serves one operation
-that must work signed out (<code>POST /auth/password-reset</code>,
-<code>GET /profiles/username-availability</code>). Every other function keeps the
-JWT gate on. A function without the gate must authenticate each route that
-needs a user itself, and <code>scripts/ops/static-checks.mjs</code> pins the list — see
+<p><code>auth</code>, <code>profiles</code> and the public-content functions (<code>releases</code>, <code>news</code>,
+<code>events</code>, <code>faq</code>, <code>polls</code>, <code>discussions</code>, <code>docs</code>) are also declared
+<code>verify_jwt = false</code> in <code>supabase/config.toml</code>, for a different reason: they
+serve operations that must work signed out (password reset, the signup
+username check, and reading public content). <code>teams</code>, <code>requests</code> and
+<code>projects</code> keep the JWT gate on. A function without the gate must
+authenticate each route that needs a user itself: wrap a public-content
+function as <code>serve(withCors(withTokenCheck(async (req) =&gt; { ... })))</code> so a bad
+token and any anonymous write answer <code>401 unauthorized</code>, and let write routes
+resolve the user with <code>supabase.auth.getUser()</code> or RLS.
+<code>scripts/ops/static-checks.mjs</code> pins the list and the wrapper — see
 <a href="development/../security/authentication.html#the-platform-jwt-gate">Security › Authentication</a>.</p>
 <p>Configure it once per environment at Dashboard → Authentication → Hooks
 → Send Email hook, pointing at this function's URL, and set
@@ -1464,34 +1495,34 @@ supabase functions deploy &lt;name&gt;   # deploy one Edge Function
 <div style="break-before: page; page-break-before: always;"></div><h1 id="production-verification-v05x-rollout"><a class="header" href="#production-verification-v05x-rollout">Production Verification (v0.5.x rollout)</a></h1>
 <p>The runbook for taking a backend release from "CI is green" to "verified in production". It has three parts that map to the scripts in <code>scripts/ops/</code>:</p>
 <div class="table-wrapper"><table><thead><tr><th>Part</th><th>What</th><th>Script</th></tr></thead><tbody>
-<tr><td><strong>6A</strong></td><td>Run every local/CI gate</td><td><code>scripts/ops/verify-local.sh</code></td></tr>
-<tr><td><strong>6B</strong></td><td>Roll the backend out to the hosted project</td><td><code>scripts/ops/deploy.sh</code></td></tr>
-<tr><td><strong>6C</strong></td><td>Smoke test + manual checks against production</td><td><code>scripts/ops/smoke.mjs</code></td></tr>
+<tr><td><strong>A</strong></td><td>Run every local/CI gate</td><td><code>scripts/ops/verify-local.sh</code></td></tr>
+<tr><td><strong>B</strong></td><td>Roll the backend out to the hosted project</td><td><code>scripts/ops/deploy.sh</code></td></tr>
+<tr><td><strong>C</strong></td><td>Smoke test + manual checks against production</td><td><code>scripts/ops/smoke.mjs</code></td></tr>
 </tbody></table>
 </div>
-<p>6A and the <em>preparation</em> half of 6B (backup, secrets, dashboard review) are independent and can run in parallel. 6C needs 6B finished.</p>
+<p>A and the <em>preparation</em> half of B (backup, secrets, dashboard review) are independent and can run in parallel. C needs B finished.</p>
 <h2 id="0-before-anything-secrets-hygiene"><a class="header" href="#0-before-anything-secrets-hygiene">0. Before anything: secrets hygiene</a></h2>
 <p><code>.env.local</code>, <code>supabase/.env.production</code> and <code>supabase/functions/.env.local</code> hold real credentials. They are gitignored, but never include them in archives, tickets or chats. If any of them has left your machine, rotate <strong>before</strong> deploying: service-role/secret key, database password, <code>BREVO_API_KEY</code>, <code>SEND_EMAIL_HOOK_SECRET</code> (regenerate in Dashboard → Authentication → Hooks), <code>DOCS_REINDEX_TOKEN</code>. Then update the files and re-upload with <code>deploy.sh --apply --secrets</code>.</p>
-<h2 id="6a--verification-gates"><a class="header" href="#6a--verification-gates">6A — Verification gates</a></h2>
+<h2 id="a--verification-gates"><a class="header" href="#a--verification-gates">A — Verification gates</a></h2>
 <pre><code class="language-bash">bash scripts/ops/verify-local.sh          # needs pnpm, deno, supabase CLI + Docker
 </code></pre>
 <p>Runs, in CI order: <code>static-checks.mjs</code> and <code>check-version-sync</code>, <code>pnpm install --frozen-lockfile</code>, <code>redocly lint</code>, <code>pnpm run verify</code> (generate → no drift → typecheck), <code>vitest</code>, <code>tsup</code> build, <code>deno test</code>, <code>deno fmt --check</code>, <code>supabase db lint</code> and <code>supabase test db</code> (pgTAP).</p>
-<p>A step whose tool is missing is reported as <strong>SKIP</strong>, never PASS, and the script exits non-zero (<code>ALLOW_SKIP=1</code> to accept, <code>SKIP_PGTAP=1</code> when Docker is unavailable). Do not proceed to 6B with unreviewed skips for <code>redocly lint</code>, <code>pnpm run verify</code> or pgTAP.</p>
+<p>A step whose tool is missing is reported as <strong>SKIP</strong>, never PASS, and the script exits non-zero (<code>ALLOW_SKIP=1</code> to accept, <code>SKIP_PGTAP=1</code> when Docker is unavailable). Do not proceed to B with unreviewed skips for <code>redocly lint</code>, <code>pnpm run verify</code> or pgTAP.</p>
 <p><code>scripts/ops/static-checks.mjs</code> needs only Node. It checks <code>$ref</code> targets against <code>orval.config.ts</code>'s allow-list, OpenAPI paths against Edge Function directories, tags against the SDK barrels, <code>SUMMARY.md</code> against the pages on disk, version sync, migration filename hygiene, and stale migration filenames cited in docs or comments. Barrel gaps are warnings until Faz 7 (<code>--strict</code> makes them fatal).</p>
 <p>Known: if <code>pnpm run verify</code> fails at <code>git diff --exit-code src/generated</code>, regenerate and commit <code>src/generated</code> — that is drift detection working, not a bug.</p>
-<h2 id="6b--rollout"><a class="header" href="#6b--rollout">6B — Rollout</a></h2>
-<p>Preparation (parallel with 6A):</p>
+<h2 id="b--rollout"><a class="header" href="#b--rollout">B — Rollout</a></h2>
+<p>Preparation (parallel with A):</p>
 <ol>
 <li>Take a production backup (<a href="operations/database-backup.html">Database Backup</a>) and note where it is.</li>
 <li><code>supabase link --project-ref &lt;ref&gt;</code> and confirm <code>supabase/.temp/project-ref</code>.</li>
 <li>Confirm secrets exist (<code>supabase secrets list</code>): <code>WEBSITE_ALLOWED_ORIGINS</code>, <code>SEND_EMAIL_HOOK_SECRET</code>, <code>BREVO_API_KEY</code>, <code>BREVO_SENDER_EMAIL</code>, <code>BREVO_SENDER_NAME</code>, <code>DOCS_REINDEX_TOKEN</code>. <code>WEBSITE_ALLOWED_ORIGINS</code> must list every Website origin that will call the API — production and, if used, staging (scheme + host + port; a trailing slash is tolerated but not needed). It is a secret, not part of a deploy: changing it needs <code>supabase secrets set WEBSITE_ALLOWED_ORIGINS=&lt;comma-separated list&gt;</code> (or <code>deploy.sh --apply --secrets</code> after editing <code>supabase/.env.production</code>), then re-check with the smoke test's CORS check (<code>COREVERSE_ALLOWED_ORIGIN</code>) for each origin. Supabase Auth's Redirect URLs must list the same origins.</li>
 <li>Review the destructive-ish migration: <code>20261003095018_account_deletion_readiness.sql</code> changes <code>ON DELETE</code> on several foreign keys. Run it on a copy of production data first if you can (restore the backup into a scratch project), and check the row counts in the affected tables are unchanged afterwards.</li>
 </ol>
-<p>Execution (after 6A is green, from a clean commit):</p>
+<p>Execution (after A is green, from a clean commit):</p>
 <pre><code class="language-bash">bash scripts/ops/deploy.sh                 # dry run: plan + `supabase db push --dry-run`
 bash scripts/ops/deploy.sh --apply         # confirms each mutating step
 </code></pre>
-<p>Order matters: migrations → secrets → functions. Three functions are deployed with the platform JWT gate off, all declared in <code>supabase/config.toml</code>: <code>send-email</code> (Auth's hook call carries a signature, not a user JWT), <code>auth</code> (password reset is used by someone who cannot sign in) and <code>profiles</code> (username availability is checked by the signup form before an account exists). Every other function keeps the gate on, so a signed-out visitor gets <code>401</code> from the platform on all other routes. See <a href="operations/../security/authentication.html#the-platform-jwt-gate">Security › Authentication</a>.</p>
+<p>Order matters: migrations → secrets → functions. Ten functions are deployed with the platform JWT gate off, all declared in <code>supabase/config.toml</code>: <code>send-email</code> (Auth's hook call carries a signature, not a user JWT), <code>auth</code> (password reset is used by someone who cannot sign in), <code>profiles</code> (the signup form checks a username before an account exists) and the seven public-content functions <code>releases</code>, <code>news</code>, <code>events</code>, <code>faq</code>, <code>polls</code>, <code>discussions</code> and <code>docs</code> (a signed-out visitor may read public content; each one wraps its handler in <code>withTokenCheck</code>, so a bad token and every anonymous write still answer <code>401</code> from the function). <code>teams</code>, <code>requests</code> and <code>projects</code> keep the gate on. The gate setting is applied when a function is deployed, so <strong>redeploy every function</strong> after changing it, not only the ones whose code changed. See <a href="operations/../security/authentication.html#the-platform-jwt-gate">Security › Authentication</a>.</p>
 <p>Dashboard checks that live outside the repository (<code>config.toml</code> is local-only):</p>
 <ul>
 <li>Authentication → Hooks → Send Email: enabled, URL <code>&lt;project&gt;/functions/v1/send-email</code>, secret equals <code>SEND_EMAIL_HOOK_SECRET</code>.</li>
@@ -1499,25 +1530,28 @@ bash scripts/ops/deploy.sh --apply         # confirms each mutating step
 <li>Authentication → Rate limits and password policy reviewed; local values in <code>config.toml</code> are not applied to the hosted project.</li>
 </ul>
 <p>The one-off <code>supabase/maintenance/drop_legacy_identity_objects.sql</code> is <strong>not</strong> part of this rollout. Run its sections by hand only once their preconditions hold in production.</p>
-<h2 id="6c--smoke-test-and-manual-checks"><a class="header" href="#6c--smoke-test-and-manual-checks">6C — Smoke test and manual checks</a></h2>
-<p>Automated, read-only (no data changes, no email sent). <code>COREVERSE_TEST_TOKEN</code> (any signed-in user's access token) is needed for every check that reads data, because the gate rejects signed-out reads; those checks are <strong>skipped</strong> without it, and a run with skips is not a complete verification:</p>
+<h2 id="c--smoke-test-and-manual-checks"><a class="header" href="#c--smoke-test-and-manual-checks">C — Smoke test and manual checks</a></h2>
+<p>Automated, read-only (no data changes, no email sent). Most checks run signed out and need no credentials. <code>COREVERSE_TEST_TOKEN</code> (any signed-in user's access token) only adds the signed-in checks (gated function reachable with a token, <code>my_option_id</code> on polls, <code>/profiles/me</code>); those are <strong>skipped</strong> without it, and a run with skips is not a complete verification:</p>
 <pre><code class="language-bash">COREVERSE_BASE_URL=https://&lt;ref&gt;.supabase.co/functions/v1 \
 COREVERSE_ALLOWED_ORIGIN=https://&lt;website-origin&gt; \
 COREVERSE_TEST_TOKEN=&lt;test-user-jwt&gt; \
 node scripts/ops/smoke.mjs
 </code></pre>
-<p>It covers: the gateway in both directions (anonymous reads must be rejected with <code>401</code>; the two signed-out operations must work; <code>/profiles/me</code> must answer <code>401</code> from the function itself, not from the gateway), then, with a token, events and FAQ (including <code>locale=tr</code>), the <code>{items, next_cursor}</code> envelope on news/polls/discussions/events with cursor following, discussion sort/search/categories, username availability, unauthenticated 401s (including <code>DELETE /profiles/me</code>), error body shape, and CORS for the allowed and a foreign origin. The same script works against <code>supabase start</code> by pointing <code>COREVERSE_BASE_URL</code> at <code>http://127.0.0.1:54321/functions/v1</code>.</p>
+<p>It covers: signed-out reads on every public-content route (must answer <code>200</code>), signed-out writes and a malformed token (must answer <code>401 unauthorized</code> <strong>from the function</strong>), <code>POST /docs/reindex</code> without its secret, the gateway still rejecting signed-out callers on <code>teams</code>, <code>requests</code> and <code>projects</code>, the two signed-out operations, <code>/profiles/me</code> answering <code>401</code> from the function itself, then events and FAQ (including <code>locale=tr</code>), the <code>{items, next_cursor}</code> envelope on news/polls/discussions/events with cursor following, discussion sort/search/categories, docs search, poll results, username availability, error body shape, and CORS for the allowed origin (on a public and on a gated function) and a foreign origin. The same script works against <code>supabase start</code> by pointing <code>COREVERSE_BASE_URL</code> at <code>http://127.0.0.1:54321/functions/v1</code>.</p>
 <p><strong>If a gateway check fails:</strong></p>
 <ul>
-<li><em>"signed-out callers can read data"</em> — a function that should be gated was deployed with the gate off. Check <code>[functions.*]</code> in <code>supabase/config.toml</code> (only <code>send-email</code>, <code>auth</code> and <code>profiles</code> may have <code>verify_jwt = false</code>) and how that function was deployed (<code>--no-verify-jwt</code> on the command line overrides the file).</li>
+<li><em>"signed-out callers cannot read"</em> with <code>[from platform gateway]</code> — that public-content function is still deployed with the gate on. Check <code>[functions.*]</code> in <code>supabase/config.toml</code> and redeploy it so the file applies. Until then every signed-out visitor sees <code>401</code> on that content.</li>
+<li><em>"expected 401 {error:"unauthorized"} from the function"</em> on a write — either the response came from the gateway (gate on, see above) or, worse, a write went through without a session. Treat a non-<code>401</code> status here as a security incident: check that the function is still wrapped in <code>withTokenCheck</code>.</li>
+<li><em>"these should be behind the JWT gate"</em> — <code>teams</code>, <code>requests</code> or <code>projects</code> was deployed with the gate off. Redeploy it from the committed <code>config.toml</code>.</li>
 <li><em>"rejected before the function"</em> on <code>username-availability</code> or <code>password-reset</code> — <code>profiles</code> or <code>auth</code> was deployed with the gate on. Redeploy it so <code>config.toml</code> applies. Until then the signup form cannot check usernames and nobody can start a password reset.</li>
-<li><em>"preflight rejected by the JWT gate"</em> — browsers send no <code>Authorization</code> header on <code>OPTIONS</code>, so every browser call to that function would fail. Confirm this on the real project before shipping; if the platform rejects preflights for gated functions, the Website cannot call them cross-origin and this needs a design change, not a redeploy.</li>
+<li><em>"preflight answered ... gated function"</em> — browsers send no <code>Authorization</code> header on <code>OPTIONS</code>, so browser calls to <code>teams</code>, <code>requests</code> or <code>projects</code> would fail. This check confirms it on the real project; if it fails, the Website cannot call those functions cross-origin and they need the same treatment as the public-content functions.</li>
 </ul>
 <p>Manual checks (need a human, a test account, or a mailbox):</p>
 <div class="table-wrapper"><table><thead><tr><th>Check</th><th>How</th><th>Expect</th></tr></thead><tbody>
 <tr><td>Account deletion with blockers</td><td><code>DELETE /profiles/me</code> as a test user who owns a team or has authored news/discussions</td><td><code>409</code> with an itemized <code>blockers</code> array; account still exists</td></tr>
 <tr><td>Account deletion without blockers</td><td><code>DELETE /profiles/me</code> as a fresh test user (optionally after a poll vote)</td><td><code>204</code>/success; user gone from Auth; no orphan rows</td></tr>
-<tr><td>Signed-out browser, Website origin</td><td>Open the Website signed out, with the browser's network tab open; use the signup form's username field and the password-reset form</td><td>Username check answers <code>200</code>; reset answers <code>200</code> and sends mail; no other DB call is made while signed out</td></tr>
+<tr><td>Signed-out browser, Website origin</td><td>Open the Website signed out, with the network tab open; scroll the FAQ, events and community areas; use the signup username field and the password-reset form</td><td>Reads answer <code>200</code> with data, no CORS errors; username check answers <code>200</code>; reset answers <code>200</code> and sends mail; no <code>401</code> in the log</td></tr>
+<tr><td>Signed-out write attempt, Website origin</td><td>Signed out, try to post a discussion, reply or vote in a poll</td><td>The call answers <code>401 unauthorized</code> and the Website shows the sign-in screen; nothing is created</td></tr>
 <tr><td>Signed-in browser, Website origin</td><td>Sign in, open the community and FAQ areas</td><td>Calls succeed with the user's token; no CORS errors for any listed Website origin</td></tr>
 <tr><td>Recovery e-mail</td><td><code>POST /auth/password-reset</code> for a test mailbox, <code>en</code> and <code>tr</code></td><td>Localized mail from the configured sender, link lands on the Website reset page</td></tr>
 <tr><td>Signup / magic link / invite / reauthentication</td><td>Trigger each that is enabled</td><td>en/tr copy; any other locale falls back to en</td></tr>
@@ -1678,11 +1712,41 @@ even though this endpoint's own validation passed).</p>
 </ul>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="changelog"><a class="header" href="#changelog">Changelog</a></h1>
 <p>Release notes for the <code>@Coreverse-Game-Engine/db-client</code> package and the backend it describes. GitHub's auto-generated release notes (grouped by PR label, see <code>.github/release.yml</code>) remain the per-PR record; this page is the consumer-facing summary of what changed <em>for API and SDK users</em>.</p>
+<h2 id="052"><a class="header" href="#052">0.5.2</a></h2>
+<p>Access-model release. <strong>No API shape changes and no database migration</strong>; the SDK surface is identical to 0.5.1 (the package version moves so that it matches the deployed backend and the spec). <strong>Redeploy every Edge Function</strong>: the JWT gate is a deploy-time setting.</p>
+<h3 id="access-model-signed-out-visitors-can-read-public-content"><a class="header" href="#access-model-signed-out-visitors-can-read-public-content">Access model: signed-out visitors can read public content</a></h3>
+<p>0.5.1 kept the platform JWT gate on for every function except <code>send-email</code>, <code>auth</code> and <code>profiles</code>, so a signed-out visitor got <code>401</code> on releases, news, events, FAQ, polls, discussions and docs. 0.5.2 reverses that for public content: the gate is now <strong>off</strong> for <code>releases</code>, <code>news</code>, <code>events</code>, <code>faq</code>, <code>polls</code>, <code>discussions</code> and <code>docs</code> (declared <code>verify_jwt = false</code> in <code>supabase/config.toml</code>). It stays <strong>on</strong> for <code>teams</code>, <code>requests</code> and <code>projects</code>, where every route needs a signed-in user.</p>
+<ul>
+<li><strong>Reading needs no token.</strong> A signed-out <code>GET</code> on any public-content route answers <code>200</code>. Row visibility is unchanged and still decided by RLS: <code>anon</code> sees only published news and events, aggregated poll results, and never another user's vote.</li>
+<li><strong>Writing still needs a session, and says so clearly.</strong> Every public-content function wraps its handler in <code>withTokenCheck</code> (<code>supabase/functions/_shared/caller.ts</code>): any write without a user token answers <code>401</code> with <code>{ "error": "unauthorized", "message": "A valid session is required." }</code>, and a malformed or expired token answers <code>401 unauthorized</code> on reads and writes alike. Clients should treat that <code>401</code> as "show the sign-in screen" (the Website does this for commenting, replying, voting and posting) and as "refresh the session" when a token was sent.</li>
+<li><strong><code>GET /polls</code></strong> no longer queries the caller's own votes for a signed-out request. <code>anon</code> has no <code>select</code> grant on <code>poll_votes</code>, so that query would have failed on every public list request; <code>my_option_id</code> is <code>null</code> for signed-out callers, as documented.</li>
+<li><strong><code>POST /docs/reindex</code></strong> no longer needs a JWT: the CI job sends only <code>X-Reindex-Token</code>, which is checked before anything is written. (0.5.1 listed this as a known limitation.)</li>
+</ul>
+<h3 id="changed"><a class="header" href="#changed">Changed</a></h3>
+<ul>
+<li><code>supabase/config.toml</code> declares <code>verify_jwt = false</code> for the seven public-content functions, with a comment explaining the model and why <code>teams</code>, <code>requests</code> and <code>projects</code> keep the gate.</li>
+<li><code>scripts/ops/static-checks.mjs</code> pins the new list of ten gate-exempt functions, fails if a public-content function loses <code>withTokenCheck</code>, if anything but <code>docs</code> allows anonymous writes, if <code>docs</code> stops checking <code>X-Reindex-Token</code>, or if <code>teams</code>, <code>requests</code> or <code>projects</code> opt out of the gate.</li>
+<li><code>scripts/ops/smoke.mjs</code> is rewritten for the new model. Signed-out reads must answer <code>200</code>; signed-out writes and a malformed token must answer <code>401 unauthorized</code> <strong>from the function</strong> (not the gateway); <code>POST /docs/reindex</code> without its secret must answer <code>401</code>; <code>teams</code>, <code>requests</code> and <code>projects</code> must still reject signed-out callers; a CORS preflight on a gated function is checked on the real project. <code>COREVERSE_TEST_TOKEN</code> is now optional and only adds signed-in checks.</li>
+<li><code>scripts/ops/deploy.sh</code> verifies that all ten gate-exempt functions are declared in <code>config.toml</code>, and reminds you to redeploy every function and to check <code>WEBSITE_ALLOWED_ORIGINS</code>.</li>
+<li>OpenAPI: <code>info.description</code> and the <code>bearerAuth</code> description state the access model above. No operation changed. An operation marked "Public" now really is reachable signed out, except in <code>teams</code>, <code>requests</code> and <code>projects</code>.</li>
+<li>Docs: Security › Authentication, API › Authentication, Architecture › Security model, Development › Edge Functions and Operations › Production Verification describe the new model.</li>
+</ul>
+<h3 id="operations"><a class="header" href="#operations">Operations</a></h3>
+<ul>
+<li><strong>Set <code>WEBSITE_ALLOWED_ORIGINS</code> for every origin that will call the API</strong> (production, staging, previews; <code>http://localhost:3000</code> only for a development project), then <code>supabase secrets set</code>. Without the Website's origin in the list the browser blocks every response, signed in or not, even though the request reaches the function.</li>
+<li>Redeploy all functions (<code>deploy.sh --apply</code>), then run <code>scripts/ops/smoke.mjs</code>.</li>
+</ul>
+<h3 id="known-limitations"><a class="header" href="#known-limitations">Known limitations</a></h3>
+<ul>
+<li>Signed-out reads have no per-caller rate limit of their own; only the platform's limits apply. <code>GET /discussions?q=</code> runs a full-text search, so put rate limiting in front of the read endpoints if they are abused.</li>
+<li>Because the gate is off, a forged token that looks like a user JWT passes the early <code>withTokenCheck</code> test and is rejected later, by PostgREST or <code>auth.getUser()</code>, with that layer's status code rather than the function's <code>unauthorized</code> body. It never reaches data.</li>
+<li>The Deno tests, pgTAP suite and the smoke test against the real project have to be run on your side; they could not run in the environment this change was prepared in.</li>
+</ul>
 <h2 id="051"><a class="header" href="#051">0.5.1</a></h2>
 <p>Access-model and operations release. <strong>No API shape changes and no database migration</strong>; the SDK surface is identical to 0.5.0 (the package version moves only so that it matches the deployed backend and the spec).</p>
 <h3 id="access-model-signed-out-visitors-cannot-read-data"><a class="header" href="#access-model-signed-out-visitors-cannot-read-data">Access model: signed-out visitors cannot read data</a></h3>
 <p>The platform JWT gate stays <strong>on</strong> for every Edge Function except <code>send-email</code>, <code>auth</code> and <code>profiles</code>. A signed-out caller is therefore rejected with <code>401</code> on releases, news, events, FAQ, polls, discussions and docs, even for operations the API reference marks "Public" (that label means "no particular user is required inside the function"). Clients must send the signed-in user's token and show a sign-in prompt when there is no session. See <a href="reference/../security/authentication.html#the-platform-jwt-gate">Security › Authentication</a>.</p>
-<h3 id="changed"><a class="header" href="#changed">Changed</a></h3>
+<h3 id="changed-1"><a class="header" href="#changed-1">Changed</a></h3>
 <ul>
 <li><strong>Two signed-out operations are now reachable:</strong> <code>[functions.auth]</code> and <code>[functions.profiles]</code> are declared <code>verify_jwt = false</code> in <code>supabase/config.toml</code>, so <code>POST /auth/password-reset</code> and <code>GET /profiles/username-availability</code> work without a session. With the platform's default gate (as 0.5.0's <code>config.toml</code> left it for these two functions) both are rejected for a signed-out caller, so password reset and the signup username check cannot work. <strong>Redeploy both functions</strong> (<code>supabase functions deploy auth</code> and <code>supabase functions deploy profiles</code>, or <code>deploy.sh --apply</code>) for this to take effect.</li>
 <li><strong><code>profiles</code> authenticates its own routes.</strong> With the gate off for that function, <code>/profiles/me</code> and <code>/profiles/me/avatar</code> rely on the in-function <code>supabase.auth.getUser()</code> check (unchanged) and RLS. <code>static-checks.mjs</code> now fails if that call is removed or if the list of gate-exempt functions changes.</li>
@@ -1690,13 +1754,13 @@ even though this endpoint's own validation passed).</p>
 <li><strong><code>WEBSITE_ALLOWED_ORIGINS</code> entries are normalized to bare origins</strong>, so <code>https://coreverse.dev/</code> (trailing slash) or an entry with a path now matches the browser's <code>Origin</code> instead of silently failing CORS and <code>redirectTo</code> validation. The value itself is a deployment secret: set every Website origin (production, staging, any preview or LAN address you test from) with <code>supabase secrets set</code>, and keep Supabase Auth's Redirect URLs in step.</li>
 <li><strong>OpenAPI:</strong> <code>info.description</code> and the <code>bearerAuth</code> description state the access model above. No operation changed.</li>
 </ul>
-<h3 id="operations"><a class="header" href="#operations">Operations</a></h3>
+<h3 id="operations-1"><a class="header" href="#operations-1">Operations</a></h3>
 <ul>
 <li><code>scripts/ops/smoke.mjs</code> is rewritten for the new model: anonymous reads must be rejected, the two signed-out operations must work, <code>/profiles/me</code> must answer <code>401</code> from the function (not the gateway), and data-reading checks need <code>COREVERSE_TEST_TOKEN</code> (skipped without it). <code>COREVERSE_ANON_KEY</code> is no longer used.</li>
 <li><code>scripts/ops/deploy.sh</code> checks that <code>send-email</code>, <code>auth</code> and <code>profiles</code> are declared in <code>config.toml</code>.</li>
 <li><a href="reference/../operations/production-verification.html">Production Verification</a> documents the three exempt functions, the origin secret and how to read each gateway failure.</li>
 </ul>
-<h3 id="known-limitations"><a class="header" href="#known-limitations">Known limitations</a></h3>
+<h3 id="known-limitations-1"><a class="header" href="#known-limitations-1">Known limitations</a></h3>
 <ul>
 <li>Because the gate is on for <code>docs</code>, the CI job that calls <code>POST /docs/reindex</code> must also send a JWT the gateway accepts; the <code>X-Reindex-Token</code> secret is checked in addition, not instead.</li>
 <li>Whether the platform lets a browser's <code>OPTIONS</code> preflight through to a gated function has to be confirmed on the real project (the smoke test's CORS check does this); it could not be verified offline.</li>
@@ -1732,12 +1796,12 @@ even though this endpoint's own validation passed).</p>
 <li>New migrations: events and FAQ domains, <code>username_availability</code>, <code>account_deletion_readiness</code> (relaxes <code>ON DELETE</code> on several foreign keys so deletion is possible once blockers are resolved). Apply with <code>supabase db push</code>; take a backup first. See <a href="reference/../operations/production-verification.html">Production Verification</a>.</li>
 <li><code>send-email</code> is declared <code>verify_jwt = false</code> in <code>supabase/config.toml</code> (the Auth hook carries a signature, not a user JWT).</li>
 </ul>
-<h3 id="operations-1"><a class="header" href="#operations-1">Operations</a></h3>
+<h3 id="operations-2"><a class="header" href="#operations-2">Operations</a></h3>
 <ul>
 <li>New runbook and scripts for verifying and rolling out a release: <code>scripts/ops/verify-local.sh</code>, <code>scripts/ops/deploy.sh</code>, <code>scripts/ops/smoke.mjs</code>, <code>scripts/ops/static-checks.mjs</code>.</li>
 <li>The package is published as <code>@Coreverse-Game-Engine/db-client</code>; <code>publish.yml</code> no longer hard-codes a different scope.</li>
 </ul>
-<h3 id="known-limitations-1"><a class="header" href="#known-limitations-1">Known limitations</a></h3>
+<h3 id="known-limitations-2"><a class="header" href="#known-limitations-2">Known limitations</a></h3>
 <ul>
 <li><code>email_change</code> auth e-mails are not localized yet (generic English fallback).</li>
 <li>Reports/complaints on content and changing a cast poll vote are not implemented.</li>
