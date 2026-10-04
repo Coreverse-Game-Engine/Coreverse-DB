@@ -2,6 +2,39 @@
 
 Release notes for the `@Coreverse-Game-Engine/db-client` package and the backend it describes. GitHub's auto-generated release notes (grouped by PR label, see `.github/release.yml`) remain the per-PR record; this page is the consumer-facing summary of what changed *for API and SDK users*.
 
+## 0.5.2
+
+Access-model release. **No API shape changes and no database migration**; the SDK surface is identical to 0.5.1 (the package version moves so that it matches the deployed backend and the spec). **Redeploy every Edge Function**: the JWT gate is a deploy-time setting.
+
+### Access model: signed-out visitors can read public content
+
+0.5.1 kept the platform JWT gate on for every function except `send-email`, `auth` and `profiles`, so a signed-out visitor got `401` on releases, news, events, FAQ, polls, discussions and docs. 0.5.2 reverses that for public content: the gate is now **off** for `releases`, `news`, `events`, `faq`, `polls`, `discussions` and `docs` (declared `verify_jwt = false` in `supabase/config.toml`). It stays **on** for `teams`, `requests` and `projects`, where every route needs a signed-in user.
+
+- **Reading needs no token.** A signed-out `GET` on any public-content route answers `200`. Row visibility is unchanged and still decided by RLS: `anon` sees only published news and events, aggregated poll results, and never another user's vote.
+- **Writing still needs a session, and says so clearly.** Every public-content function wraps its handler in `withTokenCheck` (`supabase/functions/_shared/caller.ts`): any write without a user token answers `401` with `{ "error": "unauthorized", "message": "A valid session is required." }`, and a malformed or expired token answers `401 unauthorized` on reads and writes alike. Clients should treat that `401` as "show the sign-in screen" (the Website does this for commenting, replying, voting and posting) and as "refresh the session" when a token was sent.
+- **`GET /polls`** no longer queries the caller's own votes for a signed-out request. `anon` has no `select` grant on `poll_votes`, so that query would have failed on every public list request; `my_option_id` is `null` for signed-out callers, as documented.
+- **`POST /docs/reindex`** no longer needs a JWT: the CI job sends only `X-Reindex-Token`, which is checked before anything is written. (0.5.1 listed this as a known limitation.)
+
+### Changed
+
+- `supabase/config.toml` declares `verify_jwt = false` for the seven public-content functions, with a comment explaining the model and why `teams`, `requests` and `projects` keep the gate.
+- `scripts/ops/static-checks.mjs` pins the new list of ten gate-exempt functions, fails if a public-content function loses `withTokenCheck`, if anything but `docs` allows anonymous writes, if `docs` stops checking `X-Reindex-Token`, or if `teams`, `requests` or `projects` opt out of the gate.
+- `scripts/ops/smoke.mjs` is rewritten for the new model. Signed-out reads must answer `200`; signed-out writes and a malformed token must answer `401 unauthorized` **from the function** (not the gateway); `POST /docs/reindex` without its secret must answer `401`; `teams`, `requests` and `projects` must still reject signed-out callers; a CORS preflight on a gated function is checked on the real project. `COREVERSE_TEST_TOKEN` is now optional and only adds signed-in checks.
+- `scripts/ops/deploy.sh` verifies that all ten gate-exempt functions are declared in `config.toml`, and reminds you to redeploy every function and to check `WEBSITE_ALLOWED_ORIGINS`.
+- OpenAPI: `info.description` and the `bearerAuth` description state the access model above. No operation changed. An operation marked "Public" now really is reachable signed out, except in `teams`, `requests` and `projects`.
+- Docs: Security › Authentication, API › Authentication, Architecture › Security model, Development › Edge Functions and Operations › Production Verification describe the new model.
+
+### Operations
+
+- **Set `WEBSITE_ALLOWED_ORIGINS` for every origin that will call the API** (production, staging, previews; `http://localhost:3000` only for a development project), then `supabase secrets set`. Without the Website's origin in the list the browser blocks every response, signed in or not, even though the request reaches the function.
+- Redeploy all functions (`deploy.sh --apply`), then run `scripts/ops/smoke.mjs`.
+
+### Known limitations
+
+- Signed-out reads have no per-caller rate limit of their own; only the platform's limits apply. `GET /discussions?q=` runs a full-text search, so put rate limiting in front of the read endpoints if they are abused.
+- Because the gate is off, a forged token that looks like a user JWT passes the early `withTokenCheck` test and is rejected later, by PostgREST or `auth.getUser()`, with that layer's status code rather than the function's `unauthorized` body. It never reaches data.
+- The Deno tests, pgTAP suite and the smoke test against the real project have to be run on your side; they could not run in the environment this change was prepared in.
+
 ## 0.5.1
 
 Access-model and operations release. **No API shape changes and no database migration**; the SDK surface is identical to 0.5.0 (the package version moves only so that it matches the deployed backend and the spec).
