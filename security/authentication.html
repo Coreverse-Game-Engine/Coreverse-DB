@@ -182,12 +182,22 @@
 </ul>
 <h2 id="in-edge-functions"><a class="header" href="#in-edge-functions">In Edge Functions</a></h2>
 <p>Each function builds a Supabase client scoped to the caller by forwarding their <code>Authorization</code> header (<code>_shared/supabase-client.ts</code>). There is no separate application-level session or token — the same JWT that authenticates against Supabase Auth is what RLS policies evaluate via <code>auth.uid()</code>.</p>
-<h2 id="public-vs-authenticated-operations"><a class="header" href="#public-vs-authenticated-operations">Public vs. authenticated operations</a></h2>
-<p>Most <code>GET</code> endpoints (releases, published news, poll results, docs search) work without a JWT at all — RLS policies grant <code>select</code> to <code>anon</code> as well as <code>authenticated</code> where the data isn't sensitive. Anything that identifies or acts on behalf of a specific user (profile update, team actions, project uploads, voting, posting) requires a valid JWT.</p>
-<h2 id="the-two-exceptions"><a class="header" href="#the-two-exceptions">The two exceptions</a></h2>
-<p>Two operations don't use a user JWT at all:</p>
+<h2 id="the-platform-jwt-gate"><a class="header" href="#the-platform-jwt-gate">The platform JWT gate</a></h2>
+<p>Supabase verifies the <code>Authorization: Bearer &lt;JWT&gt;</code> header <strong>before</strong> an Edge Function runs (<code>verify_jwt</code>, on by default). Coreverse DB keeps that gate <strong>on</strong> for every function except <code>send-email</code>, <code>auth</code> and <code>profiles</code> (declared in <code>supabase/config.toml</code>). The consequence is deliberate: <strong>a signed-out visitor cannot read anything.</strong> Releases, news, events, FAQ, polls, discussions and docs all answer <code>401</code> (<code>Missing authorization header</code>) without a valid session, even though the functions themselves and the RLS policies would let <code>anon</code> read published rows.</p>
+<p>That is why the API reference marks some operations "Public": it describes what the function and RLS require of the <em>caller</em> (no particular user), not what the gateway lets through. For clients, the rule is simple — send the signed-in user's Supabase access token on every request, and treat a signed-out state as "show a sign-in prompt", not "call the public endpoint".</p>
+<h3 id="signed-out-operations"><a class="header" href="#signed-out-operations">Signed-out operations</a></h3>
+<p>Exactly two operations work without a JWT, because their callers cannot have one:</p>
+<div class="table-wrapper"><table><thead><tr><th>Operation</th><th>Function</th><th>Why it must be reachable signed out</th><th>Protection</th></tr></thead><tbody>
+<tr><td><code>POST /auth/password-reset</code></td><td><code>auth</code></td><td>The person is recovering an account they cannot sign in to</td><td>Rate limited per email (3 / 15 min) and per IP (10 / hour); identical response whether or not the account exists; <code>redirectTo</code> checked against <code>WEBSITE_ALLOWED_ORIGINS</code></td></tr>
+<tr><td><code>GET /profiles/username-availability</code></td><td><code>profiles</code></td><td>The signup form checks a username before the account exists</td><td>Rate limited per IP (30 / min)</td></tr>
+</tbody></table>
+</div>
+<p><code>auth</code> is that one route only. <code>profiles</code> also serves <code>/profiles/me</code> and <code>/profiles/me/avatar</code>; with the gate off for the function, those routes are protected by the check inside it — <code>supabase.auth.getUser()</code> followed by <code>401 unauthorized</code> — and by RLS. <code>scripts/ops/static-checks.mjs</code> pins the list of exempt functions and fails if that check disappears, and <code>scripts/ops/smoke.mjs</code> confirms against a running API that signed-out reads are rejected and that <code>/profiles/me</code> answers <code>401</code> from the function itself.</p>
+<p>Adding a function to this list is a security decision: it removes the gateway as a second line of defence for that function. Do it only for an operation that is meant to work signed out, and update the check and this page in the same change.</p>
+<h2 id="other-exceptions-to-user-jwt-authentication"><a class="header" href="#other-exceptions-to-user-jwt-authentication">Other exceptions to user-JWT authentication</a></h2>
+<p>Two operations don't authenticate a user at all:</p>
 <ul>
-<li><strong><code>/docs/reindex</code></strong> — authenticated by a shared <code>X-Reindex-Token</code> secret, because the caller is CI in another repository, not a signed-in person. See <a href="authorization.html">Authorization</a>.</li>
+<li><strong><code>/docs/reindex</code></strong> — authenticated by a shared <code>X-Reindex-Token</code> secret, because the caller is CI in another repository, not a signed-in person. See <a href="authorization.html">Authorization</a>. The <code>docs</code> function is <strong>not</strong> exempt from the platform JWT gate, so the CI job must also send a JWT the gateway accepts; the shared secret is checked in addition to it, not instead of it.</li>
 <li><strong><code>/projects/{id}/download</code></strong> — the <em>initial</em> access check still uses the caller's own JWT; only the signed-URL minting step afterward uses a service-role client.</li>
 </ul>
 

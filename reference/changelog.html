@@ -175,6 +175,29 @@
                     <main>
                         <h1 id="changelog"><a class="header" href="#changelog">Changelog</a></h1>
 <p>Release notes for the <code>@Coreverse-Game-Engine/db-client</code> package and the backend it describes. GitHub's auto-generated release notes (grouped by PR label, see <code>.github/release.yml</code>) remain the per-PR record; this page is the consumer-facing summary of what changed <em>for API and SDK users</em>.</p>
+<h2 id="051"><a class="header" href="#051">0.5.1</a></h2>
+<p>Access-model and operations release. <strong>No API shape changes and no database migration</strong>; the SDK surface is identical to 0.5.0 (the package version moves only so that it matches the deployed backend and the spec).</p>
+<h3 id="access-model-signed-out-visitors-cannot-read-data"><a class="header" href="#access-model-signed-out-visitors-cannot-read-data">Access model: signed-out visitors cannot read data</a></h3>
+<p>The platform JWT gate stays <strong>on</strong> for every Edge Function except <code>send-email</code>, <code>auth</code> and <code>profiles</code>. A signed-out caller is therefore rejected with <code>401</code> on releases, news, events, FAQ, polls, discussions and docs, even for operations the API reference marks "Public" (that label means "no particular user is required inside the function"). Clients must send the signed-in user's token and show a sign-in prompt when there is no session. See <a href="../security/authentication.html#the-platform-jwt-gate">Security › Authentication</a>.</p>
+<h3 id="changed"><a class="header" href="#changed">Changed</a></h3>
+<ul>
+<li><strong>Two signed-out operations are now reachable:</strong> <code>[functions.auth]</code> and <code>[functions.profiles]</code> are declared <code>verify_jwt = false</code> in <code>supabase/config.toml</code>, so <code>POST /auth/password-reset</code> and <code>GET /profiles/username-availability</code> work without a session. With the platform's default gate (as 0.5.0's <code>config.toml</code> left it for these two functions) both are rejected for a signed-out caller, so password reset and the signup username check cannot work. <strong>Redeploy both functions</strong> (<code>supabase functions deploy auth</code> and <code>supabase functions deploy profiles</code>, or <code>deploy.sh --apply</code>) for this to take effect.</li>
+<li><strong><code>profiles</code> authenticates its own routes.</strong> With the gate off for that function, <code>/profiles/me</code> and <code>/profiles/me/avatar</code> rely on the in-function <code>supabase.auth.getUser()</code> check (unchanged) and RLS. <code>static-checks.mjs</code> now fails if that call is removed or if the list of gate-exempt functions changes.</li>
+<li><strong><code>createUserClient</code> no longer forwards an empty <code>Authorization</code> header</strong> when the request has none; supabase-js's default <code>Bearer &lt;anon key&gt;</code> applies, so signed-out requests to the username check run as <code>anon</code> instead of carrying an unparseable credential.</li>
+<li><strong><code>WEBSITE_ALLOWED_ORIGINS</code> entries are normalized to bare origins</strong>, so <code>https://coreverse.dev/</code> (trailing slash) or an entry with a path now matches the browser's <code>Origin</code> instead of silently failing CORS and <code>redirectTo</code> validation. The value itself is a deployment secret: set every Website origin (production, staging, any preview or LAN address you test from) with <code>supabase secrets set</code>, and keep Supabase Auth's Redirect URLs in step.</li>
+<li><strong>OpenAPI:</strong> <code>info.description</code> and the <code>bearerAuth</code> description state the access model above. No operation changed.</li>
+</ul>
+<h3 id="operations"><a class="header" href="#operations">Operations</a></h3>
+<ul>
+<li><code>scripts/ops/smoke.mjs</code> is rewritten for the new model: anonymous reads must be rejected, the two signed-out operations must work, <code>/profiles/me</code> must answer <code>401</code> from the function (not the gateway), and data-reading checks need <code>COREVERSE_TEST_TOKEN</code> (skipped without it). <code>COREVERSE_ANON_KEY</code> is no longer used.</li>
+<li><code>scripts/ops/deploy.sh</code> checks that <code>send-email</code>, <code>auth</code> and <code>profiles</code> are declared in <code>config.toml</code>.</li>
+<li><a href="../operations/production-verification.html">Production Verification</a> documents the three exempt functions, the origin secret and how to read each gateway failure.</li>
+</ul>
+<h3 id="known-limitations"><a class="header" href="#known-limitations">Known limitations</a></h3>
+<ul>
+<li>Because the gate is on for <code>docs</code>, the CI job that calls <code>POST /docs/reindex</code> must also send a JWT the gateway accepts; the <code>X-Reindex-Token</code> secret is checked in addition, not instead.</li>
+<li>Whether the platform lets a browser's <code>OPTIONS</code> preflight through to a gated function has to be confirmed on the real project (the smoke test's CORS check does this); it could not be verified offline.</li>
+</ul>
 <h2 id="050"><a class="header" href="#050">0.5.0</a></h2>
 <p>Two new content domains (events, FAQ), cursor pagination on the remaining list endpoints, account deletion, and several contract additions. <strong>It contains two breaking changes for SDK consumers</strong> — read the list below before upgrading.</p>
 <h3 id="breaking-changes"><a class="header" href="#breaking-changes">Breaking changes</a></h3>
@@ -206,12 +229,12 @@
 <li>New migrations: events and FAQ domains, <code>username_availability</code>, <code>account_deletion_readiness</code> (relaxes <code>ON DELETE</code> on several foreign keys so deletion is possible once blockers are resolved). Apply with <code>supabase db push</code>; take a backup first. See <a href="../operations/production-verification.html">Production Verification</a>.</li>
 <li><code>send-email</code> is declared <code>verify_jwt = false</code> in <code>supabase/config.toml</code> (the Auth hook carries a signature, not a user JWT).</li>
 </ul>
-<h3 id="operations"><a class="header" href="#operations">Operations</a></h3>
+<h3 id="operations-1"><a class="header" href="#operations-1">Operations</a></h3>
 <ul>
 <li>New runbook and scripts for verifying and rolling out a release: <code>scripts/ops/verify-local.sh</code>, <code>scripts/ops/deploy.sh</code>, <code>scripts/ops/smoke.mjs</code>, <code>scripts/ops/static-checks.mjs</code>.</li>
 <li>The package is published as <code>@Coreverse-Game-Engine/db-client</code>; <code>publish.yml</code> no longer hard-codes a different scope.</li>
 </ul>
-<h3 id="known-limitations"><a class="header" href="#known-limitations">Known limitations</a></h3>
+<h3 id="known-limitations-1"><a class="header" href="#known-limitations-1">Known limitations</a></h3>
 <ul>
 <li><code>email_change</code> auth e-mails are not localized yet (generic English fallback).</li>
 <li>Reports/complaints on content and changing a cast poll vote are not implemented.</li>

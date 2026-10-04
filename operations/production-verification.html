@@ -173,7 +173,7 @@
 
                 <div id="content" class="content">
                     <main>
-                        <h1 id="production-verification-v050-rollout"><a class="header" href="#production-verification-v050-rollout">Production Verification (v0.5.0 rollout)</a></h1>
+                        <h1 id="production-verification-v05x-rollout"><a class="header" href="#production-verification-v05x-rollout">Production Verification (v0.5.x rollout)</a></h1>
 <p>The runbook for taking a backend release from "CI is green" to "verified in production". It has three parts that map to the scripts in <code>scripts/ops/</code>:</p>
 <div class="table-wrapper"><table><thead><tr><th>Part</th><th>What</th><th>Script</th></tr></thead><tbody>
 <tr><td><strong>6A</strong></td><td>Run every local/CI gate</td><td><code>scripts/ops/verify-local.sh</code></td></tr>
@@ -196,14 +196,14 @@
 <ol>
 <li>Take a production backup (<a href="database-backup.html">Database Backup</a>) and note where it is.</li>
 <li><code>supabase link --project-ref &lt;ref&gt;</code> and confirm <code>supabase/.temp/project-ref</code>.</li>
-<li>Confirm secrets exist (<code>supabase secrets list</code>): <code>WEBSITE_ALLOWED_ORIGINS</code>, <code>SEND_EMAIL_HOOK_SECRET</code>, <code>BREVO_API_KEY</code>, <code>BREVO_SENDER_EMAIL</code>, <code>BREVO_SENDER_NAME</code>, <code>DOCS_REINDEX_TOKEN</code>. <code>WEBSITE_ALLOWED_ORIGINS</code> must list the production Website origin exactly (scheme + host, no trailing slash).</li>
+<li>Confirm secrets exist (<code>supabase secrets list</code>): <code>WEBSITE_ALLOWED_ORIGINS</code>, <code>SEND_EMAIL_HOOK_SECRET</code>, <code>BREVO_API_KEY</code>, <code>BREVO_SENDER_EMAIL</code>, <code>BREVO_SENDER_NAME</code>, <code>DOCS_REINDEX_TOKEN</code>. <code>WEBSITE_ALLOWED_ORIGINS</code> must list every Website origin that will call the API — production and, if used, staging (scheme + host + port; a trailing slash is tolerated but not needed). It is a secret, not part of a deploy: changing it needs <code>supabase secrets set WEBSITE_ALLOWED_ORIGINS=&lt;comma-separated list&gt;</code> (or <code>deploy.sh --apply --secrets</code> after editing <code>supabase/.env.production</code>), then re-check with the smoke test's CORS check (<code>COREVERSE_ALLOWED_ORIGIN</code>) for each origin. Supabase Auth's Redirect URLs must list the same origins.</li>
 <li>Review the destructive-ish migration: <code>20261003095018_account_deletion_readiness.sql</code> changes <code>ON DELETE</code> on several foreign keys. Run it on a copy of production data first if you can (restore the backup into a scratch project), and check the row counts in the affected tables are unchanged afterwards.</li>
 </ol>
 <p>Execution (after 6A is green, from a clean commit):</p>
 <pre><code class="language-bash">bash scripts/ops/deploy.sh                 # dry run: plan + `supabase db push --dry-run`
 bash scripts/ops/deploy.sh --apply         # confirms each mutating step
 </code></pre>
-<p>Order matters: migrations → secrets → functions. <code>send-email</code> is deployed with the JWT gate off because <code>supabase/config.toml</code> declares <code>[functions.send-email] verify_jwt = false</code>; Auth's hook call carries a signature, not a user JWT.</p>
+<p>Order matters: migrations → secrets → functions. Three functions are deployed with the platform JWT gate off, all declared in <code>supabase/config.toml</code>: <code>send-email</code> (Auth's hook call carries a signature, not a user JWT), <code>auth</code> (password reset is used by someone who cannot sign in) and <code>profiles</code> (username availability is checked by the signup form before an account exists). Every other function keeps the gate on, so a signed-out visitor gets <code>401</code> from the platform on all other routes. See <a href="../security/authentication.html#the-platform-jwt-gate">Security › Authentication</a>.</p>
 <p>Dashboard checks that live outside the repository (<code>config.toml</code> is local-only):</p>
 <ul>
 <li>Authentication → Hooks → Send Email: enabled, URL <code>&lt;project&gt;/functions/v1/send-email</code>, secret equals <code>SEND_EMAIL_HOOK_SECRET</code>.</li>
@@ -212,19 +212,25 @@ bash scripts/ops/deploy.sh --apply         # confirms each mutating step
 </ul>
 <p>The one-off <code>supabase/maintenance/drop_legacy_identity_objects.sql</code> is <strong>not</strong> part of this rollout. Run its sections by hand only once their preconditions hold in production.</p>
 <h2 id="6c--smoke-test-and-manual-checks"><a class="header" href="#6c--smoke-test-and-manual-checks">6C — Smoke test and manual checks</a></h2>
-<p>Automated, read-only (no data changes, no email sent). <code>COREVERSE_ANON_KEY</code> and <code>COREVERSE_TEST_TOKEN</code> are optional; checks that need them are skipped when unset:</p>
+<p>Automated, read-only (no data changes, no email sent). <code>COREVERSE_TEST_TOKEN</code> (any signed-in user's access token) is needed for every check that reads data, because the gate rejects signed-out reads; those checks are <strong>skipped</strong> without it, and a run with skips is not a complete verification:</p>
 <pre><code class="language-bash">COREVERSE_BASE_URL=https://&lt;ref&gt;.supabase.co/functions/v1 \
 COREVERSE_ALLOWED_ORIGIN=https://&lt;website-origin&gt; \
-COREVERSE_ANON_KEY=&lt;publishable key&gt; \
 COREVERSE_TEST_TOKEN=&lt;test-user-jwt&gt; \
 node scripts/ops/smoke.mjs
 </code></pre>
-<p>It covers: the gateway (anonymous requests with no credentials, exactly as the SDK sends them), events and FAQ (including <code>locale=tr</code>), the <code>{items, next_cursor}</code> envelope on news/polls/discussions/events with cursor following, discussion sort/search/categories, username availability, unauthenticated 401s (including <code>DELETE /profiles/me</code>), error body shape, and CORS for the allowed and a foreign origin. The same script works against <code>supabase start</code> by pointing <code>COREVERSE_BASE_URL</code> at <code>http://127.0.0.1:54321/functions/v1</code>.</p>
-<p><strong>If the first check fails with 401 "Missing authorization header":</strong> the function was deployed with the platform JWT gate on, so signed-out SDK callers cannot reach public endpoints. Redeploy the affected functions with <code>--no-verify-jwt</code> (or add <code>[functions.&lt;name&gt;] verify_jwt = false</code> to <code>config.toml</code>); the functions authenticate callers themselves.</p>
+<p>It covers: the gateway in both directions (anonymous reads must be rejected with <code>401</code>; the two signed-out operations must work; <code>/profiles/me</code> must answer <code>401</code> from the function itself, not from the gateway), then, with a token, events and FAQ (including <code>locale=tr</code>), the <code>{items, next_cursor}</code> envelope on news/polls/discussions/events with cursor following, discussion sort/search/categories, username availability, unauthenticated 401s (including <code>DELETE /profiles/me</code>), error body shape, and CORS for the allowed and a foreign origin. The same script works against <code>supabase start</code> by pointing <code>COREVERSE_BASE_URL</code> at <code>http://127.0.0.1:54321/functions/v1</code>.</p>
+<p><strong>If a gateway check fails:</strong></p>
+<ul>
+<li><em>"signed-out callers can read data"</em> — a function that should be gated was deployed with the gate off. Check <code>[functions.*]</code> in <code>supabase/config.toml</code> (only <code>send-email</code>, <code>auth</code> and <code>profiles</code> may have <code>verify_jwt = false</code>) and how that function was deployed (<code>--no-verify-jwt</code> on the command line overrides the file).</li>
+<li><em>"rejected before the function"</em> on <code>username-availability</code> or <code>password-reset</code> — <code>profiles</code> or <code>auth</code> was deployed with the gate on. Redeploy it so <code>config.toml</code> applies. Until then the signup form cannot check usernames and nobody can start a password reset.</li>
+<li><em>"preflight rejected by the JWT gate"</em> — browsers send no <code>Authorization</code> header on <code>OPTIONS</code>, so every browser call to that function would fail. Confirm this on the real project before shipping; if the platform rejects preflights for gated functions, the Website cannot call them cross-origin and this needs a design change, not a redeploy.</li>
+</ul>
 <p>Manual checks (need a human, a test account, or a mailbox):</p>
 <div class="table-wrapper"><table><thead><tr><th>Check</th><th>How</th><th>Expect</th></tr></thead><tbody>
 <tr><td>Account deletion with blockers</td><td><code>DELETE /profiles/me</code> as a test user who owns a team or has authored news/discussions</td><td><code>409</code> with an itemized <code>blockers</code> array; account still exists</td></tr>
 <tr><td>Account deletion without blockers</td><td><code>DELETE /profiles/me</code> as a fresh test user (optionally after a poll vote)</td><td><code>204</code>/success; user gone from Auth; no orphan rows</td></tr>
+<tr><td>Signed-out browser, Website origin</td><td>Open the Website signed out, with the browser's network tab open; use the signup form's username field and the password-reset form</td><td>Username check answers <code>200</code>; reset answers <code>200</code> and sends mail; no other DB call is made while signed out</td></tr>
+<tr><td>Signed-in browser, Website origin</td><td>Sign in, open the community and FAQ areas</td><td>Calls succeed with the user's token; no CORS errors for any listed Website origin</td></tr>
 <tr><td>Recovery e-mail</td><td><code>POST /auth/password-reset</code> for a test mailbox, <code>en</code> and <code>tr</code></td><td>Localized mail from the configured sender, link lands on the Website reset page</td></tr>
 <tr><td>Signup / magic link / invite / reauthentication</td><td>Trigger each that is enabled</td><td>en/tr copy; any other locale falls back to en</td></tr>
 <tr><td><code>email_change</code></td><td>Change the e-mail on a test user</td><td>Generic English fallback mail with a working link (deliberately not localized yet); decide whether that is acceptable</td></tr>
