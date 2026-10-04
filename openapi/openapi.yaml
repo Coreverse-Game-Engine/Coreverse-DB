@@ -17,7 +17,7 @@ info:
     `POST /auth/password-reset` and `GET /profiles/username-availability`;
     every other `/profiles` route authenticates the caller inside the
     function.
-  version: 0.5.1
+  version: 0.5.2
   license:
     name: GPL-3.0-only
     identifier: GPL-3.0-only
