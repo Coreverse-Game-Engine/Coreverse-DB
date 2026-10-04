@@ -9,10 +9,17 @@ const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY',)!;
 // That only resolves correctly if the caller's own JWT is forwarded to
 // PostgREST -- so this client is built per-request from the incoming
 // Authorization header, never from a fixed service/anon credential alone.
+//
+// A request without an Authorization header (a signed-out caller on one of
+// the routes that is allowed to be anonymous) must NOT be forwarded as an
+// empty `Authorization:` header: that overrides supabase-js's default
+// `Bearer <anon key>` and leaves PostgREST with a credential it cannot
+// parse. With the header omitted, the client falls back to the anon key,
+// so the query runs as `anon`.
 export function createUserClient(req: Request,) {
-  const authHeader = req.headers.get('Authorization',) ?? '';
+  const authHeader = req.headers.get('Authorization',);
   return createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-    global: { headers: { Authorization: authHeader, }, },
+    global: authHeader ? { headers: { Authorization: authHeader, }, } : {},
     auth: { persistSession: false, },
   },);
 }

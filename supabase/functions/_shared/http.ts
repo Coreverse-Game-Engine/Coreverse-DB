@@ -22,11 +22,26 @@ const CORS_ALLOWED_METHODS = 'GET, POST, PATCH, DELETE, OPTIONS';
 // Exported so callers that need to validate a URL's origin against the
 // same allowlist (e.g. auth/index.ts checking password-reset's
 // redirectTo) don't duplicate this parsing.
+//
+// Entries are normalized to a bare origin so a trailing slash or a stray
+// path in the secret (`https://coreverse.dev/`) cannot silently stop
+// matching the browser's `Origin` header, which never has either. An entry
+// that does not parse as a URL is kept as typed (and simply never matches).
 export function allowedOrigins(): string[] {
   return (Deno.env.get('WEBSITE_ALLOWED_ORIGINS',) ?? '')
     .split(',',)
-    .map((origin,) => origin.trim())
+    .map((origin,) => normalizeOrigin(origin,))
     .filter((origin,) => origin.length > 0);
+}
+
+function normalizeOrigin(raw: string,): string {
+  const trimmed = raw.trim();
+  try {
+    const { origin, } = new URL(trimmed,);
+    return origin === 'null' ? trimmed : origin;
+  } catch {
+    return trimmed;
+  }
 }
 
 // Headers to attach to every response (including preflight). Only sets
