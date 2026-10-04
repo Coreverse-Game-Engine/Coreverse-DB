@@ -29,6 +29,12 @@ Local dev: copy `supabase/functions/.env.example` to
 `supabase/functions/.env` (gitignored) — `supabase functions serve` picks
 it up automatically. Deployed environments: `supabase secrets set
 WEBSITE_ALLOWED_ORIGINS=https://coreverse.dev,https://staging.coreverse.dev`.
+List **every** origin the Website is served from in that environment
+(production, staging, preview deployments, and any LAN address you test
+from) — an origin that is missing fails CORS in the browser and is
+rejected as a `redirectTo` for password reset. Entries are normalized to a
+bare origin, so a trailing slash or a path is tolerated, but each origin
+still has to match the browser's `Origin` exactly (scheme, host and port).
 Keep `WEBSITE_ALLOWED_ORIGINS` in sync with the Website's actual
 origin(s) for that environment, and with Supabase Auth's own Site URL /
 Additional Redirect URLs allowlist (Auth checks `redirectTo`

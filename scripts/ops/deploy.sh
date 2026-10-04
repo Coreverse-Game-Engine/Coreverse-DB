@@ -48,7 +48,9 @@ fi
 echo "commit: $(git rev-parse --short HEAD) ($(git branch --show-current))"
 REF_FILE=supabase/.temp/project-ref
 if [[ -f "$REF_FILE" ]]; then echo "linked project ref: $(cat "$REF_FILE")"; else echo "NOT LINKED -- run: supabase link --project-ref <ref>" >&2; [[ "$APPLY" == "1" ]] && exit 1; fi
-grep -q 'verify_jwt = false' supabase/config.toml || { echo "config.toml has no [functions.send-email] verify_jwt = false" >&2; exit 1; }
+for fn in send-email auth profiles; do
+  grep -q "^\[functions\.$fn\]" supabase/config.toml || { echo "config.toml has no [functions.$fn] section (verify_jwt = false)" >&2; exit 1; }
+done
 
 step "1. Pending migrations (read-only)"
 supabase db push --dry-run
@@ -67,14 +69,14 @@ if [[ "$SECRETS" == "1" ]]; then
 fi
 step "3b. Secrets currently set on the project (names/digests only)"
 supabase secrets list || true
-echo "Expected: WEBSITE_ALLOWED_ORIGINS SEND_EMAIL_HOOK_SECRET BREVO_API_KEY BREVO_SENDER_EMAIL BREVO_SENDER_NAME DOCS_REINDEX_TOKEN"
+echo "Expected: WEBSITE_ALLOWED_ORIGINS (every Website origin, incl. staging) SEND_EMAIL_HOOK_SECRET BREVO_API_KEY BREVO_SENDER_EMAIL BREVO_SENDER_NAME DOCS_REINDEX_TOKEN"
 echo "(SUPABASE_URL / SUPABASE_ANON_KEY / SERVICE_ROLE_KEY are injected by the platform.)"
 
 step "4. Edge Functions: ${FUNCTIONS[*]}"
 for fn in "${FUNCTIONS[@]}"; do
   if confirm "Deploy function '$fn'?"; then supabase functions deploy "$fn"; else echo "(skipped $fn)"; fi
 done
-echo "send-email picks up verify_jwt=false from supabase/config.toml."
+echo "send-email, auth and profiles pick up verify_jwt=false from supabase/config.toml; every other function keeps the JWT gate on."
 
 step "5. Manual follow-ups (cannot be scripted)"
 cat <<'TXT'

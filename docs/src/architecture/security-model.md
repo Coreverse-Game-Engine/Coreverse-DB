@@ -20,6 +20,7 @@ Row Level Security (RLS)
        └── Triggers
 ```
 
+- **The platform JWT gate** (Supabase `verify_jwt`) sits in front of every Edge Function except `send-email`, `auth` and `profiles`, so signed-out callers are rejected before any Coreverse code runs; the two signed-out operations are listed in [Security › Authentication](../security/authentication.md#the-platform-jwt-gate).
 - **Authentication** is entirely Supabase Auth's responsibility — Coreverse DB never stores or handles a password. See [Security › Authentication](../security/authentication.md).
 - **Request shape** validation (types, required fields, enum values) happens in the Edge Function with Zod, before anything touches the database.
 - **Authorization** — who can see or change which row — is enforced by PostgreSQL itself via RLS, not by application code, so it holds even if an Edge Function has a bug. See [Row Level Security](../security/rls.md) and [Policies](../security/policies.md).

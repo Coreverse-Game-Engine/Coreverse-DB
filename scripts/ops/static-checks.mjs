@@ -16,6 +16,10 @@
 //   5. package.json version == openapi info.version (same rule as
 //      scripts/check-version-sync.mjs, repeated so one command covers it)
 //   6. migration filenames are unique, ordered, and well formed
+//   7. migration filenames cited in comments/docs exist
+//   8. the platform JWT gate is off for exactly the functions that are meant
+//      to serve signed-out callers, and those functions still authenticate
+//      the routes that need a user themselves
 
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { dirname, join, relative, resolve } from 'node:path';
@@ -130,6 +134,30 @@ for (const f of scan) {
   for (const m of readFileSync(join(root, f), 'utf8').matchAll(/\b(\d{14}_[a-z0-9_]+\.sql)\b/g)) {
     if (!migNames.has(m[1])) fail('stale-ref', `${f} cites ${m[1]}, which is not in supabase/migrations/`);
   }
+}
+
+// 8 -- JWT gate exemptions -------------------------------------------------
+// The Supabase gateway rejects any request without a valid JWT unless a
+// function opts out here. Every opt-out is a hole in that gate, so the list is
+// pinned: adding a function means editing this list on purpose, together with
+// docs/src/security/authentication.md.
+const EXPECTED_JWT_EXEMPT = ['auth', 'profiles', 'send-email'];
+const exempt = [];
+for (const section of read('supabase/config.toml').split(/^(?=\[)/m)) {
+  const head = section.match(/^\[functions\.([a-z0-9_-]+)\]/);
+  if (head && /^\s*verify_jwt\s*=\s*false\s*$/m.test(section)) exempt.push(head[1]);
+}
+exempt.sort();
+if (exempt.join(',') !== EXPECTED_JWT_EXEMPT.join(',')) {
+  fail('jwt-gate', `config.toml has verify_jwt = false for [${exempt.join(', ')}], expected exactly [${EXPECTED_JWT_EXEMPT.join(', ')}]`);
+}
+// profiles runs without the gate, so /me and /me/avatar rely on this call.
+if (!/auth\.getUser\(\)/.test(read('supabase/functions/profiles/index.ts'))) {
+  fail('jwt-gate', 'supabase/functions/profiles/index.ts no longer calls auth.getUser(); with the gate off, /profiles/me would be unauthenticated');
+}
+// auth runs without the gate, so the only route must stay the rate-limited one.
+if (!/hitRateLimit\(/.test(read('supabase/functions/auth/index.ts'))) {
+  fail('jwt-gate', 'supabase/functions/auth/index.ts no longer rate limits; it is deployed without the JWT gate');
 }
 
 if (warnings.length) {
