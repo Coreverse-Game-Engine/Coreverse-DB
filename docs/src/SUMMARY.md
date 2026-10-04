@@ -41,6 +41,8 @@
 - [Discussions](database/tables/discussions.md)
 - [Polls](database/tables/polls.md)
 - [News](database/tables/news.md)
+- [Events](database/tables/events.md)
+- [FAQ](database/tables/faq.md)
 - [Requests](database/tables/requests.md)
 
 ## Functions
@@ -78,6 +80,8 @@
 - [Discussions](api/resources/discussions.md)
 - [Polls](api/resources/polls.md)
 - [News](api/resources/news.md)
+- [Events](api/resources/events.md)
+- [FAQ](api/resources/faq.md)
 - [Requests](api/resources/requests.md)
 
 # OpenAPI
@@ -100,6 +104,7 @@
 # Operations
 
 - [Deployment](operations/deployment.md)
+- [Production Verification](operations/production-verification.md)
 - [Environments](operations/environments.md)
 - [Database Backup](operations/database-backup.md)
 - [Database Restore](operations/database-restore.md)
@@ -113,6 +118,7 @@
 - [Database Conventions](reference/database-conventions.md)
 - [Error Codes](reference/error-codes.md)
 - [Glossary](reference/glossary.md)
+- [Changelog](reference/changelog.md)
 
 # Contributing
 

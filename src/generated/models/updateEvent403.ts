@@ -4,7 +4,7 @@
  * Coreverse DB API
  * Centralized data-access API for the Coreverse ecosystem. Coreverse DB defines and serves all data operations; Coreverse Launcher and Coreverse Website consume this API and never access Postgres/Supabase directly.
  *
- * OpenAPI spec version: 0.4.2
+ * OpenAPI spec version: 0.5.0
  */
 import type { UpdateEvent403Error } from "./updateEvent403Error";
 

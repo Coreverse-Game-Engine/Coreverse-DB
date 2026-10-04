@@ -58,7 +58,7 @@ body:
     id: version
     attributes:
       label: Version / commit
-      description: Package version (`@coreverse/db-client`), or the commit SHA / branch you're on.
+      description: Package version (`@Coreverse-Game-Engine/db-client`), or the commit SHA / branch you're on.
       placeholder: e.g. 0.1.0, or commit 8655e29
     validations:
       required: false

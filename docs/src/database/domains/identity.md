@@ -35,7 +35,7 @@ A `before insert` trigger on `team_members` (`identity.enforce_team_capacity`) r
 
 ## Legacy backfill
 
-Before this package's `identity` domain existed, the Website ran its own signup-time schema directly (`public.profiles`, `public.handle_new_user()`). `20260912120000_backfill_legacy_identity.sql` backfills `identity.profiles` rows for any user who signed up before `trg_handle_new_auth_user` existed, and is idempotent — safe to re-run, and a no-op on an environment that never had the legacy schema. It does not drop the legacy objects themselves; that's a separate, manually-run step once each environment is confirmed clear of other consumers — see `supabase/maintenance/drop_legacy_identity_objects.sql`.
+Before this package's `identity` domain existed, the Website ran its own signup-time schema directly (`public.profiles`, `public.handle_new_user()`). `20260912190612_backfill_legacy_identity.sql` backfills `identity.profiles` rows for any user who signed up before `trg_handle_new_auth_user` existed, and is idempotent — safe to re-run, and a no-op on an environment that never had the legacy schema. It does not drop the legacy objects themselves; that's a separate, manually-run step once each environment is confirmed clear of other consumers — see `supabase/maintenance/drop_legacy_identity_objects.sql`.
 
 ## Why membership logic is functions, not policies
 
