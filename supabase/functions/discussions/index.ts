@@ -28,6 +28,7 @@
 import { serve, } from '@std/http/server';
 import { createUserClient, } from '../_shared/supabase-client.ts';
 import { errorResponse, jsonResponse, safeDbErrorMessage, withCors, } from '../_shared/http.ts';
+import { withTokenCheck, } from '../_shared/caller.ts';
 import {
   buildCursorFilter,
   encodeCursor,
@@ -69,7 +70,7 @@ function toExcerpt(body: string,): string {
   return `${lastSpace > 0 ? slice.slice(0, lastSpace,) : slice}…`;
 }
 
-serve(withCors(async (req,) => {
+serve(withCors(withTokenCheck(async (req,) => {
   const url = new URL(req.url,);
   const segments = url.pathname
     .replace(/^\/functions\/v1\/discussions\/?/, '',)
@@ -406,4 +407,4 @@ serve(withCors(async (req,) => {
   } catch (_err) {
     return errorResponse('internal_error', safeDbErrorMessage(500,), 500,);
   }
-},),);
+},),),);

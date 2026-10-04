@@ -12,6 +12,7 @@
 import { serve, } from '@std/http/server';
 import { createUserClient, } from '../_shared/supabase-client.ts';
 import { errorResponse, jsonResponse, safeDbErrorMessage, withCors, } from '../_shared/http.ts';
+import { withTokenCheck, } from '../_shared/caller.ts';
 import { buildCursorFilter, paginate, parsePagination, } from '../_shared/pagination.ts';
 import { fetchAuthors, unknownAuthor, } from '../_shared/authors.ts';
 import { CreateEventSchema, UpdateEventSchema, UuidSchema, } from './schemas.ts';
@@ -27,7 +28,7 @@ async function withAuthor(
   return { ...row, author: authors.get(row.author_id,) ?? unknownAuthor(row.author_id,), };
 }
 
-serve(withCors(async (req,) => {
+serve(withCors(withTokenCheck(async (req,) => {
   const url = new URL(req.url,);
   const segments = url.pathname
     .replace(/^\/functions\/v1\/events\/?/, '',)
@@ -175,4 +176,4 @@ serve(withCors(async (req,) => {
   } catch (_err) {
     return errorResponse('internal_error', safeDbErrorMessage(500,), 500,);
   }
-},),);
+},),),);

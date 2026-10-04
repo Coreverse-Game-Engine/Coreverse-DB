@@ -16,6 +16,7 @@
 import { serve, } from '@std/http/server';
 import { createUserClient, } from '../_shared/supabase-client.ts';
 import { errorResponse, jsonResponse, safeDbErrorMessage, withCors, } from '../_shared/http.ts';
+import { withTokenCheck, } from '../_shared/caller.ts';
 import {
   CreateFaqItemSchema,
   LocaleSchema,
@@ -68,7 +69,7 @@ async function fetchFaqItemDetail(
   return { ...rest, translations, };
 }
 
-serve(withCors(async (req,) => {
+serve(withCors(withTokenCheck(async (req,) => {
   const url = new URL(req.url,);
   const segments = url.pathname
     .replace(/^\/functions\/v1\/faq\/?/, '',)
@@ -270,4 +271,4 @@ serve(withCors(async (req,) => {
   } catch (_err) {
     return errorResponse('internal_error', safeDbErrorMessage(500,), 500,);
   }
-},),);
+},),),);
