@@ -35,6 +35,14 @@ server-to-server, with a Standard Webhooks signature
 - must be deployed with `supabase functions deploy send-email --no-verify-jwt`
   (the normal JWT check would reject Auth's own signed request).
 
+`auth` and `profiles` are also declared `verify_jwt = false` in
+`supabase/config.toml`, for a different reason: each serves one operation
+that must work signed out (`POST /auth/password-reset`,
+`GET /profiles/username-availability`). Every other function keeps the
+JWT gate on. A function without the gate must authenticate each route that
+needs a user itself, and `scripts/ops/static-checks.mjs` pins the list — see
+[Security › Authentication](../security/authentication.md#the-platform-jwt-gate).
+
 Configure it once per environment at Dashboard → Authentication → Hooks
 → Send Email hook, pointing at this function's URL, and set
 `SEND_EMAIL_HOOK_SECRET` to the secret the Dashboard generates. It fires
