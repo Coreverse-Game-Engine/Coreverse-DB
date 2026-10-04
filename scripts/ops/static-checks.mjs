@@ -19,7 +19,7 @@
 //   7. migration filenames cited in comments/docs exist
 //   8. the platform JWT gate is off for exactly the functions that are meant
 //      to serve signed-out callers, and those functions still authenticate
-//      the routes that need a user themselves
+//      the routes that need a user themselves (withTokenCheck, getUser())
 
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { dirname, join, relative, resolve } from 'node:path';
@@ -141,7 +141,12 @@ for (const f of scan) {
 // function opts out here. Every opt-out is a hole in that gate, so the list is
 // pinned: adding a function means editing this list on purpose, together with
 // docs/src/security/authentication.md.
-const EXPECTED_JWT_EXEMPT = ['auth', 'profiles', 'send-email'];
+//
+// PUBLIC_CONTENT functions serve signed-out reads; they must wrap their handler
+// in withTokenCheck so that, without the gate, an unusable token and any write
+// without a user token still answer 401 from the function itself.
+const PUBLIC_CONTENT = ['discussions', 'docs', 'events', 'faq', 'news', 'polls', 'releases'];
+const EXPECTED_JWT_EXEMPT = ['auth', 'profiles', 'send-email', ...PUBLIC_CONTENT].sort();
 const exempt = [];
 for (const section of read('supabase/config.toml').split(/^(?=\[)/m)) {
   const head = section.match(/^\[functions\.([a-z0-9_-]+)\]/);
@@ -151,6 +156,11 @@ exempt.sort();
 if (exempt.join(',') !== EXPECTED_JWT_EXEMPT.join(',')) {
   fail('jwt-gate', `config.toml has verify_jwt = false for [${exempt.join(', ')}], expected exactly [${EXPECTED_JWT_EXEMPT.join(', ')}]`);
 }
+// teams, requests and projects need a signed-in user on every route, so they
+// keep the gate on; name them so a silent opt-out is reported precisely.
+for (const fn of ['teams', 'requests', 'projects']) {
+  if (exempt.includes(fn)) fail('jwt-gate', `${fn} must keep the platform JWT gate on (every route needs a signed-in user)`);
+}
 // profiles runs without the gate, so /me and /me/avatar rely on this call.
 if (!/auth\.getUser\(\)/.test(read('supabase/functions/profiles/index.ts'))) {
   fail('jwt-gate', 'supabase/functions/profiles/index.ts no longer calls auth.getUser(); with the gate off, /profiles/me would be unauthenticated');
@@ -158,6 +168,24 @@ if (!/auth\.getUser\(\)/.test(read('supabase/functions/profiles/index.ts'))) {
 // auth runs without the gate, so the only route must stay the rate-limited one.
 if (!/hitRateLimit\(/.test(read('supabase/functions/auth/index.ts'))) {
   fail('jwt-gate', 'supabase/functions/auth/index.ts no longer rate limits; it is deployed without the JWT gate');
+}
+// Every public-content function must wrap its handler in withTokenCheck.
+for (const fn of PUBLIC_CONTENT) {
+  const src = read(`supabase/functions/${fn}/index.ts`);
+  if (!/serve\(\s*withCors\(\s*withTokenCheck\(/.test(src)) {
+    fail('jwt-gate', `supabase/functions/${fn}/index.ts is not wrapped in serve(withCors(withTokenCheck(...))); it runs without the platform JWT gate, so anonymous writes and bad tokens would reach its routes`);
+  }
+  const allowsAnonymousWrites = /anonymousWrites:\s*true/.test(src);
+  if (fn === 'docs' && !allowsAnonymousWrites) {
+    fail('jwt-gate', 'docs must pass { anonymousWrites: true } to withTokenCheck: POST /docs/reindex is authenticated by X-Reindex-Token, not by a user JWT');
+  }
+  if (fn !== 'docs' && allowsAnonymousWrites) {
+    fail('jwt-gate', `${fn} passes { anonymousWrites: true } to withTokenCheck; only docs (shared-secret reindex) may accept anonymous writes`);
+  }
+}
+// The one anonymous write must stay protected by its shared secret.
+if (!/X-Reindex-Token/.test(read('supabase/functions/docs/index.ts'))) {
+  fail('jwt-gate', 'supabase/functions/docs/index.ts no longer checks X-Reindex-Token; POST /docs/reindex would be unauthenticated');
 }
 
 if (warnings.length) {
