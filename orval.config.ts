@@ -105,7 +105,7 @@ export default defineConfig({
     },
   },
 
-  // TanStack Query hooks for the "@coreverse/db-client/react" subpath
+  // TanStack Query hooks for the "@Coreverse-Game-Engine/db-client/react" subpath
   // export (see src/react.ts + package.json `exports`). Reuses the same
   // coreverseFetch mutator as coreverseDb above -- these hooks are a thin
   // useQuery/useMutation wrapper around the exact same requests, not a

@@ -6,6 +6,7 @@
 import { serve, } from '@std/http/server';
 import { createUserClient, } from '../_shared/supabase-client.ts';
 import { errorResponse, jsonResponse, safeDbErrorMessage, withCors, } from '../_shared/http.ts';
+import { classifyCaller, withTokenCheck, } from '../_shared/caller.ts';
 import { buildCursorFilter, paginate, parsePagination, } from '../_shared/pagination.ts';
 import { hitRateLimit, } from '../_shared/rate-limit.ts';
 import { CastVoteSchema, CreatePollSchema, UuidSchema, } from './schemas.ts';
@@ -22,7 +23,7 @@ function isClosed(closesAt: string | null,): boolean {
   return closesAt !== null && new Date(closesAt,) <= new Date();
 }
 
-serve(withCors(async (req,) => {
+serve(withCors(withTokenCheck(async (req,) => {
   const url = new URL(req.url,);
   const segments = url.pathname
     .replace(/^\/functions\/v1\/polls\/?/, '',)
@@ -75,12 +76,13 @@ serve(withCors(async (req,) => {
       }
 
       // my_option_id: the caller's own vote, if any, for each poll on
-      // this page. poll_votes_self_read RLS already restricts this to
-      // rows where user_id = auth.uid(), so an anon caller (or one with
-      // no votes here) just gets an empty result -- no extra auth check
-      // needed before running this query.
+      // this page. Only a signed-in caller can have one: `anon` has no
+      // select grant on poll_votes at all, so asking as `anon` would be a
+      // permission error on every public list request, not an empty
+      // result. For a signed-in caller poll_votes_self_read RLS already
+      // restricts the rows to user_id = auth.uid().
       const myOptionByPoll = new Map<string, string>();
-      if (pollIds.length > 0) {
+      if (pollIds.length > 0 && classifyCaller(req,) === 'user') {
         const { data: myVotes, } = await supabase
           .schema('content',)
           .from('poll_votes',)
@@ -232,4 +234,4 @@ serve(withCors(async (req,) => {
   } catch (_err) {
     return errorResponse('internal_error', safeDbErrorMessage(500,), 500,);
   }
-},),);
+},),),);

@@ -328,6 +328,72 @@ deno_version = 2
 # [edge_runtime.secrets]
 # secret_key = "env(SECRET_VALUE)"
 
+# send-email is the Supabase Auth "Send Email" hook target. GoTrue calls it
+# server-to-server with a Standard Webhooks signature and NO user JWT, so the
+# platform's JWT gate must be off for this one function (the signature is
+# verified inside the function against SEND_EMAIL_HOOK_SECRET). Declared here
+# so `supabase functions deploy send-email` applies it without anyone having
+# to remember --no-verify-jwt. The other functions that run without the gate
+# are listed below.
+[functions.send-email]
+verify_jwt = false
+
+# Platform JWT gate (verify_jwt)
+#
+# A signed-out visitor must be able to READ public content, so the gate is
+# off for every function that serves it. It is also off for the two functions
+# that serve a signed-out operation. Each of these functions therefore
+# authenticates the caller itself:
+#
+#   releases, news, events, faq, polls, discussions, docs
+#       Wrapped in withTokenCheck (_shared/caller.ts): an unusable or expired
+#       token answers 401 `unauthorized`, and any write (POST/PUT/PATCH/DELETE)
+#       without a user token answers 401 `unauthorized` -- the response a client
+#       turns into "show the sign-in screen". The write routes then resolve the
+#       user with supabase.auth.getUser() and/or RLS. docs is the one function
+#       that lets an anonymous write through (POST /docs/reindex), because that
+#       route is authenticated by the X-Reindex-Token shared secret instead.
+#   auth     -- POST /auth/password-reset. The caller cannot sign in, so there
+#               is no JWT. The whole function is that one route; it is rate
+#               limited per email and per IP.
+#   profiles -- GET /profiles/username-availability (signup form, rate limited
+#               per IP). Every other route (/profiles/me, /profiles/me/avatar)
+#               resolves the caller with supabase.auth.getUser() and returns
+#               401 without a valid session.
+#
+# The gate stays ON for teams, requests and projects: every route in them needs
+# a signed-in user, so the gateway remains a second line of defence there.
+#
+# scripts/ops/static-checks.mjs pins this exact list and fails if it changes
+# without the check being updated, and scripts/ops/smoke.mjs verifies both
+# halves against a running API.
+[functions.auth]
+verify_jwt = false
+
+[functions.profiles]
+verify_jwt = false
+
+[functions.releases]
+verify_jwt = false
+
+[functions.news]
+verify_jwt = false
+
+[functions.events]
+verify_jwt = false
+
+[functions.faq]
+verify_jwt = false
+
+[functions.polls]
+verify_jwt = false
+
+[functions.discussions]
+verify_jwt = false
+
+[functions.docs]
+verify_jwt = false
+
 [analytics]
 enabled = true
 port = 54327

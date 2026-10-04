@@ -36,7 +36,9 @@ jobs:
           node-version: "22"
           cache: pnpm
           registry-url: "https://npm.pkg.github.com"
-          scope: "@coreverse"
+          # `scope` is intentionally omitted: for GitHub Packages setup-node
+          # falls back to the repository owner, which is what package.json's
+          # name (@Coreverse-Game-Engine/db-client) must match anyway.
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile

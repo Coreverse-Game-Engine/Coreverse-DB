@@ -7,7 +7,7 @@ security issues responsibly.
 ## Supported Versions
 
 Coreverse DB does not yet have tagged releases; `main` is the only supported line. Once
-`@coreverse/db-client` starts publishing versioned releases, this table will track which are
+`@Coreverse-Game-Engine/db-client` starts publishing versioned releases, this table will track which are
 receiving security fixes.
 
 | Version         | Supported          |
