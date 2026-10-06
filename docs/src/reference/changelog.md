@@ -2,6 +2,35 @@
 
 Release notes for the `@Coreverse-Game-Engine/db-client` package and the backend it describes. GitHub's auto-generated release notes (grouped by PR label, see `.github/release.yml`) remain the per-PR record; this page is the consumer-facing summary of what changed *for API and SDK users*.
 
+## 0.5.3
+
+SDK fix release. **No API shape changes, no database migration and no Edge Function redeploy**; the backend is identical to 0.5.2.
+
+### Fixed
+
+- **React hooks: every write operation was generated as a query.** `override.query.useQuery: true` in `orval.config.ts` made Orval emit `useQuery` hooks for POST, PATCH, PUT and DELETE operations too. `useCastVote`, `useCreateDiscussion`, `useReplyToDiscussion`, `useUpdateMyProfile`, `useDeleteMyAccount` and the other 33 write hooks therefore ran their request when the component mounted, cached the response under a `["POST", url, body]` key, and had no `mutate`. All 38 non-GET operations are now `useMutation` hooks (GET operations stay `useQuery` hooks) (`use<OperationId>(options?, queryClient?)`) with a matching `get<OperationId>MutationOptions` helper, and the `get<OperationId>QueryKey` / `get<OperationId>QueryOptions` exports of those operations are gone.
+- **Generated headers described the 0.5.1 access model.** The generated files and `openapi/openapi.yaml` (`info.description`, `bearerAuth` description) still said the platform JWT gate is on for the public-content functions. They now describe the 0.5.2 model: signed-out reads work, writes need a session.
+
+### Changed
+
+- `orval.config.ts` derives every operation's verb from `openapi/paths/*.yaml` and pins its hook kind per operation (GET: `useQuery`, every other verb: `useMutation`), so a newly added operation cannot regress to the wrong kind.
+- `tests/react.test.ts` checks, for every operation in the spec, that GET operations export `get<OperationId>QueryOptions` (and no mutation helper) and every other verb exports `get<OperationId>MutationOptions` (and no query helper).
+
+### Migrating from 0.5.2
+
+Hooks of write operations changed shape. Variables are passed to `mutate` / `mutateAsync` as one object: path parameters by name, the request body as `data`, query parameters as `params`.
+
+```ts
+// 0.5.2 (a query that fired on mount -- never worked as a write)
+const vote = useCastVote(pollId, { option_id: optionId });
+
+// 0.5.3
+const vote = useCastVote();
+vote.mutate({ pollId, data: { option_id: optionId } });
+```
+
+Hooks of GET operations, the plain fetch functions (`castVote(pollId, body)`) and the Zod schemas are unchanged.
+
 ## 0.5.2
 
 Access-model release. **No API shape changes and no database migration**; the SDK surface is identical to 0.5.1 (the package version moves so that it matches the deployed backend and the spec). **Redeploy every Edge Function**: the JWT gate is a deploy-time setting.
