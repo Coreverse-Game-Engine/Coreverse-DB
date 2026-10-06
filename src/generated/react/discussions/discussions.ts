@@ -3,19 +3,22 @@
  * Do not edit manually.
  * Coreverse DB API
  * Centralized data-access API for the Coreverse ecosystem. Coreverse DB defines and serves all data operations; Coreverse Launcher and Coreverse Website consume this API and never access Postgres/Supabase directly.
- * Access model: the Supabase platform JWT gate is ON for every Edge Function except `send-email`, `auth` and `profiles`, so a request without a valid Supabase Auth JWT is rejected with 401 before the function runs -- including the operations below that declare no `security` requirement (those only mean the function itself does not require a particular user). The only signed-out operations are `POST /auth/password-reset` and `GET /profiles/username-availability`; every other `/profiles` route authenticates the caller inside the function.
+ * Access model: the Supabase platform JWT gate is OFF for `releases`, `news`, `events`, `faq`, `polls`, `discussions`, `docs`, `auth`, `profiles` and `send-email`, and ON for `teams`, `requests` and `projects`. Signed-out callers can read public content (a `GET` on any public-content route answers 200); every write needs a user session and answers 401 `unauthorized` from the function without one. `POST /auth/password-reset` and `GET /profiles/username-availability` also work signed out; every other `/profiles` route authenticates the caller inside the function.
  *
- * OpenAPI spec version: 0.5.2
+ * OpenAPI spec version: 0.5.3
  */
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import type {
   DataTag,
   DefinedInitialDataOptions,
   DefinedUseQueryResult,
+  MutationFunction,
   QueryClient,
   QueryFunction,
   QueryKey,
   UndefinedInitialDataOptions,
+  UseMutationOptions,
+  UseMutationResult,
   UseQueryOptions,
   UseQueryResult,
 } from "@tanstack/react-query";
@@ -340,160 +343,80 @@ export const createDiscussion = async (
   });
 };
 
-export const getCreateDiscussionQueryKey = (
-  createDiscussionBody?: CreateDiscussionBody,
-) => {
-  return ["POST", `/discussions`, createDiscussionBody] as const;
-};
+export const getCreateDiscussionMutationKey = () =>
+  ["createDiscussion"] as const;
 
-export const getCreateDiscussionQueryOptions = <
-  TData = Awaited<ReturnType<typeof createDiscussion>>,
+export const getCreateDiscussionMutationOptions = <
   TError = CreateDiscussion400 | CreateDiscussion401 | CreateDiscussion429,
->(
-  createDiscussionBody: CreateDiscussionBody,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<
-        Awaited<ReturnType<typeof createDiscussion>>,
-        TError,
-        TData
-      >
-    >;
-    request?: SecondParameter<typeof coreverseFetch>;
-  },
-) => {
-  const { query: queryOptions, request: requestOptions } = options ?? {};
-
-  const queryKey =
-    queryOptions?.queryKey ?? getCreateDiscussionQueryKey(createDiscussionBody);
-
-  const queryFn: QueryFunction<
-    Awaited<ReturnType<typeof createDiscussion>>
-  > = ({ signal }) =>
-    createDiscussion(createDiscussionBody, { signal, ...requestOptions });
-
-  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
     Awaited<ReturnType<typeof createDiscussion>>,
     TError,
-    TData
-  > & { queryKey: DataTag<QueryKey, TData, TError> };
+    CreateDiscussionMutationVariables,
+    TContext
+  >;
+  request?: SecondParameter<typeof coreverseFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof createDiscussion>>,
+  TError,
+  CreateDiscussionMutationVariables,
+  TContext
+> => {
+  const mutationKey = getCreateDiscussionMutationKey();
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof createDiscussion>>,
+    CreateDiscussionMutationVariables
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return createDiscussion(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
 };
 
-export type CreateDiscussionQueryResult = NonNullable<
+export type CreateDiscussionMutationResult = NonNullable<
   Awaited<ReturnType<typeof createDiscussion>>
 >;
-export type CreateDiscussionQueryError =
+export type CreateDiscussionMutationBody = CreateDiscussionBody;
+export type CreateDiscussionMutationError =
   CreateDiscussion400 | CreateDiscussion401 | CreateDiscussion429;
+export type CreateDiscussionMutationVariables = { data: CreateDiscussionBody };
 
-export function useCreateDiscussion<
-  TData = Awaited<ReturnType<typeof createDiscussion>>,
-  TError = CreateDiscussion400 | CreateDiscussion401 | CreateDiscussion429,
->(
-  createDiscussionBody: CreateDiscussionBody,
-  options: {
-    query: Partial<
-      UseQueryOptions<
-        Awaited<ReturnType<typeof createDiscussion>>,
-        TError,
-        TData
-      >
-    > &
-      Pick<
-        DefinedInitialDataOptions<
-          Awaited<ReturnType<typeof createDiscussion>>,
-          TError,
-          Awaited<ReturnType<typeof createDiscussion>>
-        >,
-        "initialData"
-      >;
-    request?: SecondParameter<typeof coreverseFetch>;
-  },
-  queryClient?: QueryClient,
-): DefinedUseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-};
-export function useCreateDiscussion<
-  TData = Awaited<ReturnType<typeof createDiscussion>>,
-  TError = CreateDiscussion400 | CreateDiscussion401 | CreateDiscussion429,
->(
-  createDiscussionBody: CreateDiscussionBody,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<
-        Awaited<ReturnType<typeof createDiscussion>>,
-        TError,
-        TData
-      >
-    > &
-      Pick<
-        UndefinedInitialDataOptions<
-          Awaited<ReturnType<typeof createDiscussion>>,
-          TError,
-          Awaited<ReturnType<typeof createDiscussion>>
-        >,
-        "initialData"
-      >;
-    request?: SecondParameter<typeof coreverseFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-};
-export function useCreateDiscussion<
-  TData = Awaited<ReturnType<typeof createDiscussion>>,
-  TError = CreateDiscussion400 | CreateDiscussion401 | CreateDiscussion429,
->(
-  createDiscussionBody: CreateDiscussionBody,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<
-        Awaited<ReturnType<typeof createDiscussion>>,
-        TError,
-        TData
-      >
-    >;
-    request?: SecondParameter<typeof coreverseFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-};
 /**
  * @summary Start a discussion
  */
-
-export function useCreateDiscussion<
-  TData = Awaited<ReturnType<typeof createDiscussion>>,
+export const useCreateDiscussion = <
   TError = CreateDiscussion400 | CreateDiscussion401 | CreateDiscussion429,
+  TContext = unknown,
 >(
-  createDiscussionBody: CreateDiscussionBody,
   options?: {
-    query?: Partial<
-      UseQueryOptions<
-        Awaited<ReturnType<typeof createDiscussion>>,
-        TError,
-        TData
-      >
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof createDiscussion>>,
+      TError,
+      CreateDiscussionMutationVariables,
+      TContext
     >;
     request?: SecondParameter<typeof coreverseFetch>;
   },
   queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-} {
-  const queryOptions = getCreateDiscussionQueryOptions(
-    createDiscussionBody,
-    options,
-  );
-
-  const query = useQuery(queryOptions, queryClient) as UseQueryResult<
-    TData,
-    TError
-  > & { queryKey: DataTag<QueryKey, TData, TError> };
-
-  return withQueryKey(query, queryOptions.queryKey);
-}
-
+): UseMutationResult<
+  Awaited<ReturnType<typeof createDiscussion>>,
+  TError,
+  CreateDiscussionMutationVariables,
+  TContext
+> => {
+  return useMutation(getCreateDiscussionMutationOptions(options), queryClient);
+};
 export type listDiscussionCategoriesResponse200 = {
   data: ListDiscussionCategories200Item[];
   status: 200;
@@ -913,180 +836,83 @@ export const updateDiscussion = async (
   );
 };
 
-export const getUpdateDiscussionQueryKey = (
-  discussionId: string,
-  updateDiscussionBody?: UpdateDiscussionBody,
-) => {
-  return [
-    "PATCH",
-    `/discussions/${discussionId}`,
-    updateDiscussionBody,
-  ] as const;
-};
+export const getUpdateDiscussionMutationKey = () =>
+  ["updateDiscussion"] as const;
 
-export const getUpdateDiscussionQueryOptions = <
-  TData = Awaited<ReturnType<typeof updateDiscussion>>,
+export const getUpdateDiscussionMutationOptions = <
   TError = UpdateDiscussion400 | UpdateDiscussion403 | UpdateDiscussion404,
->(
-  discussionId: string,
-  updateDiscussionBody: UpdateDiscussionBody,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<
-        Awaited<ReturnType<typeof updateDiscussion>>,
-        TError,
-        TData
-      >
-    >;
-    request?: SecondParameter<typeof coreverseFetch>;
-  },
-) => {
-  const { query: queryOptions, request: requestOptions } = options ?? {};
-
-  const queryKey =
-    queryOptions?.queryKey ??
-    getUpdateDiscussionQueryKey(discussionId, updateDiscussionBody);
-
-  const queryFn: QueryFunction<
-    Awaited<ReturnType<typeof updateDiscussion>>
-  > = ({ signal }) =>
-    updateDiscussion(discussionId, updateDiscussionBody, {
-      signal,
-      ...requestOptions,
-    });
-
-  return {
-    queryKey,
-    queryFn,
-    enabled: discussionId !== null && discussionId !== undefined,
-    ...queryOptions,
-  } as UseQueryOptions<
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
     Awaited<ReturnType<typeof updateDiscussion>>,
     TError,
-    TData
-  > & { queryKey: DataTag<QueryKey, TData, TError> };
+    UpdateDiscussionMutationVariables,
+    TContext
+  >;
+  request?: SecondParameter<typeof coreverseFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof updateDiscussion>>,
+  TError,
+  UpdateDiscussionMutationVariables,
+  TContext
+> => {
+  const mutationKey = getUpdateDiscussionMutationKey();
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof updateDiscussion>>,
+    UpdateDiscussionMutationVariables
+  > = (props) => {
+    const { discussionId, data } = props ?? {};
+
+    return updateDiscussion(discussionId, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
 };
 
-export type UpdateDiscussionQueryResult = NonNullable<
+export type UpdateDiscussionMutationResult = NonNullable<
   Awaited<ReturnType<typeof updateDiscussion>>
 >;
-export type UpdateDiscussionQueryError =
+export type UpdateDiscussionMutationBody = UpdateDiscussionBody;
+export type UpdateDiscussionMutationError =
   UpdateDiscussion400 | UpdateDiscussion403 | UpdateDiscussion404;
+export type UpdateDiscussionMutationVariables = {
+  discussionId: string;
+  data: UpdateDiscussionBody;
+};
 
-export function useUpdateDiscussion<
-  TData = Awaited<ReturnType<typeof updateDiscussion>>,
-  TError = UpdateDiscussion400 | UpdateDiscussion403 | UpdateDiscussion404,
->(
-  discussionId: string,
-  updateDiscussionBody: UpdateDiscussionBody,
-  options: {
-    query: Partial<
-      UseQueryOptions<
-        Awaited<ReturnType<typeof updateDiscussion>>,
-        TError,
-        TData
-      >
-    > &
-      Pick<
-        DefinedInitialDataOptions<
-          Awaited<ReturnType<typeof updateDiscussion>>,
-          TError,
-          Awaited<ReturnType<typeof updateDiscussion>>
-        >,
-        "initialData"
-      >;
-    request?: SecondParameter<typeof coreverseFetch>;
-  },
-  queryClient?: QueryClient,
-): DefinedUseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-};
-export function useUpdateDiscussion<
-  TData = Awaited<ReturnType<typeof updateDiscussion>>,
-  TError = UpdateDiscussion400 | UpdateDiscussion403 | UpdateDiscussion404,
->(
-  discussionId: string,
-  updateDiscussionBody: UpdateDiscussionBody,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<
-        Awaited<ReturnType<typeof updateDiscussion>>,
-        TError,
-        TData
-      >
-    > &
-      Pick<
-        UndefinedInitialDataOptions<
-          Awaited<ReturnType<typeof updateDiscussion>>,
-          TError,
-          Awaited<ReturnType<typeof updateDiscussion>>
-        >,
-        "initialData"
-      >;
-    request?: SecondParameter<typeof coreverseFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-};
-export function useUpdateDiscussion<
-  TData = Awaited<ReturnType<typeof updateDiscussion>>,
-  TError = UpdateDiscussion400 | UpdateDiscussion403 | UpdateDiscussion404,
->(
-  discussionId: string,
-  updateDiscussionBody: UpdateDiscussionBody,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<
-        Awaited<ReturnType<typeof updateDiscussion>>,
-        TError,
-        TData
-      >
-    >;
-    request?: SecondParameter<typeof coreverseFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-};
 /**
  * @summary Update or lock/unlock a discussion (author while unlocked, or moderator)
  */
-
-export function useUpdateDiscussion<
-  TData = Awaited<ReturnType<typeof updateDiscussion>>,
+export const useUpdateDiscussion = <
   TError = UpdateDiscussion400 | UpdateDiscussion403 | UpdateDiscussion404,
+  TContext = unknown,
 >(
-  discussionId: string,
-  updateDiscussionBody: UpdateDiscussionBody,
   options?: {
-    query?: Partial<
-      UseQueryOptions<
-        Awaited<ReturnType<typeof updateDiscussion>>,
-        TError,
-        TData
-      >
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof updateDiscussion>>,
+      TError,
+      UpdateDiscussionMutationVariables,
+      TContext
     >;
     request?: SecondParameter<typeof coreverseFetch>;
   },
   queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-} {
-  const queryOptions = getUpdateDiscussionQueryOptions(
-    discussionId,
-    updateDiscussionBody,
-    options,
-  );
-
-  const query = useQuery(queryOptions, queryClient) as UseQueryResult<
-    TData,
-    TError
-  > & { queryKey: DataTag<QueryKey, TData, TError> };
-
-  return withQueryKey(query, queryOptions.queryKey);
-}
-
+): UseMutationResult<
+  Awaited<ReturnType<typeof updateDiscussion>>,
+  TError,
+  UpdateDiscussionMutationVariables,
+  TContext
+> => {
+  return useMutation(getUpdateDiscussionMutationOptions(options), queryClient);
+};
 export type deleteDiscussionResponse204 = {
   data: void;
   status: 204;
@@ -1134,160 +960,80 @@ export const deleteDiscussion = async (
   );
 };
 
-export const getDeleteDiscussionQueryKey = (discussionId: string) => {
-  return ["DELETE", `/discussions/${discussionId}`] as const;
-};
+export const getDeleteDiscussionMutationKey = () =>
+  ["deleteDiscussion"] as const;
 
-export const getDeleteDiscussionQueryOptions = <
-  TData = Awaited<ReturnType<typeof deleteDiscussion>>,
+export const getDeleteDiscussionMutationOptions = <
   TError = DeleteDiscussion400 | DeleteDiscussion404,
->(
-  discussionId: string,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<
-        Awaited<ReturnType<typeof deleteDiscussion>>,
-        TError,
-        TData
-      >
-    >;
-    request?: SecondParameter<typeof coreverseFetch>;
-  },
-) => {
-  const { query: queryOptions, request: requestOptions } = options ?? {};
-
-  const queryKey =
-    queryOptions?.queryKey ?? getDeleteDiscussionQueryKey(discussionId);
-
-  const queryFn: QueryFunction<
-    Awaited<ReturnType<typeof deleteDiscussion>>
-  > = ({ signal }) =>
-    deleteDiscussion(discussionId, { signal, ...requestOptions });
-
-  return {
-    queryKey,
-    queryFn,
-    enabled: discussionId !== null && discussionId !== undefined,
-    ...queryOptions,
-  } as UseQueryOptions<
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
     Awaited<ReturnType<typeof deleteDiscussion>>,
     TError,
-    TData
-  > & { queryKey: DataTag<QueryKey, TData, TError> };
+    DeleteDiscussionMutationVariables,
+    TContext
+  >;
+  request?: SecondParameter<typeof coreverseFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof deleteDiscussion>>,
+  TError,
+  DeleteDiscussionMutationVariables,
+  TContext
+> => {
+  const mutationKey = getDeleteDiscussionMutationKey();
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof deleteDiscussion>>,
+    DeleteDiscussionMutationVariables
+  > = (props) => {
+    const { discussionId } = props ?? {};
+
+    return deleteDiscussion(discussionId, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
 };
 
-export type DeleteDiscussionQueryResult = NonNullable<
+export type DeleteDiscussionMutationResult = NonNullable<
   Awaited<ReturnType<typeof deleteDiscussion>>
 >;
-export type DeleteDiscussionQueryError =
-  DeleteDiscussion400 | DeleteDiscussion404;
 
-export function useDeleteDiscussion<
-  TData = Awaited<ReturnType<typeof deleteDiscussion>>,
-  TError = DeleteDiscussion400 | DeleteDiscussion404,
->(
-  discussionId: string,
-  options: {
-    query: Partial<
-      UseQueryOptions<
-        Awaited<ReturnType<typeof deleteDiscussion>>,
-        TError,
-        TData
-      >
-    > &
-      Pick<
-        DefinedInitialDataOptions<
-          Awaited<ReturnType<typeof deleteDiscussion>>,
-          TError,
-          Awaited<ReturnType<typeof deleteDiscussion>>
-        >,
-        "initialData"
-      >;
-    request?: SecondParameter<typeof coreverseFetch>;
-  },
-  queryClient?: QueryClient,
-): DefinedUseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-};
-export function useDeleteDiscussion<
-  TData = Awaited<ReturnType<typeof deleteDiscussion>>,
-  TError = DeleteDiscussion400 | DeleteDiscussion404,
->(
-  discussionId: string,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<
-        Awaited<ReturnType<typeof deleteDiscussion>>,
-        TError,
-        TData
-      >
-    > &
-      Pick<
-        UndefinedInitialDataOptions<
-          Awaited<ReturnType<typeof deleteDiscussion>>,
-          TError,
-          Awaited<ReturnType<typeof deleteDiscussion>>
-        >,
-        "initialData"
-      >;
-    request?: SecondParameter<typeof coreverseFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-};
-export function useDeleteDiscussion<
-  TData = Awaited<ReturnType<typeof deleteDiscussion>>,
-  TError = DeleteDiscussion400 | DeleteDiscussion404,
->(
-  discussionId: string,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<
-        Awaited<ReturnType<typeof deleteDiscussion>>,
-        TError,
-        TData
-      >
-    >;
-    request?: SecondParameter<typeof coreverseFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-};
+export type DeleteDiscussionMutationError =
+  DeleteDiscussion400 | DeleteDiscussion404;
+export type DeleteDiscussionMutationVariables = { discussionId: string };
+
 /**
  * @summary Delete a discussion (author or moderator)
  */
-
-export function useDeleteDiscussion<
-  TData = Awaited<ReturnType<typeof deleteDiscussion>>,
+export const useDeleteDiscussion = <
   TError = DeleteDiscussion400 | DeleteDiscussion404,
+  TContext = unknown,
 >(
-  discussionId: string,
   options?: {
-    query?: Partial<
-      UseQueryOptions<
-        Awaited<ReturnType<typeof deleteDiscussion>>,
-        TError,
-        TData
-      >
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof deleteDiscussion>>,
+      TError,
+      DeleteDiscussionMutationVariables,
+      TContext
     >;
     request?: SecondParameter<typeof coreverseFetch>;
   },
   queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-} {
-  const queryOptions = getDeleteDiscussionQueryOptions(discussionId, options);
-
-  const query = useQuery(queryOptions, queryClient) as UseQueryResult<
-    TData,
-    TError
-  > & { queryKey: DataTag<QueryKey, TData, TError> };
-
-  return withQueryKey(query, queryOptions.queryKey);
-}
-
+): UseMutationResult<
+  Awaited<ReturnType<typeof deleteDiscussion>>,
+  TError,
+  DeleteDiscussionMutationVariables,
+  TContext
+> => {
+  return useMutation(getDeleteDiscussionMutationOptions(options), queryClient);
+};
 export type listDiscussionRepliesResponse200 = {
   data: ListDiscussionReplies200;
   status: 200;
@@ -1589,203 +1335,94 @@ export const replyToDiscussion = async (
   );
 };
 
-export const getReplyToDiscussionQueryKey = (
-  discussionId: string,
-  replyToDiscussionBody?: ReplyToDiscussionBody,
-) => {
-  return [
-    "POST",
-    `/discussions/${discussionId}/replies`,
-    replyToDiscussionBody,
-  ] as const;
-};
+export const getReplyToDiscussionMutationKey = () =>
+  ["replyToDiscussion"] as const;
 
-export const getReplyToDiscussionQueryOptions = <
-  TData = Awaited<ReturnType<typeof replyToDiscussion>>,
+export const getReplyToDiscussionMutationOptions = <
   TError =
     | ReplyToDiscussion400
     | ReplyToDiscussion401
     | ReplyToDiscussion403
     | ReplyToDiscussion429,
->(
-  discussionId: string,
-  replyToDiscussionBody: ReplyToDiscussionBody,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<
-        Awaited<ReturnType<typeof replyToDiscussion>>,
-        TError,
-        TData
-      >
-    >;
-    request?: SecondParameter<typeof coreverseFetch>;
-  },
-) => {
-  const { query: queryOptions, request: requestOptions } = options ?? {};
-
-  const queryKey =
-    queryOptions?.queryKey ??
-    getReplyToDiscussionQueryKey(discussionId, replyToDiscussionBody);
-
-  const queryFn: QueryFunction<
-    Awaited<ReturnType<typeof replyToDiscussion>>
-  > = ({ signal }) =>
-    replyToDiscussion(discussionId, replyToDiscussionBody, {
-      signal,
-      ...requestOptions,
-    });
-
-  return {
-    queryKey,
-    queryFn,
-    enabled: discussionId !== null && discussionId !== undefined,
-    ...queryOptions,
-  } as UseQueryOptions<
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
     Awaited<ReturnType<typeof replyToDiscussion>>,
     TError,
-    TData
-  > & { queryKey: DataTag<QueryKey, TData, TError> };
+    ReplyToDiscussionMutationVariables,
+    TContext
+  >;
+  request?: SecondParameter<typeof coreverseFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof replyToDiscussion>>,
+  TError,
+  ReplyToDiscussionMutationVariables,
+  TContext
+> => {
+  const mutationKey = getReplyToDiscussionMutationKey();
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof replyToDiscussion>>,
+    ReplyToDiscussionMutationVariables
+  > = (props) => {
+    const { discussionId, data } = props ?? {};
+
+    return replyToDiscussion(discussionId, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
 };
 
-export type ReplyToDiscussionQueryResult = NonNullable<
+export type ReplyToDiscussionMutationResult = NonNullable<
   Awaited<ReturnType<typeof replyToDiscussion>>
 >;
-export type ReplyToDiscussionQueryError =
+export type ReplyToDiscussionMutationBody = ReplyToDiscussionBody;
+export type ReplyToDiscussionMutationError =
   | ReplyToDiscussion400
   | ReplyToDiscussion401
   | ReplyToDiscussion403
   | ReplyToDiscussion429;
+export type ReplyToDiscussionMutationVariables = {
+  discussionId: string;
+  data: ReplyToDiscussionBody;
+};
 
-export function useReplyToDiscussion<
-  TData = Awaited<ReturnType<typeof replyToDiscussion>>,
-  TError =
-    | ReplyToDiscussion400
-    | ReplyToDiscussion401
-    | ReplyToDiscussion403
-    | ReplyToDiscussion429,
->(
-  discussionId: string,
-  replyToDiscussionBody: ReplyToDiscussionBody,
-  options: {
-    query: Partial<
-      UseQueryOptions<
-        Awaited<ReturnType<typeof replyToDiscussion>>,
-        TError,
-        TData
-      >
-    > &
-      Pick<
-        DefinedInitialDataOptions<
-          Awaited<ReturnType<typeof replyToDiscussion>>,
-          TError,
-          Awaited<ReturnType<typeof replyToDiscussion>>
-        >,
-        "initialData"
-      >;
-    request?: SecondParameter<typeof coreverseFetch>;
-  },
-  queryClient?: QueryClient,
-): DefinedUseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-};
-export function useReplyToDiscussion<
-  TData = Awaited<ReturnType<typeof replyToDiscussion>>,
-  TError =
-    | ReplyToDiscussion400
-    | ReplyToDiscussion401
-    | ReplyToDiscussion403
-    | ReplyToDiscussion429,
->(
-  discussionId: string,
-  replyToDiscussionBody: ReplyToDiscussionBody,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<
-        Awaited<ReturnType<typeof replyToDiscussion>>,
-        TError,
-        TData
-      >
-    > &
-      Pick<
-        UndefinedInitialDataOptions<
-          Awaited<ReturnType<typeof replyToDiscussion>>,
-          TError,
-          Awaited<ReturnType<typeof replyToDiscussion>>
-        >,
-        "initialData"
-      >;
-    request?: SecondParameter<typeof coreverseFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-};
-export function useReplyToDiscussion<
-  TData = Awaited<ReturnType<typeof replyToDiscussion>>,
-  TError =
-    | ReplyToDiscussion400
-    | ReplyToDiscussion401
-    | ReplyToDiscussion403
-    | ReplyToDiscussion429,
->(
-  discussionId: string,
-  replyToDiscussionBody: ReplyToDiscussionBody,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<
-        Awaited<ReturnType<typeof replyToDiscussion>>,
-        TError,
-        TData
-      >
-    >;
-    request?: SecondParameter<typeof coreverseFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-};
 /**
  * @summary Reply to a discussion (rejected if the discussion is locked)
  */
-
-export function useReplyToDiscussion<
-  TData = Awaited<ReturnType<typeof replyToDiscussion>>,
+export const useReplyToDiscussion = <
   TError =
     | ReplyToDiscussion400
     | ReplyToDiscussion401
     | ReplyToDiscussion403
     | ReplyToDiscussion429,
+  TContext = unknown,
 >(
-  discussionId: string,
-  replyToDiscussionBody: ReplyToDiscussionBody,
   options?: {
-    query?: Partial<
-      UseQueryOptions<
-        Awaited<ReturnType<typeof replyToDiscussion>>,
-        TError,
-        TData
-      >
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof replyToDiscussion>>,
+      TError,
+      ReplyToDiscussionMutationVariables,
+      TContext
     >;
     request?: SecondParameter<typeof coreverseFetch>;
   },
   queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-} {
-  const queryOptions = getReplyToDiscussionQueryOptions(
-    discussionId,
-    replyToDiscussionBody,
-    options,
-  );
-
-  const query = useQuery(queryOptions, queryClient) as UseQueryResult<
-    TData,
-    TError
-  > & { queryKey: DataTag<QueryKey, TData, TError> };
-
-  return withQueryKey(query, queryOptions.queryKey);
-}
-
+): UseMutationResult<
+  Awaited<ReturnType<typeof replyToDiscussion>>,
+  TError,
+  ReplyToDiscussionMutationVariables,
+  TContext
+> => {
+  return useMutation(getReplyToDiscussionMutationOptions(options), queryClient);
+};
 export type updateDiscussionReplyResponse200 = {
   data: UpdateDiscussionReply200;
   status: 200;
@@ -1859,208 +1496,92 @@ export const updateDiscussionReply = async (
   );
 };
 
-export const getUpdateDiscussionReplyQueryKey = (
-  discussionId: string,
-  replyId: string,
-  updateDiscussionReplyBody?: UpdateDiscussionReplyBody,
-) => {
-  return [
-    "PATCH",
-    `/discussions/${discussionId}/replies/${replyId}`,
-    updateDiscussionReplyBody,
-  ] as const;
-};
+export const getUpdateDiscussionReplyMutationKey = () =>
+  ["updateDiscussionReply"] as const;
 
-export const getUpdateDiscussionReplyQueryOptions = <
-  TData = Awaited<ReturnType<typeof updateDiscussionReply>>,
+export const getUpdateDiscussionReplyMutationOptions = <
   TError =
     | UpdateDiscussionReply400
     | UpdateDiscussionReply403
     | UpdateDiscussionReply404,
->(
-  discussionId: string,
-  replyId: string,
-  updateDiscussionReplyBody: UpdateDiscussionReplyBody,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<
-        Awaited<ReturnType<typeof updateDiscussionReply>>,
-        TError,
-        TData
-      >
-    >;
-    request?: SecondParameter<typeof coreverseFetch>;
-  },
-) => {
-  const { query: queryOptions, request: requestOptions } = options ?? {};
-
-  const queryKey =
-    queryOptions?.queryKey ??
-    getUpdateDiscussionReplyQueryKey(
-      discussionId,
-      replyId,
-      updateDiscussionReplyBody,
-    );
-
-  const queryFn: QueryFunction<
-    Awaited<ReturnType<typeof updateDiscussionReply>>
-  > = ({ signal }) =>
-    updateDiscussionReply(discussionId, replyId, updateDiscussionReplyBody, {
-      signal,
-      ...requestOptions,
-    });
-
-  return {
-    queryKey,
-    queryFn,
-    enabled:
-      discussionId !== null &&
-      discussionId !== undefined &&
-      replyId !== null &&
-      replyId !== undefined,
-    ...queryOptions,
-  } as UseQueryOptions<
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
     Awaited<ReturnType<typeof updateDiscussionReply>>,
     TError,
-    TData
-  > & { queryKey: DataTag<QueryKey, TData, TError> };
+    UpdateDiscussionReplyMutationVariables,
+    TContext
+  >;
+  request?: SecondParameter<typeof coreverseFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof updateDiscussionReply>>,
+  TError,
+  UpdateDiscussionReplyMutationVariables,
+  TContext
+> => {
+  const mutationKey = getUpdateDiscussionReplyMutationKey();
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof updateDiscussionReply>>,
+    UpdateDiscussionReplyMutationVariables
+  > = (props) => {
+    const { discussionId, replyId, data } = props ?? {};
+
+    return updateDiscussionReply(discussionId, replyId, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
 };
 
-export type UpdateDiscussionReplyQueryResult = NonNullable<
+export type UpdateDiscussionReplyMutationResult = NonNullable<
   Awaited<ReturnType<typeof updateDiscussionReply>>
 >;
-export type UpdateDiscussionReplyQueryError =
+export type UpdateDiscussionReplyMutationBody = UpdateDiscussionReplyBody;
+export type UpdateDiscussionReplyMutationError =
   | UpdateDiscussionReply400
   | UpdateDiscussionReply403
   | UpdateDiscussionReply404;
+export type UpdateDiscussionReplyMutationVariables = {
+  discussionId: string;
+  replyId: string;
+  data: UpdateDiscussionReplyBody;
+};
 
-export function useUpdateDiscussionReply<
-  TData = Awaited<ReturnType<typeof updateDiscussionReply>>,
-  TError =
-    | UpdateDiscussionReply400
-    | UpdateDiscussionReply403
-    | UpdateDiscussionReply404,
->(
-  discussionId: string,
-  replyId: string,
-  updateDiscussionReplyBody: UpdateDiscussionReplyBody,
-  options: {
-    query: Partial<
-      UseQueryOptions<
-        Awaited<ReturnType<typeof updateDiscussionReply>>,
-        TError,
-        TData
-      >
-    > &
-      Pick<
-        DefinedInitialDataOptions<
-          Awaited<ReturnType<typeof updateDiscussionReply>>,
-          TError,
-          Awaited<ReturnType<typeof updateDiscussionReply>>
-        >,
-        "initialData"
-      >;
-    request?: SecondParameter<typeof coreverseFetch>;
-  },
-  queryClient?: QueryClient,
-): DefinedUseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-};
-export function useUpdateDiscussionReply<
-  TData = Awaited<ReturnType<typeof updateDiscussionReply>>,
-  TError =
-    | UpdateDiscussionReply400
-    | UpdateDiscussionReply403
-    | UpdateDiscussionReply404,
->(
-  discussionId: string,
-  replyId: string,
-  updateDiscussionReplyBody: UpdateDiscussionReplyBody,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<
-        Awaited<ReturnType<typeof updateDiscussionReply>>,
-        TError,
-        TData
-      >
-    > &
-      Pick<
-        UndefinedInitialDataOptions<
-          Awaited<ReturnType<typeof updateDiscussionReply>>,
-          TError,
-          Awaited<ReturnType<typeof updateDiscussionReply>>
-        >,
-        "initialData"
-      >;
-    request?: SecondParameter<typeof coreverseFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-};
-export function useUpdateDiscussionReply<
-  TData = Awaited<ReturnType<typeof updateDiscussionReply>>,
-  TError =
-    | UpdateDiscussionReply400
-    | UpdateDiscussionReply403
-    | UpdateDiscussionReply404,
->(
-  discussionId: string,
-  replyId: string,
-  updateDiscussionReplyBody: UpdateDiscussionReplyBody,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<
-        Awaited<ReturnType<typeof updateDiscussionReply>>,
-        TError,
-        TData
-      >
-    >;
-    request?: SecondParameter<typeof coreverseFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-};
 /**
  * @summary Edit or soft-delete a reply (author or moderator)
  */
-
-export function useUpdateDiscussionReply<
-  TData = Awaited<ReturnType<typeof updateDiscussionReply>>,
+export const useUpdateDiscussionReply = <
   TError =
     | UpdateDiscussionReply400
     | UpdateDiscussionReply403
     | UpdateDiscussionReply404,
+  TContext = unknown,
 >(
-  discussionId: string,
-  replyId: string,
-  updateDiscussionReplyBody: UpdateDiscussionReplyBody,
   options?: {
-    query?: Partial<
-      UseQueryOptions<
-        Awaited<ReturnType<typeof updateDiscussionReply>>,
-        TError,
-        TData
-      >
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof updateDiscussionReply>>,
+      TError,
+      UpdateDiscussionReplyMutationVariables,
+      TContext
     >;
     request?: SecondParameter<typeof coreverseFetch>;
   },
   queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-} {
-  const queryOptions = getUpdateDiscussionReplyQueryOptions(
-    discussionId,
-    replyId,
-    updateDiscussionReplyBody,
-    options,
+): UseMutationResult<
+  Awaited<ReturnType<typeof updateDiscussionReply>>,
+  TError,
+  UpdateDiscussionReplyMutationVariables,
+  TContext
+> => {
+  return useMutation(
+    getUpdateDiscussionReplyMutationOptions(options),
+    queryClient,
   );
-
-  const query = useQuery(queryOptions, queryClient) as UseQueryResult<
-    TData,
-    TError
-  > & { queryKey: DataTag<QueryKey, TData, TError> };
-
-  return withQueryKey(query, queryOptions.queryKey);
-}
+};

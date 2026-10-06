@@ -3,19 +3,22 @@
  * Do not edit manually.
  * Coreverse DB API
  * Centralized data-access API for the Coreverse ecosystem. Coreverse DB defines and serves all data operations; Coreverse Launcher and Coreverse Website consume this API and never access Postgres/Supabase directly.
- * Access model: the Supabase platform JWT gate is ON for every Edge Function except `send-email`, `auth` and `profiles`, so a request without a valid Supabase Auth JWT is rejected with 401 before the function runs -- including the operations below that declare no `security` requirement (those only mean the function itself does not require a particular user). The only signed-out operations are `POST /auth/password-reset` and `GET /profiles/username-availability`; every other `/profiles` route authenticates the caller inside the function.
+ * Access model: the Supabase platform JWT gate is OFF for `releases`, `news`, `events`, `faq`, `polls`, `discussions`, `docs`, `auth`, `profiles` and `send-email`, and ON for `teams`, `requests` and `projects`. Signed-out callers can read public content (a `GET` on any public-content route answers 200); every write needs a user session and answers 401 `unauthorized` from the function without one. `POST /auth/password-reset` and `GET /profiles/username-availability` also work signed out; every other `/profiles` route authenticates the caller inside the function.
  *
- * OpenAPI spec version: 0.5.2
+ * OpenAPI spec version: 0.5.3
  */
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import type {
   DataTag,
   DefinedInitialDataOptions,
   DefinedUseQueryResult,
+  MutationFunction,
   QueryClient,
   QueryFunction,
   QueryKey,
   UndefinedInitialDataOptions,
+  UseMutationOptions,
+  UseMutationResult,
   UseQueryOptions,
   UseQueryResult,
 } from "@tanstack/react-query";
@@ -309,134 +312,79 @@ export const createEvent = async (
   });
 };
 
-export const getCreateEventQueryKey = (createEventBody?: CreateEventBody) => {
-  return ["POST", `/events`, createEventBody] as const;
-};
+export const getCreateEventMutationKey = () => ["createEvent"] as const;
 
-export const getCreateEventQueryOptions = <
-  TData = Awaited<ReturnType<typeof createEvent>>,
+export const getCreateEventMutationOptions = <
   TError = CreateEvent400 | CreateEvent401 | CreateEvent403 | CreateEvent409,
->(
-  createEventBody: CreateEventBody,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof createEvent>>, TError, TData>
-    >;
-    request?: SecondParameter<typeof coreverseFetch>;
-  },
-) => {
-  const { query: queryOptions, request: requestOptions } = options ?? {};
-
-  const queryKey =
-    queryOptions?.queryKey ?? getCreateEventQueryKey(createEventBody);
-
-  const queryFn: QueryFunction<Awaited<ReturnType<typeof createEvent>>> = ({
-    signal,
-  }) => createEvent(createEventBody, { signal, ...requestOptions });
-
-  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
     Awaited<ReturnType<typeof createEvent>>,
     TError,
-    TData
-  > & { queryKey: DataTag<QueryKey, TData, TError> };
+    CreateEventMutationVariables,
+    TContext
+  >;
+  request?: SecondParameter<typeof coreverseFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof createEvent>>,
+  TError,
+  CreateEventMutationVariables,
+  TContext
+> => {
+  const mutationKey = getCreateEventMutationKey();
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof createEvent>>,
+    CreateEventMutationVariables
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return createEvent(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
 };
 
-export type CreateEventQueryResult = NonNullable<
+export type CreateEventMutationResult = NonNullable<
   Awaited<ReturnType<typeof createEvent>>
 >;
-export type CreateEventQueryError =
+export type CreateEventMutationBody = CreateEventBody;
+export type CreateEventMutationError =
   CreateEvent400 | CreateEvent401 | CreateEvent403 | CreateEvent409;
+export type CreateEventMutationVariables = { data: CreateEventBody };
 
-export function useCreateEvent<
-  TData = Awaited<ReturnType<typeof createEvent>>,
-  TError = CreateEvent400 | CreateEvent401 | CreateEvent403 | CreateEvent409,
->(
-  createEventBody: CreateEventBody,
-  options: {
-    query: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof createEvent>>, TError, TData>
-    > &
-      Pick<
-        DefinedInitialDataOptions<
-          Awaited<ReturnType<typeof createEvent>>,
-          TError,
-          Awaited<ReturnType<typeof createEvent>>
-        >,
-        "initialData"
-      >;
-    request?: SecondParameter<typeof coreverseFetch>;
-  },
-  queryClient?: QueryClient,
-): DefinedUseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-};
-export function useCreateEvent<
-  TData = Awaited<ReturnType<typeof createEvent>>,
-  TError = CreateEvent400 | CreateEvent401 | CreateEvent403 | CreateEvent409,
->(
-  createEventBody: CreateEventBody,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof createEvent>>, TError, TData>
-    > &
-      Pick<
-        UndefinedInitialDataOptions<
-          Awaited<ReturnType<typeof createEvent>>,
-          TError,
-          Awaited<ReturnType<typeof createEvent>>
-        >,
-        "initialData"
-      >;
-    request?: SecondParameter<typeof coreverseFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-};
-export function useCreateEvent<
-  TData = Awaited<ReturnType<typeof createEvent>>,
-  TError = CreateEvent400 | CreateEvent401 | CreateEvent403 | CreateEvent409,
->(
-  createEventBody: CreateEventBody,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof createEvent>>, TError, TData>
-    >;
-    request?: SecondParameter<typeof coreverseFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-};
 /**
  * @summary Create an event as a draft (moderator/admin only)
  */
-
-export function useCreateEvent<
-  TData = Awaited<ReturnType<typeof createEvent>>,
+export const useCreateEvent = <
   TError = CreateEvent400 | CreateEvent401 | CreateEvent403 | CreateEvent409,
+  TContext = unknown,
 >(
-  createEventBody: CreateEventBody,
   options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof createEvent>>, TError, TData>
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof createEvent>>,
+      TError,
+      CreateEventMutationVariables,
+      TContext
     >;
     request?: SecondParameter<typeof coreverseFetch>;
   },
   queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-} {
-  const queryOptions = getCreateEventQueryOptions(createEventBody, options);
-
-  const query = useQuery(queryOptions, queryClient) as UseQueryResult<
-    TData,
-    TError
-  > & { queryKey: DataTag<QueryKey, TData, TError> };
-
-  return withQueryKey(query, queryOptions.queryKey);
-}
-
+): UseMutationResult<
+  Awaited<ReturnType<typeof createEvent>>,
+  TError,
+  CreateEventMutationVariables,
+  TContext
+> => {
+  return useMutation(getCreateEventMutationOptions(options), queryClient);
+};
 export type getEventResponse200 = {
   data: GetEvent200;
   status: 200;
@@ -666,151 +614,82 @@ export const updateEvent = async (
   });
 };
 
-export const getUpdateEventQueryKey = (
-  eventId: string,
-  updateEventBody?: UpdateEventBody,
-) => {
-  return ["PATCH", `/events/${eventId}`, updateEventBody] as const;
-};
+export const getUpdateEventMutationKey = () => ["updateEvent"] as const;
 
-export const getUpdateEventQueryOptions = <
-  TData = Awaited<ReturnType<typeof updateEvent>>,
+export const getUpdateEventMutationOptions = <
   TError = UpdateEvent400 | UpdateEvent403 | UpdateEvent404,
->(
-  eventId: string,
-  updateEventBody: UpdateEventBody,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof updateEvent>>, TError, TData>
-    >;
-    request?: SecondParameter<typeof coreverseFetch>;
-  },
-) => {
-  const { query: queryOptions, request: requestOptions } = options ?? {};
-
-  const queryKey =
-    queryOptions?.queryKey ?? getUpdateEventQueryKey(eventId, updateEventBody);
-
-  const queryFn: QueryFunction<Awaited<ReturnType<typeof updateEvent>>> = ({
-    signal,
-  }) => updateEvent(eventId, updateEventBody, { signal, ...requestOptions });
-
-  return {
-    queryKey,
-    queryFn,
-    enabled: eventId !== null && eventId !== undefined,
-    ...queryOptions,
-  } as UseQueryOptions<
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
     Awaited<ReturnType<typeof updateEvent>>,
     TError,
-    TData
-  > & { queryKey: DataTag<QueryKey, TData, TError> };
+    UpdateEventMutationVariables,
+    TContext
+  >;
+  request?: SecondParameter<typeof coreverseFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof updateEvent>>,
+  TError,
+  UpdateEventMutationVariables,
+  TContext
+> => {
+  const mutationKey = getUpdateEventMutationKey();
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof updateEvent>>,
+    UpdateEventMutationVariables
+  > = (props) => {
+    const { eventId, data } = props ?? {};
+
+    return updateEvent(eventId, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
 };
 
-export type UpdateEventQueryResult = NonNullable<
+export type UpdateEventMutationResult = NonNullable<
   Awaited<ReturnType<typeof updateEvent>>
 >;
-export type UpdateEventQueryError =
+export type UpdateEventMutationBody = UpdateEventBody;
+export type UpdateEventMutationError =
   UpdateEvent400 | UpdateEvent403 | UpdateEvent404;
+export type UpdateEventMutationVariables = {
+  eventId: string;
+  data: UpdateEventBody;
+};
 
-export function useUpdateEvent<
-  TData = Awaited<ReturnType<typeof updateEvent>>,
-  TError = UpdateEvent400 | UpdateEvent403 | UpdateEvent404,
->(
-  eventId: string,
-  updateEventBody: UpdateEventBody,
-  options: {
-    query: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof updateEvent>>, TError, TData>
-    > &
-      Pick<
-        DefinedInitialDataOptions<
-          Awaited<ReturnType<typeof updateEvent>>,
-          TError,
-          Awaited<ReturnType<typeof updateEvent>>
-        >,
-        "initialData"
-      >;
-    request?: SecondParameter<typeof coreverseFetch>;
-  },
-  queryClient?: QueryClient,
-): DefinedUseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-};
-export function useUpdateEvent<
-  TData = Awaited<ReturnType<typeof updateEvent>>,
-  TError = UpdateEvent400 | UpdateEvent403 | UpdateEvent404,
->(
-  eventId: string,
-  updateEventBody: UpdateEventBody,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof updateEvent>>, TError, TData>
-    > &
-      Pick<
-        UndefinedInitialDataOptions<
-          Awaited<ReturnType<typeof updateEvent>>,
-          TError,
-          Awaited<ReturnType<typeof updateEvent>>
-        >,
-        "initialData"
-      >;
-    request?: SecondParameter<typeof coreverseFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-};
-export function useUpdateEvent<
-  TData = Awaited<ReturnType<typeof updateEvent>>,
-  TError = UpdateEvent400 | UpdateEvent403 | UpdateEvent404,
->(
-  eventId: string,
-  updateEventBody: UpdateEventBody,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof updateEvent>>, TError, TData>
-    >;
-    request?: SecondParameter<typeof coreverseFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-};
 /**
  * @summary Update an event, e.g. to publish it (moderator/admin only)
  */
-
-export function useUpdateEvent<
-  TData = Awaited<ReturnType<typeof updateEvent>>,
+export const useUpdateEvent = <
   TError = UpdateEvent400 | UpdateEvent403 | UpdateEvent404,
+  TContext = unknown,
 >(
-  eventId: string,
-  updateEventBody: UpdateEventBody,
   options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof updateEvent>>, TError, TData>
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof updateEvent>>,
+      TError,
+      UpdateEventMutationVariables,
+      TContext
     >;
     request?: SecondParameter<typeof coreverseFetch>;
   },
   queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-} {
-  const queryOptions = getUpdateEventQueryOptions(
-    eventId,
-    updateEventBody,
-    options,
-  );
-
-  const query = useQuery(queryOptions, queryClient) as UseQueryResult<
-    TData,
-    TError
-  > & { queryKey: DataTag<QueryKey, TData, TError> };
-
-  return withQueryKey(query, queryOptions.queryKey);
-}
-
+): UseMutationResult<
+  Awaited<ReturnType<typeof updateEvent>>,
+  TError,
+  UpdateEventMutationVariables,
+  TContext
+> => {
+  return useMutation(getUpdateEventMutationOptions(options), queryClient);
+};
 export type deleteEventResponse204 = {
   data: void;
   status: 204;
@@ -855,133 +734,75 @@ export const deleteEvent = async (
   });
 };
 
-export const getDeleteEventQueryKey = (eventId: string) => {
-  return ["DELETE", `/events/${eventId}`] as const;
-};
+export const getDeleteEventMutationKey = () => ["deleteEvent"] as const;
 
-export const getDeleteEventQueryOptions = <
-  TData = Awaited<ReturnType<typeof deleteEvent>>,
+export const getDeleteEventMutationOptions = <
   TError = DeleteEvent400 | DeleteEvent404,
->(
-  eventId: string,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof deleteEvent>>, TError, TData>
-    >;
-    request?: SecondParameter<typeof coreverseFetch>;
-  },
-) => {
-  const { query: queryOptions, request: requestOptions } = options ?? {};
-
-  const queryKey = queryOptions?.queryKey ?? getDeleteEventQueryKey(eventId);
-
-  const queryFn: QueryFunction<Awaited<ReturnType<typeof deleteEvent>>> = ({
-    signal,
-  }) => deleteEvent(eventId, { signal, ...requestOptions });
-
-  return {
-    queryKey,
-    queryFn,
-    enabled: eventId !== null && eventId !== undefined,
-    ...queryOptions,
-  } as UseQueryOptions<
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
     Awaited<ReturnType<typeof deleteEvent>>,
     TError,
-    TData
-  > & { queryKey: DataTag<QueryKey, TData, TError> };
+    DeleteEventMutationVariables,
+    TContext
+  >;
+  request?: SecondParameter<typeof coreverseFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof deleteEvent>>,
+  TError,
+  DeleteEventMutationVariables,
+  TContext
+> => {
+  const mutationKey = getDeleteEventMutationKey();
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof deleteEvent>>,
+    DeleteEventMutationVariables
+  > = (props) => {
+    const { eventId } = props ?? {};
+
+    return deleteEvent(eventId, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
 };
 
-export type DeleteEventQueryResult = NonNullable<
+export type DeleteEventMutationResult = NonNullable<
   Awaited<ReturnType<typeof deleteEvent>>
 >;
-export type DeleteEventQueryError = DeleteEvent400 | DeleteEvent404;
 
-export function useDeleteEvent<
-  TData = Awaited<ReturnType<typeof deleteEvent>>,
-  TError = DeleteEvent400 | DeleteEvent404,
->(
-  eventId: string,
-  options: {
-    query: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof deleteEvent>>, TError, TData>
-    > &
-      Pick<
-        DefinedInitialDataOptions<
-          Awaited<ReturnType<typeof deleteEvent>>,
-          TError,
-          Awaited<ReturnType<typeof deleteEvent>>
-        >,
-        "initialData"
-      >;
-    request?: SecondParameter<typeof coreverseFetch>;
-  },
-  queryClient?: QueryClient,
-): DefinedUseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-};
-export function useDeleteEvent<
-  TData = Awaited<ReturnType<typeof deleteEvent>>,
-  TError = DeleteEvent400 | DeleteEvent404,
->(
-  eventId: string,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof deleteEvent>>, TError, TData>
-    > &
-      Pick<
-        UndefinedInitialDataOptions<
-          Awaited<ReturnType<typeof deleteEvent>>,
-          TError,
-          Awaited<ReturnType<typeof deleteEvent>>
-        >,
-        "initialData"
-      >;
-    request?: SecondParameter<typeof coreverseFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-};
-export function useDeleteEvent<
-  TData = Awaited<ReturnType<typeof deleteEvent>>,
-  TError = DeleteEvent400 | DeleteEvent404,
->(
-  eventId: string,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof deleteEvent>>, TError, TData>
-    >;
-    request?: SecondParameter<typeof coreverseFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-};
+export type DeleteEventMutationError = DeleteEvent400 | DeleteEvent404;
+export type DeleteEventMutationVariables = { eventId: string };
+
 /**
  * @summary Delete an event (moderator/admin only)
  */
-
-export function useDeleteEvent<
-  TData = Awaited<ReturnType<typeof deleteEvent>>,
+export const useDeleteEvent = <
   TError = DeleteEvent400 | DeleteEvent404,
+  TContext = unknown,
 >(
-  eventId: string,
   options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof deleteEvent>>, TError, TData>
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof deleteEvent>>,
+      TError,
+      DeleteEventMutationVariables,
+      TContext
     >;
     request?: SecondParameter<typeof coreverseFetch>;
   },
   queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-} {
-  const queryOptions = getDeleteEventQueryOptions(eventId, options);
-
-  const query = useQuery(queryOptions, queryClient) as UseQueryResult<
-    TData,
-    TError
-  > & { queryKey: DataTag<QueryKey, TData, TError> };
-
-  return withQueryKey(query, queryOptions.queryKey);
-}
+): UseMutationResult<
+  Awaited<ReturnType<typeof deleteEvent>>,
+  TError,
+  DeleteEventMutationVariables,
+  TContext
+> => {
+  return useMutation(getDeleteEventMutationOptions(options), queryClient);
+};

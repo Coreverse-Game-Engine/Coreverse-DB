@@ -3,19 +3,22 @@
  * Do not edit manually.
  * Coreverse DB API
  * Centralized data-access API for the Coreverse ecosystem. Coreverse DB defines and serves all data operations; Coreverse Launcher and Coreverse Website consume this API and never access Postgres/Supabase directly.
- * Access model: the Supabase platform JWT gate is ON for every Edge Function except `send-email`, `auth` and `profiles`, so a request without a valid Supabase Auth JWT is rejected with 401 before the function runs -- including the operations below that declare no `security` requirement (those only mean the function itself does not require a particular user). The only signed-out operations are `POST /auth/password-reset` and `GET /profiles/username-availability`; every other `/profiles` route authenticates the caller inside the function.
+ * Access model: the Supabase platform JWT gate is OFF for `releases`, `news`, `events`, `faq`, `polls`, `discussions`, `docs`, `auth`, `profiles` and `send-email`, and ON for `teams`, `requests` and `projects`. Signed-out callers can read public content (a `GET` on any public-content route answers 200); every write needs a user session and answers 401 `unauthorized` from the function without one. `POST /auth/password-reset` and `GET /profiles/username-availability` also work signed out; every other `/profiles` route authenticates the caller inside the function.
  *
- * OpenAPI spec version: 0.5.2
+ * OpenAPI spec version: 0.5.3
  */
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import type {
   DataTag,
   DefinedInitialDataOptions,
   DefinedUseQueryResult,
+  MutationFunction,
   QueryClient,
   QueryFunction,
   QueryKey,
   UndefinedInitialDataOptions,
+  UseMutationOptions,
+  UseMutationResult,
   UseQueryOptions,
   UseQueryResult,
 } from "@tanstack/react-query";
@@ -139,133 +142,78 @@ export const createTeam = async (
   });
 };
 
-export const getCreateTeamQueryKey = (createTeamBody?: CreateTeamBody) => {
-  return ["POST", `/teams`, createTeamBody] as const;
-};
+export const getCreateTeamMutationKey = () => ["createTeam"] as const;
 
-export const getCreateTeamQueryOptions = <
-  TData = Awaited<ReturnType<typeof createTeam>>,
+export const getCreateTeamMutationOptions = <
   TError = CreateTeam400 | CreateTeam401,
->(
-  createTeamBody: CreateTeamBody,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof createTeam>>, TError, TData>
-    >;
-    request?: SecondParameter<typeof coreverseFetch>;
-  },
-) => {
-  const { query: queryOptions, request: requestOptions } = options ?? {};
-
-  const queryKey =
-    queryOptions?.queryKey ?? getCreateTeamQueryKey(createTeamBody);
-
-  const queryFn: QueryFunction<Awaited<ReturnType<typeof createTeam>>> = ({
-    signal,
-  }) => createTeam(createTeamBody, { signal, ...requestOptions });
-
-  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
     Awaited<ReturnType<typeof createTeam>>,
     TError,
-    TData
-  > & { queryKey: DataTag<QueryKey, TData, TError> };
+    CreateTeamMutationVariables,
+    TContext
+  >;
+  request?: SecondParameter<typeof coreverseFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof createTeam>>,
+  TError,
+  CreateTeamMutationVariables,
+  TContext
+> => {
+  const mutationKey = getCreateTeamMutationKey();
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof createTeam>>,
+    CreateTeamMutationVariables
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return createTeam(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
 };
 
-export type CreateTeamQueryResult = NonNullable<
+export type CreateTeamMutationResult = NonNullable<
   Awaited<ReturnType<typeof createTeam>>
 >;
-export type CreateTeamQueryError = CreateTeam400 | CreateTeam401;
+export type CreateTeamMutationBody = CreateTeamBody;
+export type CreateTeamMutationError = CreateTeam400 | CreateTeam401;
+export type CreateTeamMutationVariables = { data: CreateTeamBody };
 
-export function useCreateTeam<
-  TData = Awaited<ReturnType<typeof createTeam>>,
-  TError = CreateTeam400 | CreateTeam401,
->(
-  createTeamBody: CreateTeamBody,
-  options: {
-    query: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof createTeam>>, TError, TData>
-    > &
-      Pick<
-        DefinedInitialDataOptions<
-          Awaited<ReturnType<typeof createTeam>>,
-          TError,
-          Awaited<ReturnType<typeof createTeam>>
-        >,
-        "initialData"
-      >;
-    request?: SecondParameter<typeof coreverseFetch>;
-  },
-  queryClient?: QueryClient,
-): DefinedUseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-};
-export function useCreateTeam<
-  TData = Awaited<ReturnType<typeof createTeam>>,
-  TError = CreateTeam400 | CreateTeam401,
->(
-  createTeamBody: CreateTeamBody,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof createTeam>>, TError, TData>
-    > &
-      Pick<
-        UndefinedInitialDataOptions<
-          Awaited<ReturnType<typeof createTeam>>,
-          TError,
-          Awaited<ReturnType<typeof createTeam>>
-        >,
-        "initialData"
-      >;
-    request?: SecondParameter<typeof coreverseFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-};
-export function useCreateTeam<
-  TData = Awaited<ReturnType<typeof createTeam>>,
-  TError = CreateTeam400 | CreateTeam401,
->(
-  createTeamBody: CreateTeamBody,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof createTeam>>, TError, TData>
-    >;
-    request?: SecondParameter<typeof coreverseFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-};
 /**
  * @summary Create a team (caller becomes owner)
  */
-
-export function useCreateTeam<
-  TData = Awaited<ReturnType<typeof createTeam>>,
+export const useCreateTeam = <
   TError = CreateTeam400 | CreateTeam401,
+  TContext = unknown,
 >(
-  createTeamBody: CreateTeamBody,
   options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof createTeam>>, TError, TData>
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof createTeam>>,
+      TError,
+      CreateTeamMutationVariables,
+      TContext
     >;
     request?: SecondParameter<typeof coreverseFetch>;
   },
   queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-} {
-  const queryOptions = getCreateTeamQueryOptions(createTeamBody, options);
-
-  const query = useQuery(queryOptions, queryClient) as UseQueryResult<
-    TData,
-    TError
-  > & { queryKey: DataTag<QueryKey, TData, TError> };
-
-  return withQueryKey(query, queryOptions.queryKey);
-}
-
+): UseMutationResult<
+  Awaited<ReturnType<typeof createTeam>>,
+  TError,
+  CreateTeamMutationVariables,
+  TContext
+> => {
+  return useMutation(getCreateTeamMutationOptions(options), queryClient);
+};
 export type renameTeamResponse200 = {
   data: RenameTeam200;
   status: 200;
@@ -329,151 +277,82 @@ export const renameTeam = async (
   });
 };
 
-export const getRenameTeamQueryKey = (
-  teamId: string,
-  renameTeamBody?: RenameTeamBody,
-) => {
-  return ["PATCH", `/teams/${teamId}`, renameTeamBody] as const;
-};
+export const getRenameTeamMutationKey = () => ["renameTeam"] as const;
 
-export const getRenameTeamQueryOptions = <
-  TData = Awaited<ReturnType<typeof renameTeam>>,
+export const getRenameTeamMutationOptions = <
   TError = RenameTeam400 | RenameTeam401 | RenameTeam403,
->(
-  teamId: string,
-  renameTeamBody: RenameTeamBody,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof renameTeam>>, TError, TData>
-    >;
-    request?: SecondParameter<typeof coreverseFetch>;
-  },
-) => {
-  const { query: queryOptions, request: requestOptions } = options ?? {};
-
-  const queryKey =
-    queryOptions?.queryKey ?? getRenameTeamQueryKey(teamId, renameTeamBody);
-
-  const queryFn: QueryFunction<Awaited<ReturnType<typeof renameTeam>>> = ({
-    signal,
-  }) => renameTeam(teamId, renameTeamBody, { signal, ...requestOptions });
-
-  return {
-    queryKey,
-    queryFn,
-    enabled: teamId !== null && teamId !== undefined,
-    ...queryOptions,
-  } as UseQueryOptions<
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
     Awaited<ReturnType<typeof renameTeam>>,
     TError,
-    TData
-  > & { queryKey: DataTag<QueryKey, TData, TError> };
+    RenameTeamMutationVariables,
+    TContext
+  >;
+  request?: SecondParameter<typeof coreverseFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof renameTeam>>,
+  TError,
+  RenameTeamMutationVariables,
+  TContext
+> => {
+  const mutationKey = getRenameTeamMutationKey();
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof renameTeam>>,
+    RenameTeamMutationVariables
+  > = (props) => {
+    const { teamId, data } = props ?? {};
+
+    return renameTeam(teamId, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
 };
 
-export type RenameTeamQueryResult = NonNullable<
+export type RenameTeamMutationResult = NonNullable<
   Awaited<ReturnType<typeof renameTeam>>
 >;
-export type RenameTeamQueryError =
+export type RenameTeamMutationBody = RenameTeamBody;
+export type RenameTeamMutationError =
   RenameTeam400 | RenameTeam401 | RenameTeam403;
+export type RenameTeamMutationVariables = {
+  teamId: string;
+  data: RenameTeamBody;
+};
 
-export function useRenameTeam<
-  TData = Awaited<ReturnType<typeof renameTeam>>,
-  TError = RenameTeam400 | RenameTeam401 | RenameTeam403,
->(
-  teamId: string,
-  renameTeamBody: RenameTeamBody,
-  options: {
-    query: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof renameTeam>>, TError, TData>
-    > &
-      Pick<
-        DefinedInitialDataOptions<
-          Awaited<ReturnType<typeof renameTeam>>,
-          TError,
-          Awaited<ReturnType<typeof renameTeam>>
-        >,
-        "initialData"
-      >;
-    request?: SecondParameter<typeof coreverseFetch>;
-  },
-  queryClient?: QueryClient,
-): DefinedUseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-};
-export function useRenameTeam<
-  TData = Awaited<ReturnType<typeof renameTeam>>,
-  TError = RenameTeam400 | RenameTeam401 | RenameTeam403,
->(
-  teamId: string,
-  renameTeamBody: RenameTeamBody,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof renameTeam>>, TError, TData>
-    > &
-      Pick<
-        UndefinedInitialDataOptions<
-          Awaited<ReturnType<typeof renameTeam>>,
-          TError,
-          Awaited<ReturnType<typeof renameTeam>>
-        >,
-        "initialData"
-      >;
-    request?: SecondParameter<typeof coreverseFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-};
-export function useRenameTeam<
-  TData = Awaited<ReturnType<typeof renameTeam>>,
-  TError = RenameTeam400 | RenameTeam401 | RenameTeam403,
->(
-  teamId: string,
-  renameTeamBody: RenameTeamBody,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof renameTeam>>, TError, TData>
-    >;
-    request?: SecondParameter<typeof coreverseFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-};
 /**
  * @summary Rename a team (owner only)
  */
-
-export function useRenameTeam<
-  TData = Awaited<ReturnType<typeof renameTeam>>,
+export const useRenameTeam = <
   TError = RenameTeam400 | RenameTeam401 | RenameTeam403,
+  TContext = unknown,
 >(
-  teamId: string,
-  renameTeamBody: RenameTeamBody,
   options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof renameTeam>>, TError, TData>
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof renameTeam>>,
+      TError,
+      RenameTeamMutationVariables,
+      TContext
     >;
     request?: SecondParameter<typeof coreverseFetch>;
   },
   queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-} {
-  const queryOptions = getRenameTeamQueryOptions(
-    teamId,
-    renameTeamBody,
-    options,
-  );
-
-  const query = useQuery(queryOptions, queryClient) as UseQueryResult<
-    TData,
-    TError
-  > & { queryKey: DataTag<QueryKey, TData, TError> };
-
-  return withQueryKey(query, queryOptions.queryKey);
-}
-
+): UseMutationResult<
+  Awaited<ReturnType<typeof renameTeam>>,
+  TError,
+  RenameTeamMutationVariables,
+  TContext
+> => {
+  return useMutation(getRenameTeamMutationOptions(options), queryClient);
+};
 export type deleteTeamResponse204 = {
   data: void;
   status: 204;
@@ -523,138 +402,79 @@ export const deleteTeam = async (
   });
 };
 
-export const getDeleteTeamQueryKey = (teamId: string) => {
-  return ["DELETE", `/teams/${teamId}`] as const;
-};
+export const getDeleteTeamMutationKey = () => ["deleteTeam"] as const;
 
-export const getDeleteTeamQueryOptions = <
-  TData = Awaited<ReturnType<typeof deleteTeam>>,
+export const getDeleteTeamMutationOptions = <
   TError = DeleteTeam400 | DeleteTeam401 | DeleteTeam403,
->(
-  teamId: string,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof deleteTeam>>, TError, TData>
-    >;
-    request?: SecondParameter<typeof coreverseFetch>;
-  },
-) => {
-  const { query: queryOptions, request: requestOptions } = options ?? {};
-
-  const queryKey = queryOptions?.queryKey ?? getDeleteTeamQueryKey(teamId);
-
-  const queryFn: QueryFunction<Awaited<ReturnType<typeof deleteTeam>>> = ({
-    signal,
-  }) => deleteTeam(teamId, { signal, ...requestOptions });
-
-  return {
-    queryKey,
-    queryFn,
-    enabled: teamId !== null && teamId !== undefined,
-    ...queryOptions,
-  } as UseQueryOptions<
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
     Awaited<ReturnType<typeof deleteTeam>>,
     TError,
-    TData
-  > & { queryKey: DataTag<QueryKey, TData, TError> };
+    DeleteTeamMutationVariables,
+    TContext
+  >;
+  request?: SecondParameter<typeof coreverseFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof deleteTeam>>,
+  TError,
+  DeleteTeamMutationVariables,
+  TContext
+> => {
+  const mutationKey = getDeleteTeamMutationKey();
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof deleteTeam>>,
+    DeleteTeamMutationVariables
+  > = (props) => {
+    const { teamId } = props ?? {};
+
+    return deleteTeam(teamId, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
 };
 
-export type DeleteTeamQueryResult = NonNullable<
+export type DeleteTeamMutationResult = NonNullable<
   Awaited<ReturnType<typeof deleteTeam>>
 >;
-export type DeleteTeamQueryError =
-  DeleteTeam400 | DeleteTeam401 | DeleteTeam403;
 
-export function useDeleteTeam<
-  TData = Awaited<ReturnType<typeof deleteTeam>>,
-  TError = DeleteTeam400 | DeleteTeam401 | DeleteTeam403,
->(
-  teamId: string,
-  options: {
-    query: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof deleteTeam>>, TError, TData>
-    > &
-      Pick<
-        DefinedInitialDataOptions<
-          Awaited<ReturnType<typeof deleteTeam>>,
-          TError,
-          Awaited<ReturnType<typeof deleteTeam>>
-        >,
-        "initialData"
-      >;
-    request?: SecondParameter<typeof coreverseFetch>;
-  },
-  queryClient?: QueryClient,
-): DefinedUseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-};
-export function useDeleteTeam<
-  TData = Awaited<ReturnType<typeof deleteTeam>>,
-  TError = DeleteTeam400 | DeleteTeam401 | DeleteTeam403,
->(
-  teamId: string,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof deleteTeam>>, TError, TData>
-    > &
-      Pick<
-        UndefinedInitialDataOptions<
-          Awaited<ReturnType<typeof deleteTeam>>,
-          TError,
-          Awaited<ReturnType<typeof deleteTeam>>
-        >,
-        "initialData"
-      >;
-    request?: SecondParameter<typeof coreverseFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-};
-export function useDeleteTeam<
-  TData = Awaited<ReturnType<typeof deleteTeam>>,
-  TError = DeleteTeam400 | DeleteTeam401 | DeleteTeam403,
->(
-  teamId: string,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof deleteTeam>>, TError, TData>
-    >;
-    request?: SecondParameter<typeof coreverseFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-};
+export type DeleteTeamMutationError =
+  DeleteTeam400 | DeleteTeam401 | DeleteTeam403;
+export type DeleteTeamMutationVariables = { teamId: string };
+
 /**
  * @summary Delete a team (owner only)
  */
-
-export function useDeleteTeam<
-  TData = Awaited<ReturnType<typeof deleteTeam>>,
+export const useDeleteTeam = <
   TError = DeleteTeam400 | DeleteTeam401 | DeleteTeam403,
+  TContext = unknown,
 >(
-  teamId: string,
   options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof deleteTeam>>, TError, TData>
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof deleteTeam>>,
+      TError,
+      DeleteTeamMutationVariables,
+      TContext
     >;
     request?: SecondParameter<typeof coreverseFetch>;
   },
   queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-} {
-  const queryOptions = getDeleteTeamQueryOptions(teamId, options);
-
-  const query = useQuery(queryOptions, queryClient) as UseQueryResult<
-    TData,
-    TError
-  > & { queryKey: DataTag<QueryKey, TData, TError> };
-
-  return withQueryKey(query, queryOptions.queryKey);
-}
-
+): UseMutationResult<
+  Awaited<ReturnType<typeof deleteTeam>>,
+  TError,
+  DeleteTeamMutationVariables,
+  TContext
+> => {
+  return useMutation(getDeleteTeamMutationOptions(options), queryClient);
+};
 export type listTeamMembersResponse200 = {
   data: ListTeamMembers200Item[];
   status: 200;
@@ -922,191 +742,84 @@ export const teamMemberAction = async (
   );
 };
 
-export const getTeamMemberActionQueryKey = (
-  teamId: string,
-  userId: string,
-  teamMemberActionBody?: TeamMemberActionBody,
-) => {
-  return [
-    "POST",
-    `/teams/${teamId}/members/${userId}`,
-    teamMemberActionBody,
-  ] as const;
-};
+export const getTeamMemberActionMutationKey = () =>
+  ["teamMemberAction"] as const;
 
-export const getTeamMemberActionQueryOptions = <
-  TData = Awaited<ReturnType<typeof teamMemberAction>>,
+export const getTeamMemberActionMutationOptions = <
   TError = TeamMemberAction400 | TeamMemberAction401 | TeamMemberAction403,
->(
-  teamId: string,
-  userId: string,
-  teamMemberActionBody: TeamMemberActionBody,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<
-        Awaited<ReturnType<typeof teamMemberAction>>,
-        TError,
-        TData
-      >
-    >;
-    request?: SecondParameter<typeof coreverseFetch>;
-  },
-) => {
-  const { query: queryOptions, request: requestOptions } = options ?? {};
-
-  const queryKey =
-    queryOptions?.queryKey ??
-    getTeamMemberActionQueryKey(teamId, userId, teamMemberActionBody);
-
-  const queryFn: QueryFunction<
-    Awaited<ReturnType<typeof teamMemberAction>>
-  > = ({ signal }) =>
-    teamMemberAction(teamId, userId, teamMemberActionBody, {
-      signal,
-      ...requestOptions,
-    });
-
-  return {
-    queryKey,
-    queryFn,
-    enabled:
-      teamId !== null &&
-      teamId !== undefined &&
-      userId !== null &&
-      userId !== undefined,
-    ...queryOptions,
-  } as UseQueryOptions<
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
     Awaited<ReturnType<typeof teamMemberAction>>,
     TError,
-    TData
-  > & { queryKey: DataTag<QueryKey, TData, TError> };
+    TeamMemberActionMutationVariables,
+    TContext
+  >;
+  request?: SecondParameter<typeof coreverseFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof teamMemberAction>>,
+  TError,
+  TeamMemberActionMutationVariables,
+  TContext
+> => {
+  const mutationKey = getTeamMemberActionMutationKey();
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof teamMemberAction>>,
+    TeamMemberActionMutationVariables
+  > = (props) => {
+    const { teamId, userId, data } = props ?? {};
+
+    return teamMemberAction(teamId, userId, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
 };
 
-export type TeamMemberActionQueryResult = NonNullable<
+export type TeamMemberActionMutationResult = NonNullable<
   Awaited<ReturnType<typeof teamMemberAction>>
 >;
-export type TeamMemberActionQueryError =
+export type TeamMemberActionMutationBody = TeamMemberActionBody;
+export type TeamMemberActionMutationError =
   TeamMemberAction400 | TeamMemberAction401 | TeamMemberAction403;
+export type TeamMemberActionMutationVariables = {
+  teamId: string;
+  userId: string;
+  data: TeamMemberActionBody;
+};
 
-export function useTeamMemberAction<
-  TData = Awaited<ReturnType<typeof teamMemberAction>>,
-  TError = TeamMemberAction400 | TeamMemberAction401 | TeamMemberAction403,
->(
-  teamId: string,
-  userId: string,
-  teamMemberActionBody: TeamMemberActionBody,
-  options: {
-    query: Partial<
-      UseQueryOptions<
-        Awaited<ReturnType<typeof teamMemberAction>>,
-        TError,
-        TData
-      >
-    > &
-      Pick<
-        DefinedInitialDataOptions<
-          Awaited<ReturnType<typeof teamMemberAction>>,
-          TError,
-          Awaited<ReturnType<typeof teamMemberAction>>
-        >,
-        "initialData"
-      >;
-    request?: SecondParameter<typeof coreverseFetch>;
-  },
-  queryClient?: QueryClient,
-): DefinedUseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-};
-export function useTeamMemberAction<
-  TData = Awaited<ReturnType<typeof teamMemberAction>>,
-  TError = TeamMemberAction400 | TeamMemberAction401 | TeamMemberAction403,
->(
-  teamId: string,
-  userId: string,
-  teamMemberActionBody: TeamMemberActionBody,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<
-        Awaited<ReturnType<typeof teamMemberAction>>,
-        TError,
-        TData
-      >
-    > &
-      Pick<
-        UndefinedInitialDataOptions<
-          Awaited<ReturnType<typeof teamMemberAction>>,
-          TError,
-          Awaited<ReturnType<typeof teamMemberAction>>
-        >,
-        "initialData"
-      >;
-    request?: SecondParameter<typeof coreverseFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-};
-export function useTeamMemberAction<
-  TData = Awaited<ReturnType<typeof teamMemberAction>>,
-  TError = TeamMemberAction400 | TeamMemberAction401 | TeamMemberAction403,
->(
-  teamId: string,
-  userId: string,
-  teamMemberActionBody: TeamMemberActionBody,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<
-        Awaited<ReturnType<typeof teamMemberAction>>,
-        TError,
-        TData
-      >
-    >;
-    request?: SecondParameter<typeof coreverseFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-};
 /**
  * @summary Promote, demote, or remove a team member
  */
-
-export function useTeamMemberAction<
-  TData = Awaited<ReturnType<typeof teamMemberAction>>,
+export const useTeamMemberAction = <
   TError = TeamMemberAction400 | TeamMemberAction401 | TeamMemberAction403,
+  TContext = unknown,
 >(
-  teamId: string,
-  userId: string,
-  teamMemberActionBody: TeamMemberActionBody,
   options?: {
-    query?: Partial<
-      UseQueryOptions<
-        Awaited<ReturnType<typeof teamMemberAction>>,
-        TError,
-        TData
-      >
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof teamMemberAction>>,
+      TError,
+      TeamMemberActionMutationVariables,
+      TContext
     >;
     request?: SecondParameter<typeof coreverseFetch>;
   },
   queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-} {
-  const queryOptions = getTeamMemberActionQueryOptions(
-    teamId,
-    userId,
-    teamMemberActionBody,
-    options,
-  );
-
-  const query = useQuery(queryOptions, queryClient) as UseQueryResult<
-    TData,
-    TError
-  > & { queryKey: DataTag<QueryKey, TData, TError> };
-
-  return withQueryKey(query, queryOptions.queryKey);
-}
-
+): UseMutationResult<
+  Awaited<ReturnType<typeof teamMemberAction>>,
+  TError,
+  TeamMemberActionMutationVariables,
+  TContext
+> => {
+  return useMutation(getTeamMemberActionMutationOptions(options), queryClient);
+};
 export type requestToJoinTeamResponse201 = {
   data: RequestToJoinTeam201;
   status: 201;
@@ -1161,159 +874,80 @@ export const requestToJoinTeam = async (
   );
 };
 
-export const getRequestToJoinTeamQueryKey = (teamId: string) => {
-  return ["POST", `/teams/${teamId}/join-requests`] as const;
-};
+export const getRequestToJoinTeamMutationKey = () =>
+  ["requestToJoinTeam"] as const;
 
-export const getRequestToJoinTeamQueryOptions = <
-  TData = Awaited<ReturnType<typeof requestToJoinTeam>>,
+export const getRequestToJoinTeamMutationOptions = <
   TError = RequestToJoinTeam400 | RequestToJoinTeam401 | RequestToJoinTeam409,
->(
-  teamId: string,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<
-        Awaited<ReturnType<typeof requestToJoinTeam>>,
-        TError,
-        TData
-      >
-    >;
-    request?: SecondParameter<typeof coreverseFetch>;
-  },
-) => {
-  const { query: queryOptions, request: requestOptions } = options ?? {};
-
-  const queryKey =
-    queryOptions?.queryKey ?? getRequestToJoinTeamQueryKey(teamId);
-
-  const queryFn: QueryFunction<
-    Awaited<ReturnType<typeof requestToJoinTeam>>
-  > = ({ signal }) => requestToJoinTeam(teamId, { signal, ...requestOptions });
-
-  return {
-    queryKey,
-    queryFn,
-    enabled: teamId !== null && teamId !== undefined,
-    ...queryOptions,
-  } as UseQueryOptions<
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
     Awaited<ReturnType<typeof requestToJoinTeam>>,
     TError,
-    TData
-  > & { queryKey: DataTag<QueryKey, TData, TError> };
+    RequestToJoinTeamMutationVariables,
+    TContext
+  >;
+  request?: SecondParameter<typeof coreverseFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof requestToJoinTeam>>,
+  TError,
+  RequestToJoinTeamMutationVariables,
+  TContext
+> => {
+  const mutationKey = getRequestToJoinTeamMutationKey();
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof requestToJoinTeam>>,
+    RequestToJoinTeamMutationVariables
+  > = (props) => {
+    const { teamId } = props ?? {};
+
+    return requestToJoinTeam(teamId, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
 };
 
-export type RequestToJoinTeamQueryResult = NonNullable<
+export type RequestToJoinTeamMutationResult = NonNullable<
   Awaited<ReturnType<typeof requestToJoinTeam>>
 >;
-export type RequestToJoinTeamQueryError =
-  RequestToJoinTeam400 | RequestToJoinTeam401 | RequestToJoinTeam409;
 
-export function useRequestToJoinTeam<
-  TData = Awaited<ReturnType<typeof requestToJoinTeam>>,
-  TError = RequestToJoinTeam400 | RequestToJoinTeam401 | RequestToJoinTeam409,
->(
-  teamId: string,
-  options: {
-    query: Partial<
-      UseQueryOptions<
-        Awaited<ReturnType<typeof requestToJoinTeam>>,
-        TError,
-        TData
-      >
-    > &
-      Pick<
-        DefinedInitialDataOptions<
-          Awaited<ReturnType<typeof requestToJoinTeam>>,
-          TError,
-          Awaited<ReturnType<typeof requestToJoinTeam>>
-        >,
-        "initialData"
-      >;
-    request?: SecondParameter<typeof coreverseFetch>;
-  },
-  queryClient?: QueryClient,
-): DefinedUseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-};
-export function useRequestToJoinTeam<
-  TData = Awaited<ReturnType<typeof requestToJoinTeam>>,
-  TError = RequestToJoinTeam400 | RequestToJoinTeam401 | RequestToJoinTeam409,
->(
-  teamId: string,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<
-        Awaited<ReturnType<typeof requestToJoinTeam>>,
-        TError,
-        TData
-      >
-    > &
-      Pick<
-        UndefinedInitialDataOptions<
-          Awaited<ReturnType<typeof requestToJoinTeam>>,
-          TError,
-          Awaited<ReturnType<typeof requestToJoinTeam>>
-        >,
-        "initialData"
-      >;
-    request?: SecondParameter<typeof coreverseFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-};
-export function useRequestToJoinTeam<
-  TData = Awaited<ReturnType<typeof requestToJoinTeam>>,
-  TError = RequestToJoinTeam400 | RequestToJoinTeam401 | RequestToJoinTeam409,
->(
-  teamId: string,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<
-        Awaited<ReturnType<typeof requestToJoinTeam>>,
-        TError,
-        TData
-      >
-    >;
-    request?: SecondParameter<typeof coreverseFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-};
+export type RequestToJoinTeamMutationError =
+  RequestToJoinTeam400 | RequestToJoinTeam401 | RequestToJoinTeam409;
+export type RequestToJoinTeamMutationVariables = { teamId: string };
+
 /**
  * @summary Request to join a team
  */
-
-export function useRequestToJoinTeam<
-  TData = Awaited<ReturnType<typeof requestToJoinTeam>>,
+export const useRequestToJoinTeam = <
   TError = RequestToJoinTeam400 | RequestToJoinTeam401 | RequestToJoinTeam409,
+  TContext = unknown,
 >(
-  teamId: string,
   options?: {
-    query?: Partial<
-      UseQueryOptions<
-        Awaited<ReturnType<typeof requestToJoinTeam>>,
-        TError,
-        TData
-      >
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof requestToJoinTeam>>,
+      TError,
+      RequestToJoinTeamMutationVariables,
+      TContext
     >;
     request?: SecondParameter<typeof coreverseFetch>;
   },
   queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-} {
-  const queryOptions = getRequestToJoinTeamQueryOptions(teamId, options);
-
-  const query = useQuery(queryOptions, queryClient) as UseQueryResult<
-    TData,
-    TError
-  > & { queryKey: DataTag<QueryKey, TData, TError> };
-
-  return withQueryKey(query, queryOptions.queryKey);
-}
-
+): UseMutationResult<
+  Awaited<ReturnType<typeof requestToJoinTeam>>,
+  TError,
+  RequestToJoinTeamMutationVariables,
+  TContext
+> => {
+  return useMutation(getRequestToJoinTeamMutationOptions(options), queryClient);
+};
 export type inviteToTeamResponse201 = {
   data: InviteToTeam201;
   status: 201;
@@ -1377,151 +1011,82 @@ export const inviteToTeam = async (
   });
 };
 
-export const getInviteToTeamQueryKey = (
-  teamId: string,
-  inviteToTeamBody?: InviteToTeamBody,
-) => {
-  return ["POST", `/teams/${teamId}/invites`, inviteToTeamBody] as const;
-};
+export const getInviteToTeamMutationKey = () => ["inviteToTeam"] as const;
 
-export const getInviteToTeamQueryOptions = <
-  TData = Awaited<ReturnType<typeof inviteToTeam>>,
+export const getInviteToTeamMutationOptions = <
   TError = InviteToTeam400 | InviteToTeam401 | InviteToTeam403,
->(
-  teamId: string,
-  inviteToTeamBody: InviteToTeamBody,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof inviteToTeam>>, TError, TData>
-    >;
-    request?: SecondParameter<typeof coreverseFetch>;
-  },
-) => {
-  const { query: queryOptions, request: requestOptions } = options ?? {};
-
-  const queryKey =
-    queryOptions?.queryKey ?? getInviteToTeamQueryKey(teamId, inviteToTeamBody);
-
-  const queryFn: QueryFunction<Awaited<ReturnType<typeof inviteToTeam>>> = ({
-    signal,
-  }) => inviteToTeam(teamId, inviteToTeamBody, { signal, ...requestOptions });
-
-  return {
-    queryKey,
-    queryFn,
-    enabled: teamId !== null && teamId !== undefined,
-    ...queryOptions,
-  } as UseQueryOptions<
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
     Awaited<ReturnType<typeof inviteToTeam>>,
     TError,
-    TData
-  > & { queryKey: DataTag<QueryKey, TData, TError> };
+    InviteToTeamMutationVariables,
+    TContext
+  >;
+  request?: SecondParameter<typeof coreverseFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof inviteToTeam>>,
+  TError,
+  InviteToTeamMutationVariables,
+  TContext
+> => {
+  const mutationKey = getInviteToTeamMutationKey();
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof inviteToTeam>>,
+    InviteToTeamMutationVariables
+  > = (props) => {
+    const { teamId, data } = props ?? {};
+
+    return inviteToTeam(teamId, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
 };
 
-export type InviteToTeamQueryResult = NonNullable<
+export type InviteToTeamMutationResult = NonNullable<
   Awaited<ReturnType<typeof inviteToTeam>>
 >;
-export type InviteToTeamQueryError =
+export type InviteToTeamMutationBody = InviteToTeamBody;
+export type InviteToTeamMutationError =
   InviteToTeam400 | InviteToTeam401 | InviteToTeam403;
+export type InviteToTeamMutationVariables = {
+  teamId: string;
+  data: InviteToTeamBody;
+};
 
-export function useInviteToTeam<
-  TData = Awaited<ReturnType<typeof inviteToTeam>>,
-  TError = InviteToTeam400 | InviteToTeam401 | InviteToTeam403,
->(
-  teamId: string,
-  inviteToTeamBody: InviteToTeamBody,
-  options: {
-    query: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof inviteToTeam>>, TError, TData>
-    > &
-      Pick<
-        DefinedInitialDataOptions<
-          Awaited<ReturnType<typeof inviteToTeam>>,
-          TError,
-          Awaited<ReturnType<typeof inviteToTeam>>
-        >,
-        "initialData"
-      >;
-    request?: SecondParameter<typeof coreverseFetch>;
-  },
-  queryClient?: QueryClient,
-): DefinedUseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-};
-export function useInviteToTeam<
-  TData = Awaited<ReturnType<typeof inviteToTeam>>,
-  TError = InviteToTeam400 | InviteToTeam401 | InviteToTeam403,
->(
-  teamId: string,
-  inviteToTeamBody: InviteToTeamBody,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof inviteToTeam>>, TError, TData>
-    > &
-      Pick<
-        UndefinedInitialDataOptions<
-          Awaited<ReturnType<typeof inviteToTeam>>,
-          TError,
-          Awaited<ReturnType<typeof inviteToTeam>>
-        >,
-        "initialData"
-      >;
-    request?: SecondParameter<typeof coreverseFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-};
-export function useInviteToTeam<
-  TData = Awaited<ReturnType<typeof inviteToTeam>>,
-  TError = InviteToTeam400 | InviteToTeam401 | InviteToTeam403,
->(
-  teamId: string,
-  inviteToTeamBody: InviteToTeamBody,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof inviteToTeam>>, TError, TData>
-    >;
-    request?: SecondParameter<typeof coreverseFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-};
 /**
  * @summary Invite a specific user to a team (owner/admin only)
  */
-
-export function useInviteToTeam<
-  TData = Awaited<ReturnType<typeof inviteToTeam>>,
+export const useInviteToTeam = <
   TError = InviteToTeam400 | InviteToTeam401 | InviteToTeam403,
+  TContext = unknown,
 >(
-  teamId: string,
-  inviteToTeamBody: InviteToTeamBody,
   options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof inviteToTeam>>, TError, TData>
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof inviteToTeam>>,
+      TError,
+      InviteToTeamMutationVariables,
+      TContext
     >;
     request?: SecondParameter<typeof coreverseFetch>;
   },
   queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-} {
-  const queryOptions = getInviteToTeamQueryOptions(
-    teamId,
-    inviteToTeamBody,
-    options,
-  );
-
-  const query = useQuery(queryOptions, queryClient) as UseQueryResult<
-    TData,
-    TError
-  > & { queryKey: DataTag<QueryKey, TData, TError> };
-
-  return withQueryKey(query, queryOptions.queryKey);
-}
-
+): UseMutationResult<
+  Awaited<ReturnType<typeof inviteToTeam>>,
+  TError,
+  InviteToTeamMutationVariables,
+  TContext
+> => {
+  return useMutation(getInviteToTeamMutationOptions(options), queryClient);
+};
 export type offerOwnershipTransferResponse201 = {
   data: OfferOwnershipTransfer201;
   status: 201;
@@ -1591,197 +1156,94 @@ export const offerOwnershipTransfer = async (
   );
 };
 
-export const getOfferOwnershipTransferQueryKey = (
-  teamId: string,
-  offerOwnershipTransferBody?: OfferOwnershipTransferBody,
-) => {
-  return [
-    "POST",
-    `/teams/${teamId}/ownership-transfer`,
-    offerOwnershipTransferBody,
-  ] as const;
-};
+export const getOfferOwnershipTransferMutationKey = () =>
+  ["offerOwnershipTransfer"] as const;
 
-export const getOfferOwnershipTransferQueryOptions = <
-  TData = Awaited<ReturnType<typeof offerOwnershipTransfer>>,
+export const getOfferOwnershipTransferMutationOptions = <
   TError =
     | OfferOwnershipTransfer400
     | OfferOwnershipTransfer401
     | OfferOwnershipTransfer403,
->(
-  teamId: string,
-  offerOwnershipTransferBody: OfferOwnershipTransferBody,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<
-        Awaited<ReturnType<typeof offerOwnershipTransfer>>,
-        TError,
-        TData
-      >
-    >;
-    request?: SecondParameter<typeof coreverseFetch>;
-  },
-) => {
-  const { query: queryOptions, request: requestOptions } = options ?? {};
-
-  const queryKey =
-    queryOptions?.queryKey ??
-    getOfferOwnershipTransferQueryKey(teamId, offerOwnershipTransferBody);
-
-  const queryFn: QueryFunction<
-    Awaited<ReturnType<typeof offerOwnershipTransfer>>
-  > = ({ signal }) =>
-    offerOwnershipTransfer(teamId, offerOwnershipTransferBody, {
-      signal,
-      ...requestOptions,
-    });
-
-  return {
-    queryKey,
-    queryFn,
-    enabled: teamId !== null && teamId !== undefined,
-    ...queryOptions,
-  } as UseQueryOptions<
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
     Awaited<ReturnType<typeof offerOwnershipTransfer>>,
     TError,
-    TData
-  > & { queryKey: DataTag<QueryKey, TData, TError> };
+    OfferOwnershipTransferMutationVariables,
+    TContext
+  >;
+  request?: SecondParameter<typeof coreverseFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof offerOwnershipTransfer>>,
+  TError,
+  OfferOwnershipTransferMutationVariables,
+  TContext
+> => {
+  const mutationKey = getOfferOwnershipTransferMutationKey();
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof offerOwnershipTransfer>>,
+    OfferOwnershipTransferMutationVariables
+  > = (props) => {
+    const { teamId, data } = props ?? {};
+
+    return offerOwnershipTransfer(teamId, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
 };
 
-export type OfferOwnershipTransferQueryResult = NonNullable<
+export type OfferOwnershipTransferMutationResult = NonNullable<
   Awaited<ReturnType<typeof offerOwnershipTransfer>>
 >;
-export type OfferOwnershipTransferQueryError =
+export type OfferOwnershipTransferMutationBody = OfferOwnershipTransferBody;
+export type OfferOwnershipTransferMutationError =
   | OfferOwnershipTransfer400
   | OfferOwnershipTransfer401
   | OfferOwnershipTransfer403;
+export type OfferOwnershipTransferMutationVariables = {
+  teamId: string;
+  data: OfferOwnershipTransferBody;
+};
 
-export function useOfferOwnershipTransfer<
-  TData = Awaited<ReturnType<typeof offerOwnershipTransfer>>,
-  TError =
-    | OfferOwnershipTransfer400
-    | OfferOwnershipTransfer401
-    | OfferOwnershipTransfer403,
->(
-  teamId: string,
-  offerOwnershipTransferBody: OfferOwnershipTransferBody,
-  options: {
-    query: Partial<
-      UseQueryOptions<
-        Awaited<ReturnType<typeof offerOwnershipTransfer>>,
-        TError,
-        TData
-      >
-    > &
-      Pick<
-        DefinedInitialDataOptions<
-          Awaited<ReturnType<typeof offerOwnershipTransfer>>,
-          TError,
-          Awaited<ReturnType<typeof offerOwnershipTransfer>>
-        >,
-        "initialData"
-      >;
-    request?: SecondParameter<typeof coreverseFetch>;
-  },
-  queryClient?: QueryClient,
-): DefinedUseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-};
-export function useOfferOwnershipTransfer<
-  TData = Awaited<ReturnType<typeof offerOwnershipTransfer>>,
-  TError =
-    | OfferOwnershipTransfer400
-    | OfferOwnershipTransfer401
-    | OfferOwnershipTransfer403,
->(
-  teamId: string,
-  offerOwnershipTransferBody: OfferOwnershipTransferBody,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<
-        Awaited<ReturnType<typeof offerOwnershipTransfer>>,
-        TError,
-        TData
-      >
-    > &
-      Pick<
-        UndefinedInitialDataOptions<
-          Awaited<ReturnType<typeof offerOwnershipTransfer>>,
-          TError,
-          Awaited<ReturnType<typeof offerOwnershipTransfer>>
-        >,
-        "initialData"
-      >;
-    request?: SecondParameter<typeof coreverseFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-};
-export function useOfferOwnershipTransfer<
-  TData = Awaited<ReturnType<typeof offerOwnershipTransfer>>,
-  TError =
-    | OfferOwnershipTransfer400
-    | OfferOwnershipTransfer401
-    | OfferOwnershipTransfer403,
->(
-  teamId: string,
-  offerOwnershipTransferBody: OfferOwnershipTransferBody,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<
-        Awaited<ReturnType<typeof offerOwnershipTransfer>>,
-        TError,
-        TData
-      >
-    >;
-    request?: SecondParameter<typeof coreverseFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-};
 /**
  * @summary Offer team ownership to a user (owner only, target's consent required)
  */
-
-export function useOfferOwnershipTransfer<
-  TData = Awaited<ReturnType<typeof offerOwnershipTransfer>>,
+export const useOfferOwnershipTransfer = <
   TError =
     | OfferOwnershipTransfer400
     | OfferOwnershipTransfer401
     | OfferOwnershipTransfer403,
+  TContext = unknown,
 >(
-  teamId: string,
-  offerOwnershipTransferBody: OfferOwnershipTransferBody,
   options?: {
-    query?: Partial<
-      UseQueryOptions<
-        Awaited<ReturnType<typeof offerOwnershipTransfer>>,
-        TError,
-        TData
-      >
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof offerOwnershipTransfer>>,
+      TError,
+      OfferOwnershipTransferMutationVariables,
+      TContext
     >;
     request?: SecondParameter<typeof coreverseFetch>;
   },
   queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-} {
-  const queryOptions = getOfferOwnershipTransferQueryOptions(
-    teamId,
-    offerOwnershipTransferBody,
-    options,
+): UseMutationResult<
+  Awaited<ReturnType<typeof offerOwnershipTransfer>>,
+  TError,
+  OfferOwnershipTransferMutationVariables,
+  TContext
+> => {
+  return useMutation(
+    getOfferOwnershipTransferMutationOptions(options),
+    queryClient,
   );
-
-  const query = useQuery(queryOptions, queryClient) as UseQueryResult<
-    TData,
-    TError
-  > & { queryKey: DataTag<QueryKey, TData, TError> };
-
-  return withQueryKey(query, queryOptions.queryKey);
-}
-
+};
 export type leaveTeamResponse204 = {
   data: void;
   status: 204;
@@ -1831,131 +1293,75 @@ export const leaveTeam = async (
   });
 };
 
-export const getLeaveTeamQueryKey = (teamId: string) => {
-  return ["POST", `/teams/${teamId}/leave`] as const;
-};
+export const getLeaveTeamMutationKey = () => ["leaveTeam"] as const;
 
-export const getLeaveTeamQueryOptions = <
-  TData = Awaited<ReturnType<typeof leaveTeam>>,
+export const getLeaveTeamMutationOptions = <
   TError = LeaveTeam400 | LeaveTeam401 | LeaveTeam403,
->(
-  teamId: string,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof leaveTeam>>, TError, TData>
-    >;
-    request?: SecondParameter<typeof coreverseFetch>;
-  },
-) => {
-  const { query: queryOptions, request: requestOptions } = options ?? {};
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof leaveTeam>>,
+    TError,
+    LeaveTeamMutationVariables,
+    TContext
+  >;
+  request?: SecondParameter<typeof coreverseFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof leaveTeam>>,
+  TError,
+  LeaveTeamMutationVariables,
+  TContext
+> => {
+  const mutationKey = getLeaveTeamMutationKey();
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
 
-  const queryKey = queryOptions?.queryKey ?? getLeaveTeamQueryKey(teamId);
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof leaveTeam>>,
+    LeaveTeamMutationVariables
+  > = (props) => {
+    const { teamId } = props ?? {};
 
-  const queryFn: QueryFunction<Awaited<ReturnType<typeof leaveTeam>>> = ({
-    signal,
-  }) => leaveTeam(teamId, { signal, ...requestOptions });
-
-  return {
-    queryKey,
-    queryFn,
-    enabled: teamId !== null && teamId !== undefined,
-    ...queryOptions,
-  } as UseQueryOptions<Awaited<ReturnType<typeof leaveTeam>>, TError, TData> & {
-    queryKey: DataTag<QueryKey, TData, TError>;
+    return leaveTeam(teamId, requestOptions);
   };
+
+  return { mutationFn, ...mutationOptions };
 };
 
-export type LeaveTeamQueryResult = NonNullable<
+export type LeaveTeamMutationResult = NonNullable<
   Awaited<ReturnType<typeof leaveTeam>>
 >;
-export type LeaveTeamQueryError = LeaveTeam400 | LeaveTeam401 | LeaveTeam403;
 
-export function useLeaveTeam<
-  TData = Awaited<ReturnType<typeof leaveTeam>>,
-  TError = LeaveTeam400 | LeaveTeam401 | LeaveTeam403,
->(
-  teamId: string,
-  options: {
-    query: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof leaveTeam>>, TError, TData>
-    > &
-      Pick<
-        DefinedInitialDataOptions<
-          Awaited<ReturnType<typeof leaveTeam>>,
-          TError,
-          Awaited<ReturnType<typeof leaveTeam>>
-        >,
-        "initialData"
-      >;
-    request?: SecondParameter<typeof coreverseFetch>;
-  },
-  queryClient?: QueryClient,
-): DefinedUseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-};
-export function useLeaveTeam<
-  TData = Awaited<ReturnType<typeof leaveTeam>>,
-  TError = LeaveTeam400 | LeaveTeam401 | LeaveTeam403,
->(
-  teamId: string,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof leaveTeam>>, TError, TData>
-    > &
-      Pick<
-        UndefinedInitialDataOptions<
-          Awaited<ReturnType<typeof leaveTeam>>,
-          TError,
-          Awaited<ReturnType<typeof leaveTeam>>
-        >,
-        "initialData"
-      >;
-    request?: SecondParameter<typeof coreverseFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-};
-export function useLeaveTeam<
-  TData = Awaited<ReturnType<typeof leaveTeam>>,
-  TError = LeaveTeam400 | LeaveTeam401 | LeaveTeam403,
->(
-  teamId: string,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof leaveTeam>>, TError, TData>
-    >;
-    request?: SecondParameter<typeof coreverseFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-};
+export type LeaveTeamMutationError = LeaveTeam400 | LeaveTeam401 | LeaveTeam403;
+export type LeaveTeamMutationVariables = { teamId: string };
+
 /**
  * @summary Leave a team (owner cannot leave)
  */
-
-export function useLeaveTeam<
-  TData = Awaited<ReturnType<typeof leaveTeam>>,
+export const useLeaveTeam = <
   TError = LeaveTeam400 | LeaveTeam401 | LeaveTeam403,
+  TContext = unknown,
 >(
-  teamId: string,
   options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof leaveTeam>>, TError, TData>
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof leaveTeam>>,
+      TError,
+      LeaveTeamMutationVariables,
+      TContext
     >;
     request?: SecondParameter<typeof coreverseFetch>;
   },
   queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-} {
-  const queryOptions = getLeaveTeamQueryOptions(teamId, options);
-
-  const query = useQuery(queryOptions, queryClient) as UseQueryResult<
-    TData,
-    TError
-  > & { queryKey: DataTag<QueryKey, TData, TError> };
-
-  return withQueryKey(query, queryOptions.queryKey);
-}
+): UseMutationResult<
+  Awaited<ReturnType<typeof leaveTeam>>,
+  TError,
+  LeaveTeamMutationVariables,
+  TContext
+> => {
+  return useMutation(getLeaveTeamMutationOptions(options), queryClient);
+};

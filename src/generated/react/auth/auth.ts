@@ -3,21 +3,16 @@
  * Do not edit manually.
  * Coreverse DB API
  * Centralized data-access API for the Coreverse ecosystem. Coreverse DB defines and serves all data operations; Coreverse Launcher and Coreverse Website consume this API and never access Postgres/Supabase directly.
- * Access model: the Supabase platform JWT gate is ON for every Edge Function except `send-email`, `auth` and `profiles`, so a request without a valid Supabase Auth JWT is rejected with 401 before the function runs -- including the operations below that declare no `security` requirement (those only mean the function itself does not require a particular user). The only signed-out operations are `POST /auth/password-reset` and `GET /profiles/username-availability`; every other `/profiles` route authenticates the caller inside the function.
+ * Access model: the Supabase platform JWT gate is OFF for `releases`, `news`, `events`, `faq`, `polls`, `discussions`, `docs`, `auth`, `profiles` and `send-email`, and ON for `teams`, `requests` and `projects`. Signed-out callers can read public content (a `GET` on any public-content route answers 200); every write needs a user session and answers 401 `unauthorized` from the function without one. `POST /auth/password-reset` and `GET /profiles/username-availability` also work signed out; every other `/profiles` route authenticates the caller inside the function.
  *
- * OpenAPI spec version: 0.5.2
+ * OpenAPI spec version: 0.5.3
  */
-import { useQuery } from "@tanstack/react-query";
+import { useMutation } from "@tanstack/react-query";
 import type {
-  DataTag,
-  DefinedInitialDataOptions,
-  DefinedUseQueryResult,
+  MutationFunction,
   QueryClient,
-  QueryFunction,
-  QueryKey,
-  UndefinedInitialDataOptions,
-  UseQueryOptions,
-  UseQueryResult,
+  UseMutationOptions,
+  UseMutationResult,
 } from "@tanstack/react-query";
 
 import type {
@@ -30,24 +25,6 @@ import type {
 import { coreverseFetch } from "../../../client/http";
 
 type SecondParameter<T extends (...args: never) => unknown> = Parameters<T>[1];
-
-const withQueryKey = <T extends object, K>(
-  query: T,
-  queryKey: K,
-): T & { queryKey: K } => {
-  const result = { queryKey } as T & { queryKey: K };
-  for (const key of Object.keys(query)) {
-    // The explicit queryKey always wins, matching the previous
-    // `{ ...query, queryKey }` spread where it was set last.
-    if (key === "queryKey") continue;
-    Object.defineProperty(result, key, {
-      enumerable: true,
-      configurable: true,
-      get: () => (query as Record<string, unknown>)[key],
-    });
-  }
-  return result;
-};
 
 export type requestPasswordResetResponse200 = {
   data: RequestPasswordReset200;
@@ -111,160 +88,82 @@ export const requestPasswordReset = async (
   );
 };
 
-export const getRequestPasswordResetQueryKey = (
-  requestPasswordResetBody?: RequestPasswordResetBody,
-) => {
-  return ["POST", `/auth/password-reset`, requestPasswordResetBody] as const;
-};
+export const getRequestPasswordResetMutationKey = () =>
+  ["requestPasswordReset"] as const;
 
-export const getRequestPasswordResetQueryOptions = <
-  TData = Awaited<ReturnType<typeof requestPasswordReset>>,
+export const getRequestPasswordResetMutationOptions = <
   TError = RequestPasswordReset400 | RequestPasswordReset429,
->(
-  requestPasswordResetBody: RequestPasswordResetBody,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<
-        Awaited<ReturnType<typeof requestPasswordReset>>,
-        TError,
-        TData
-      >
-    >;
-    request?: SecondParameter<typeof coreverseFetch>;
-  },
-) => {
-  const { query: queryOptions, request: requestOptions } = options ?? {};
-
-  const queryKey =
-    queryOptions?.queryKey ??
-    getRequestPasswordResetQueryKey(requestPasswordResetBody);
-
-  const queryFn: QueryFunction<
-    Awaited<ReturnType<typeof requestPasswordReset>>
-  > = ({ signal }) =>
-    requestPasswordReset(requestPasswordResetBody, {
-      signal,
-      ...requestOptions,
-    });
-
-  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
     Awaited<ReturnType<typeof requestPasswordReset>>,
     TError,
-    TData
-  > & { queryKey: DataTag<QueryKey, TData, TError> };
+    RequestPasswordResetMutationVariables,
+    TContext
+  >;
+  request?: SecondParameter<typeof coreverseFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof requestPasswordReset>>,
+  TError,
+  RequestPasswordResetMutationVariables,
+  TContext
+> => {
+  const mutationKey = getRequestPasswordResetMutationKey();
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof requestPasswordReset>>,
+    RequestPasswordResetMutationVariables
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return requestPasswordReset(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
 };
 
-export type RequestPasswordResetQueryResult = NonNullable<
+export type RequestPasswordResetMutationResult = NonNullable<
   Awaited<ReturnType<typeof requestPasswordReset>>
 >;
-export type RequestPasswordResetQueryError =
+export type RequestPasswordResetMutationBody = RequestPasswordResetBody;
+export type RequestPasswordResetMutationError =
   RequestPasswordReset400 | RequestPasswordReset429;
+export type RequestPasswordResetMutationVariables = {
+  data: RequestPasswordResetBody;
+};
 
-export function useRequestPasswordReset<
-  TData = Awaited<ReturnType<typeof requestPasswordReset>>,
-  TError = RequestPasswordReset400 | RequestPasswordReset429,
->(
-  requestPasswordResetBody: RequestPasswordResetBody,
-  options: {
-    query: Partial<
-      UseQueryOptions<
-        Awaited<ReturnType<typeof requestPasswordReset>>,
-        TError,
-        TData
-      >
-    > &
-      Pick<
-        DefinedInitialDataOptions<
-          Awaited<ReturnType<typeof requestPasswordReset>>,
-          TError,
-          Awaited<ReturnType<typeof requestPasswordReset>>
-        >,
-        "initialData"
-      >;
-    request?: SecondParameter<typeof coreverseFetch>;
-  },
-  queryClient?: QueryClient,
-): DefinedUseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-};
-export function useRequestPasswordReset<
-  TData = Awaited<ReturnType<typeof requestPasswordReset>>,
-  TError = RequestPasswordReset400 | RequestPasswordReset429,
->(
-  requestPasswordResetBody: RequestPasswordResetBody,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<
-        Awaited<ReturnType<typeof requestPasswordReset>>,
-        TError,
-        TData
-      >
-    > &
-      Pick<
-        UndefinedInitialDataOptions<
-          Awaited<ReturnType<typeof requestPasswordReset>>,
-          TError,
-          Awaited<ReturnType<typeof requestPasswordReset>>
-        >,
-        "initialData"
-      >;
-    request?: SecondParameter<typeof coreverseFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-};
-export function useRequestPasswordReset<
-  TData = Awaited<ReturnType<typeof requestPasswordReset>>,
-  TError = RequestPasswordReset400 | RequestPasswordReset429,
->(
-  requestPasswordResetBody: RequestPasswordResetBody,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<
-        Awaited<ReturnType<typeof requestPasswordReset>>,
-        TError,
-        TData
-      >
-    >;
-    request?: SecondParameter<typeof coreverseFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-};
 /**
  * @summary Request a password reset email
  */
-
-export function useRequestPasswordReset<
-  TData = Awaited<ReturnType<typeof requestPasswordReset>>,
+export const useRequestPasswordReset = <
   TError = RequestPasswordReset400 | RequestPasswordReset429,
+  TContext = unknown,
 >(
-  requestPasswordResetBody: RequestPasswordResetBody,
   options?: {
-    query?: Partial<
-      UseQueryOptions<
-        Awaited<ReturnType<typeof requestPasswordReset>>,
-        TError,
-        TData
-      >
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof requestPasswordReset>>,
+      TError,
+      RequestPasswordResetMutationVariables,
+      TContext
     >;
     request?: SecondParameter<typeof coreverseFetch>;
   },
   queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-} {
-  const queryOptions = getRequestPasswordResetQueryOptions(
-    requestPasswordResetBody,
-    options,
+): UseMutationResult<
+  Awaited<ReturnType<typeof requestPasswordReset>>,
+  TError,
+  RequestPasswordResetMutationVariables,
+  TContext
+> => {
+  return useMutation(
+    getRequestPasswordResetMutationOptions(options),
+    queryClient,
   );
-
-  const query = useQuery(queryOptions, queryClient) as UseQueryResult<
-    TData,
-    TError
-  > & { queryKey: DataTag<QueryKey, TData, TError> };
-
-  return withQueryKey(query, queryOptions.queryKey);
-}
+};

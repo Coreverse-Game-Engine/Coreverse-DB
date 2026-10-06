@@ -3,19 +3,22 @@
  * Do not edit manually.
  * Coreverse DB API
  * Centralized data-access API for the Coreverse ecosystem. Coreverse DB defines and serves all data operations; Coreverse Launcher and Coreverse Website consume this API and never access Postgres/Supabase directly.
- * Access model: the Supabase platform JWT gate is ON for every Edge Function except `send-email`, `auth` and `profiles`, so a request without a valid Supabase Auth JWT is rejected with 401 before the function runs -- including the operations below that declare no `security` requirement (those only mean the function itself does not require a particular user). The only signed-out operations are `POST /auth/password-reset` and `GET /profiles/username-availability`; every other `/profiles` route authenticates the caller inside the function.
+ * Access model: the Supabase platform JWT gate is OFF for `releases`, `news`, `events`, `faq`, `polls`, `discussions`, `docs`, `auth`, `profiles` and `send-email`, and ON for `teams`, `requests` and `projects`. Signed-out callers can read public content (a `GET` on any public-content route answers 200); every write needs a user session and answers 401 `unauthorized` from the function without one. `POST /auth/password-reset` and `GET /profiles/username-availability` also work signed out; every other `/profiles` route authenticates the caller inside the function.
  *
- * OpenAPI spec version: 0.5.2
+ * OpenAPI spec version: 0.5.3
  */
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import type {
   DataTag,
   DefinedInitialDataOptions,
   DefinedUseQueryResult,
+  MutationFunction,
   QueryClient,
   QueryFunction,
   QueryKey,
   UndefinedInitialDataOptions,
+  UseMutationOptions,
+  UseMutationResult,
   UseQueryOptions,
   UseQueryResult,
 } from "@tanstack/react-query";
@@ -293,135 +296,78 @@ export const createProject = async (
   });
 };
 
-export const getCreateProjectQueryKey = (
-  createProjectBody?: CreateProjectBody,
-) => {
-  return ["POST", `/projects`, createProjectBody] as const;
-};
+export const getCreateProjectMutationKey = () => ["createProject"] as const;
 
-export const getCreateProjectQueryOptions = <
-  TData = Awaited<ReturnType<typeof createProject>>,
+export const getCreateProjectMutationOptions = <
   TError = CreateProject400 | CreateProject401,
->(
-  createProjectBody: CreateProjectBody,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof createProject>>, TError, TData>
-    >;
-    request?: SecondParameter<typeof coreverseFetch>;
-  },
-) => {
-  const { query: queryOptions, request: requestOptions } = options ?? {};
-
-  const queryKey =
-    queryOptions?.queryKey ?? getCreateProjectQueryKey(createProjectBody);
-
-  const queryFn: QueryFunction<Awaited<ReturnType<typeof createProject>>> = ({
-    signal,
-  }) => createProject(createProjectBody, { signal, ...requestOptions });
-
-  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
     Awaited<ReturnType<typeof createProject>>,
     TError,
-    TData
-  > & { queryKey: DataTag<QueryKey, TData, TError> };
+    CreateProjectMutationVariables,
+    TContext
+  >;
+  request?: SecondParameter<typeof coreverseFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof createProject>>,
+  TError,
+  CreateProjectMutationVariables,
+  TContext
+> => {
+  const mutationKey = getCreateProjectMutationKey();
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof createProject>>,
+    CreateProjectMutationVariables
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return createProject(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
 };
 
-export type CreateProjectQueryResult = NonNullable<
+export type CreateProjectMutationResult = NonNullable<
   Awaited<ReturnType<typeof createProject>>
 >;
-export type CreateProjectQueryError = CreateProject400 | CreateProject401;
+export type CreateProjectMutationBody = CreateProjectBody;
+export type CreateProjectMutationError = CreateProject400 | CreateProject401;
+export type CreateProjectMutationVariables = { data: CreateProjectBody };
 
-export function useCreateProject<
-  TData = Awaited<ReturnType<typeof createProject>>,
-  TError = CreateProject400 | CreateProject401,
->(
-  createProjectBody: CreateProjectBody,
-  options: {
-    query: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof createProject>>, TError, TData>
-    > &
-      Pick<
-        DefinedInitialDataOptions<
-          Awaited<ReturnType<typeof createProject>>,
-          TError,
-          Awaited<ReturnType<typeof createProject>>
-        >,
-        "initialData"
-      >;
-    request?: SecondParameter<typeof coreverseFetch>;
-  },
-  queryClient?: QueryClient,
-): DefinedUseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-};
-export function useCreateProject<
-  TData = Awaited<ReturnType<typeof createProject>>,
-  TError = CreateProject400 | CreateProject401,
->(
-  createProjectBody: CreateProjectBody,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof createProject>>, TError, TData>
-    > &
-      Pick<
-        UndefinedInitialDataOptions<
-          Awaited<ReturnType<typeof createProject>>,
-          TError,
-          Awaited<ReturnType<typeof createProject>>
-        >,
-        "initialData"
-      >;
-    request?: SecondParameter<typeof coreverseFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-};
-export function useCreateProject<
-  TData = Awaited<ReturnType<typeof createProject>>,
-  TError = CreateProject400 | CreateProject401,
->(
-  createProjectBody: CreateProjectBody,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof createProject>>, TError, TData>
-    >;
-    request?: SecondParameter<typeof coreverseFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-};
 /**
  * @summary Register a project (archive already uploaded to Storage)
  */
-
-export function useCreateProject<
-  TData = Awaited<ReturnType<typeof createProject>>,
+export const useCreateProject = <
   TError = CreateProject400 | CreateProject401,
+  TContext = unknown,
 >(
-  createProjectBody: CreateProjectBody,
   options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof createProject>>, TError, TData>
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof createProject>>,
+      TError,
+      CreateProjectMutationVariables,
+      TContext
     >;
     request?: SecondParameter<typeof coreverseFetch>;
   },
   queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-} {
-  const queryOptions = getCreateProjectQueryOptions(createProjectBody, options);
-
-  const query = useQuery(queryOptions, queryClient) as UseQueryResult<
-    TData,
-    TError
-  > & { queryKey: DataTag<QueryKey, TData, TError> };
-
-  return withQueryKey(query, queryOptions.queryKey);
-}
-
+): UseMutationResult<
+  Awaited<ReturnType<typeof createProject>>,
+  TError,
+  CreateProjectMutationVariables,
+  TContext
+> => {
+  return useMutation(getCreateProjectMutationOptions(options), queryClient);
+};
 export type updateProjectResponse200 = {
   data: UpdateProject200;
   status: 200;
@@ -480,152 +426,81 @@ export const updateProject = async (
   });
 };
 
-export const getUpdateProjectQueryKey = (
-  projectId: string,
-  updateProjectBody?: UpdateProjectBody,
-) => {
-  return ["PATCH", `/projects/${projectId}`, updateProjectBody] as const;
-};
+export const getUpdateProjectMutationKey = () => ["updateProject"] as const;
 
-export const getUpdateProjectQueryOptions = <
-  TData = Awaited<ReturnType<typeof updateProject>>,
+export const getUpdateProjectMutationOptions = <
   TError = UpdateProject400 | UpdateProject404,
->(
-  projectId: string,
-  updateProjectBody: UpdateProjectBody,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof updateProject>>, TError, TData>
-    >;
-    request?: SecondParameter<typeof coreverseFetch>;
-  },
-) => {
-  const { query: queryOptions, request: requestOptions } = options ?? {};
-
-  const queryKey =
-    queryOptions?.queryKey ??
-    getUpdateProjectQueryKey(projectId, updateProjectBody);
-
-  const queryFn: QueryFunction<Awaited<ReturnType<typeof updateProject>>> = ({
-    signal,
-  }) =>
-    updateProject(projectId, updateProjectBody, { signal, ...requestOptions });
-
-  return {
-    queryKey,
-    queryFn,
-    enabled: projectId !== null && projectId !== undefined,
-    ...queryOptions,
-  } as UseQueryOptions<
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
     Awaited<ReturnType<typeof updateProject>>,
     TError,
-    TData
-  > & { queryKey: DataTag<QueryKey, TData, TError> };
+    UpdateProjectMutationVariables,
+    TContext
+  >;
+  request?: SecondParameter<typeof coreverseFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof updateProject>>,
+  TError,
+  UpdateProjectMutationVariables,
+  TContext
+> => {
+  const mutationKey = getUpdateProjectMutationKey();
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof updateProject>>,
+    UpdateProjectMutationVariables
+  > = (props) => {
+    const { projectId, data } = props ?? {};
+
+    return updateProject(projectId, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
 };
 
-export type UpdateProjectQueryResult = NonNullable<
+export type UpdateProjectMutationResult = NonNullable<
   Awaited<ReturnType<typeof updateProject>>
 >;
-export type UpdateProjectQueryError = UpdateProject400 | UpdateProject404;
+export type UpdateProjectMutationBody = UpdateProjectBody;
+export type UpdateProjectMutationError = UpdateProject400 | UpdateProject404;
+export type UpdateProjectMutationVariables = {
+  projectId: string;
+  data: UpdateProjectBody;
+};
 
-export function useUpdateProject<
-  TData = Awaited<ReturnType<typeof updateProject>>,
-  TError = UpdateProject400 | UpdateProject404,
->(
-  projectId: string,
-  updateProjectBody: UpdateProjectBody,
-  options: {
-    query: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof updateProject>>, TError, TData>
-    > &
-      Pick<
-        DefinedInitialDataOptions<
-          Awaited<ReturnType<typeof updateProject>>,
-          TError,
-          Awaited<ReturnType<typeof updateProject>>
-        >,
-        "initialData"
-      >;
-    request?: SecondParameter<typeof coreverseFetch>;
-  },
-  queryClient?: QueryClient,
-): DefinedUseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-};
-export function useUpdateProject<
-  TData = Awaited<ReturnType<typeof updateProject>>,
-  TError = UpdateProject400 | UpdateProject404,
->(
-  projectId: string,
-  updateProjectBody: UpdateProjectBody,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof updateProject>>, TError, TData>
-    > &
-      Pick<
-        UndefinedInitialDataOptions<
-          Awaited<ReturnType<typeof updateProject>>,
-          TError,
-          Awaited<ReturnType<typeof updateProject>>
-        >,
-        "initialData"
-      >;
-    request?: SecondParameter<typeof coreverseFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-};
-export function useUpdateProject<
-  TData = Awaited<ReturnType<typeof updateProject>>,
-  TError = UpdateProject400 | UpdateProject404,
->(
-  projectId: string,
-  updateProjectBody: UpdateProjectBody,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof updateProject>>, TError, TData>
-    >;
-    request?: SecondParameter<typeof coreverseFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-};
 /**
  * @summary Update a project (owner only)
  */
-
-export function useUpdateProject<
-  TData = Awaited<ReturnType<typeof updateProject>>,
+export const useUpdateProject = <
   TError = UpdateProject400 | UpdateProject404,
+  TContext = unknown,
 >(
-  projectId: string,
-  updateProjectBody: UpdateProjectBody,
   options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof updateProject>>, TError, TData>
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof updateProject>>,
+      TError,
+      UpdateProjectMutationVariables,
+      TContext
     >;
     request?: SecondParameter<typeof coreverseFetch>;
   },
   queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-} {
-  const queryOptions = getUpdateProjectQueryOptions(
-    projectId,
-    updateProjectBody,
-    options,
-  );
-
-  const query = useQuery(queryOptions, queryClient) as UseQueryResult<
-    TData,
-    TError
-  > & { queryKey: DataTag<QueryKey, TData, TError> };
-
-  return withQueryKey(query, queryOptions.queryKey);
-}
-
+): UseMutationResult<
+  Awaited<ReturnType<typeof updateProject>>,
+  TError,
+  UpdateProjectMutationVariables,
+  TContext
+> => {
+  return useMutation(getUpdateProjectMutationOptions(options), queryClient);
+};
 export type deleteProjectResponse204 = {
   data: void;
   status: 204;
@@ -670,138 +545,78 @@ export const deleteProject = async (
   });
 };
 
-export const getDeleteProjectQueryKey = (projectId: string) => {
-  return ["DELETE", `/projects/${projectId}`] as const;
-};
+export const getDeleteProjectMutationKey = () => ["deleteProject"] as const;
 
-export const getDeleteProjectQueryOptions = <
-  TData = Awaited<ReturnType<typeof deleteProject>>,
+export const getDeleteProjectMutationOptions = <
   TError = DeleteProject400 | DeleteProject404,
->(
-  projectId: string,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof deleteProject>>, TError, TData>
-    >;
-    request?: SecondParameter<typeof coreverseFetch>;
-  },
-) => {
-  const { query: queryOptions, request: requestOptions } = options ?? {};
-
-  const queryKey =
-    queryOptions?.queryKey ?? getDeleteProjectQueryKey(projectId);
-
-  const queryFn: QueryFunction<Awaited<ReturnType<typeof deleteProject>>> = ({
-    signal,
-  }) => deleteProject(projectId, { signal, ...requestOptions });
-
-  return {
-    queryKey,
-    queryFn,
-    enabled: projectId !== null && projectId !== undefined,
-    ...queryOptions,
-  } as UseQueryOptions<
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
     Awaited<ReturnType<typeof deleteProject>>,
     TError,
-    TData
-  > & { queryKey: DataTag<QueryKey, TData, TError> };
+    DeleteProjectMutationVariables,
+    TContext
+  >;
+  request?: SecondParameter<typeof coreverseFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof deleteProject>>,
+  TError,
+  DeleteProjectMutationVariables,
+  TContext
+> => {
+  const mutationKey = getDeleteProjectMutationKey();
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof deleteProject>>,
+    DeleteProjectMutationVariables
+  > = (props) => {
+    const { projectId } = props ?? {};
+
+    return deleteProject(projectId, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
 };
 
-export type DeleteProjectQueryResult = NonNullable<
+export type DeleteProjectMutationResult = NonNullable<
   Awaited<ReturnType<typeof deleteProject>>
 >;
-export type DeleteProjectQueryError = DeleteProject400 | DeleteProject404;
 
-export function useDeleteProject<
-  TData = Awaited<ReturnType<typeof deleteProject>>,
-  TError = DeleteProject400 | DeleteProject404,
->(
-  projectId: string,
-  options: {
-    query: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof deleteProject>>, TError, TData>
-    > &
-      Pick<
-        DefinedInitialDataOptions<
-          Awaited<ReturnType<typeof deleteProject>>,
-          TError,
-          Awaited<ReturnType<typeof deleteProject>>
-        >,
-        "initialData"
-      >;
-    request?: SecondParameter<typeof coreverseFetch>;
-  },
-  queryClient?: QueryClient,
-): DefinedUseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-};
-export function useDeleteProject<
-  TData = Awaited<ReturnType<typeof deleteProject>>,
-  TError = DeleteProject400 | DeleteProject404,
->(
-  projectId: string,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof deleteProject>>, TError, TData>
-    > &
-      Pick<
-        UndefinedInitialDataOptions<
-          Awaited<ReturnType<typeof deleteProject>>,
-          TError,
-          Awaited<ReturnType<typeof deleteProject>>
-        >,
-        "initialData"
-      >;
-    request?: SecondParameter<typeof coreverseFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-};
-export function useDeleteProject<
-  TData = Awaited<ReturnType<typeof deleteProject>>,
-  TError = DeleteProject400 | DeleteProject404,
->(
-  projectId: string,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof deleteProject>>, TError, TData>
-    >;
-    request?: SecondParameter<typeof coreverseFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-};
+export type DeleteProjectMutationError = DeleteProject400 | DeleteProject404;
+export type DeleteProjectMutationVariables = { projectId: string };
+
 /**
  * @summary Delete a project (owner only)
  */
-
-export function useDeleteProject<
-  TData = Awaited<ReturnType<typeof deleteProject>>,
+export const useDeleteProject = <
   TError = DeleteProject400 | DeleteProject404,
+  TContext = unknown,
 >(
-  projectId: string,
   options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof deleteProject>>, TError, TData>
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof deleteProject>>,
+      TError,
+      DeleteProjectMutationVariables,
+      TContext
     >;
     request?: SecondParameter<typeof coreverseFetch>;
   },
   queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-} {
-  const queryOptions = getDeleteProjectQueryOptions(projectId, options);
-
-  const query = useQuery(queryOptions, queryClient) as UseQueryResult<
-    TData,
-    TError
-  > & { queryKey: DataTag<QueryKey, TData, TError> };
-
-  return withQueryKey(query, queryOptions.queryKey);
-}
-
+): UseMutationResult<
+  Awaited<ReturnType<typeof deleteProject>>,
+  TError,
+  DeleteProjectMutationVariables,
+  TContext
+> => {
+  return useMutation(getDeleteProjectMutationOptions(options), queryClient);
+};
 export type getProjectDownloadUrlResponse200 = {
   data: GetProjectDownloadUrl200;
   status: 200;

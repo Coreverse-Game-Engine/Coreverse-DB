@@ -3,19 +3,22 @@
  * Do not edit manually.
  * Coreverse DB API
  * Centralized data-access API for the Coreverse ecosystem. Coreverse DB defines and serves all data operations; Coreverse Launcher and Coreverse Website consume this API and never access Postgres/Supabase directly.
- * Access model: the Supabase platform JWT gate is ON for every Edge Function except `send-email`, `auth` and `profiles`, so a request without a valid Supabase Auth JWT is rejected with 401 before the function runs -- including the operations below that declare no `security` requirement (those only mean the function itself does not require a particular user). The only signed-out operations are `POST /auth/password-reset` and `GET /profiles/username-availability`; every other `/profiles` route authenticates the caller inside the function.
+ * Access model: the Supabase platform JWT gate is OFF for `releases`, `news`, `events`, `faq`, `polls`, `discussions`, `docs`, `auth`, `profiles` and `send-email`, and ON for `teams`, `requests` and `projects`. Signed-out callers can read public content (a `GET` on any public-content route answers 200); every write needs a user session and answers 401 `unauthorized` from the function without one. `POST /auth/password-reset` and `GET /profiles/username-availability` also work signed out; every other `/profiles` route authenticates the caller inside the function.
  *
- * OpenAPI spec version: 0.5.2
+ * OpenAPI spec version: 0.5.3
  */
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import type {
   DataTag,
   DefinedInitialDataOptions,
   DefinedUseQueryResult,
+  MutationFunction,
   QueryClient,
   QueryFunction,
   QueryKey,
   UndefinedInitialDataOptions,
+  UseMutationOptions,
+  UseMutationResult,
   UseQueryOptions,
   UseQueryResult,
 } from "@tanstack/react-query";
@@ -431,129 +434,75 @@ export const reindexDocs = async (
   });
 };
 
-export const getReindexDocsQueryKey = (reindexDocsBody?: ReindexDocsBody) => {
-  return ["POST", `/docs/reindex`, reindexDocsBody] as const;
-};
+export const getReindexDocsMutationKey = () => ["reindexDocs"] as const;
 
-export const getReindexDocsQueryOptions = <
-  TData = Awaited<ReturnType<typeof reindexDocs>>,
+export const getReindexDocsMutationOptions = <
   TError = ReindexDocs400 | ReindexDocs401,
->(
-  reindexDocsBody: ReindexDocsBody,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof reindexDocs>>, TError, TData>
-    >;
-    request?: SecondParameter<typeof coreverseFetch>;
-  },
-) => {
-  const { query: queryOptions, request: requestOptions } = options ?? {};
-
-  const queryKey =
-    queryOptions?.queryKey ?? getReindexDocsQueryKey(reindexDocsBody);
-
-  const queryFn: QueryFunction<Awaited<ReturnType<typeof reindexDocs>>> = ({
-    signal,
-  }) => reindexDocs(reindexDocsBody, { signal, ...requestOptions });
-
-  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
     Awaited<ReturnType<typeof reindexDocs>>,
     TError,
-    TData
-  > & { queryKey: DataTag<QueryKey, TData, TError> };
+    ReindexDocsMutationVariables,
+    TContext
+  >;
+  request?: SecondParameter<typeof coreverseFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof reindexDocs>>,
+  TError,
+  ReindexDocsMutationVariables,
+  TContext
+> => {
+  const mutationKey = getReindexDocsMutationKey();
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof reindexDocs>>,
+    ReindexDocsMutationVariables
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return reindexDocs(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
 };
 
-export type ReindexDocsQueryResult = NonNullable<
+export type ReindexDocsMutationResult = NonNullable<
   Awaited<ReturnType<typeof reindexDocs>>
 >;
-export type ReindexDocsQueryError = ReindexDocs400 | ReindexDocs401;
+export type ReindexDocsMutationBody = ReindexDocsBody;
+export type ReindexDocsMutationError = ReindexDocs400 | ReindexDocs401;
+export type ReindexDocsMutationVariables = { data: ReindexDocsBody };
 
-export function useReindexDocs<
-  TData = Awaited<ReturnType<typeof reindexDocs>>,
-  TError = ReindexDocs400 | ReindexDocs401,
->(
-  reindexDocsBody: ReindexDocsBody,
-  options: {
-    query: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof reindexDocs>>, TError, TData>
-    > &
-      Pick<
-        DefinedInitialDataOptions<
-          Awaited<ReturnType<typeof reindexDocs>>,
-          TError,
-          Awaited<ReturnType<typeof reindexDocs>>
-        >,
-        "initialData"
-      >;
-    request?: SecondParameter<typeof coreverseFetch>;
-  },
-  queryClient?: QueryClient,
-): DefinedUseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-};
-export function useReindexDocs<
-  TData = Awaited<ReturnType<typeof reindexDocs>>,
-  TError = ReindexDocs400 | ReindexDocs401,
->(
-  reindexDocsBody: ReindexDocsBody,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof reindexDocs>>, TError, TData>
-    > &
-      Pick<
-        UndefinedInitialDataOptions<
-          Awaited<ReturnType<typeof reindexDocs>>,
-          TError,
-          Awaited<ReturnType<typeof reindexDocs>>
-        >,
-        "initialData"
-      >;
-    request?: SecondParameter<typeof coreverseFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-};
-export function useReindexDocs<
-  TData = Awaited<ReturnType<typeof reindexDocs>>,
-  TError = ReindexDocs400 | ReindexDocs401,
->(
-  reindexDocsBody: ReindexDocsBody,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof reindexDocs>>, TError, TData>
-    >;
-    request?: SecondParameter<typeof coreverseFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-};
 /**
  * @summary Upsert a documentation source's pages and prune stale ones (CI only)
  */
-
-export function useReindexDocs<
-  TData = Awaited<ReturnType<typeof reindexDocs>>,
+export const useReindexDocs = <
   TError = ReindexDocs400 | ReindexDocs401,
+  TContext = unknown,
 >(
-  reindexDocsBody: ReindexDocsBody,
   options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof reindexDocs>>, TError, TData>
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof reindexDocs>>,
+      TError,
+      ReindexDocsMutationVariables,
+      TContext
     >;
     request?: SecondParameter<typeof coreverseFetch>;
   },
   queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-} {
-  const queryOptions = getReindexDocsQueryOptions(reindexDocsBody, options);
-
-  const query = useQuery(queryOptions, queryClient) as UseQueryResult<
-    TData,
-    TError
-  > & { queryKey: DataTag<QueryKey, TData, TError> };
-
-  return withQueryKey(query, queryOptions.queryKey);
-}
+): UseMutationResult<
+  Awaited<ReturnType<typeof reindexDocs>>,
+  TError,
+  ReindexDocsMutationVariables,
+  TContext
+> => {
+  return useMutation(getReindexDocsMutationOptions(options), queryClient);
+};

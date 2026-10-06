@@ -3,21 +3,16 @@
  * Do not edit manually.
  * Coreverse DB API
  * Centralized data-access API for the Coreverse ecosystem. Coreverse DB defines and serves all data operations; Coreverse Launcher and Coreverse Website consume this API and never access Postgres/Supabase directly.
- * Access model: the Supabase platform JWT gate is ON for every Edge Function except `send-email`, `auth` and `profiles`, so a request without a valid Supabase Auth JWT is rejected with 401 before the function runs -- including the operations below that declare no `security` requirement (those only mean the function itself does not require a particular user). The only signed-out operations are `POST /auth/password-reset` and `GET /profiles/username-availability`; every other `/profiles` route authenticates the caller inside the function.
+ * Access model: the Supabase platform JWT gate is OFF for `releases`, `news`, `events`, `faq`, `polls`, `discussions`, `docs`, `auth`, `profiles` and `send-email`, and ON for `teams`, `requests` and `projects`. Signed-out callers can read public content (a `GET` on any public-content route answers 200); every write needs a user session and answers 401 `unauthorized` from the function without one. `POST /auth/password-reset` and `GET /profiles/username-availability` also work signed out; every other `/profiles` route authenticates the caller inside the function.
  *
- * OpenAPI spec version: 0.5.2
+ * OpenAPI spec version: 0.5.3
  */
-import { useQuery } from "@tanstack/react-query";
+import { useMutation } from "@tanstack/react-query";
 import type {
-  DataTag,
-  DefinedInitialDataOptions,
-  DefinedUseQueryResult,
+  MutationFunction,
   QueryClient,
-  QueryFunction,
-  QueryKey,
-  UndefinedInitialDataOptions,
-  UseQueryOptions,
-  UseQueryResult,
+  UseMutationOptions,
+  UseMutationResult,
 } from "@tanstack/react-query";
 
 import type {
@@ -42,24 +37,6 @@ import type {
 import { coreverseFetch } from "../../../client/http";
 
 type SecondParameter<T extends (...args: never) => unknown> = Parameters<T>[1];
-
-const withQueryKey = <T extends object, K>(
-  query: T,
-  queryKey: K,
-): T & { queryKey: K } => {
-  const result = { queryKey } as T & { queryKey: K };
-  for (const key of Object.keys(query)) {
-    // The explicit queryKey always wins, matching the previous
-    // `{ ...query, queryKey }` spread where it was set last.
-    if (key === "queryKey") continue;
-    Object.defineProperty(result, key, {
-      enumerable: true,
-      configurable: true,
-      get: () => (query as Record<string, unknown>)[key],
-    });
-  }
-  return result;
-};
 
 export type acceptMembershipRequestResponse200 = {
   data: AcceptMembershipRequest200;
@@ -128,192 +105,97 @@ export const acceptMembershipRequest = async (
   );
 };
 
-export const getAcceptMembershipRequestQueryKey = (requestId: string) => {
-  return ["POST", `/requests/${requestId}/accept`] as const;
-};
+export const getAcceptMembershipRequestMutationKey = () =>
+  ["acceptMembershipRequest"] as const;
 
-export const getAcceptMembershipRequestQueryOptions = <
-  TData = Awaited<ReturnType<typeof acceptMembershipRequest>>,
+export const getAcceptMembershipRequestMutationOptions = <
   TError =
     | AcceptMembershipRequest400
     | AcceptMembershipRequest401
     | AcceptMembershipRequest403
     | AcceptMembershipRequest404
     | AcceptMembershipRequest409,
->(
-  requestId: string,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<
-        Awaited<ReturnType<typeof acceptMembershipRequest>>,
-        TError,
-        TData
-      >
-    >;
-    request?: SecondParameter<typeof coreverseFetch>;
-  },
-) => {
-  const { query: queryOptions, request: requestOptions } = options ?? {};
-
-  const queryKey =
-    queryOptions?.queryKey ?? getAcceptMembershipRequestQueryKey(requestId);
-
-  const queryFn: QueryFunction<
-    Awaited<ReturnType<typeof acceptMembershipRequest>>
-  > = ({ signal }) =>
-    acceptMembershipRequest(requestId, { signal, ...requestOptions });
-
-  return {
-    queryKey,
-    queryFn,
-    enabled: requestId !== null && requestId !== undefined,
-    ...queryOptions,
-  } as UseQueryOptions<
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
     Awaited<ReturnType<typeof acceptMembershipRequest>>,
     TError,
-    TData
-  > & { queryKey: DataTag<QueryKey, TData, TError> };
+    AcceptMembershipRequestMutationVariables,
+    TContext
+  >;
+  request?: SecondParameter<typeof coreverseFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof acceptMembershipRequest>>,
+  TError,
+  AcceptMembershipRequestMutationVariables,
+  TContext
+> => {
+  const mutationKey = getAcceptMembershipRequestMutationKey();
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof acceptMembershipRequest>>,
+    AcceptMembershipRequestMutationVariables
+  > = (props) => {
+    const { requestId } = props ?? {};
+
+    return acceptMembershipRequest(requestId, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
 };
 
-export type AcceptMembershipRequestQueryResult = NonNullable<
+export type AcceptMembershipRequestMutationResult = NonNullable<
   Awaited<ReturnType<typeof acceptMembershipRequest>>
 >;
-export type AcceptMembershipRequestQueryError =
+
+export type AcceptMembershipRequestMutationError =
   | AcceptMembershipRequest400
   | AcceptMembershipRequest401
   | AcceptMembershipRequest403
   | AcceptMembershipRequest404
   | AcceptMembershipRequest409;
+export type AcceptMembershipRequestMutationVariables = { requestId: string };
 
-export function useAcceptMembershipRequest<
-  TData = Awaited<ReturnType<typeof acceptMembershipRequest>>,
-  TError =
-    | AcceptMembershipRequest400
-    | AcceptMembershipRequest401
-    | AcceptMembershipRequest403
-    | AcceptMembershipRequest404
-    | AcceptMembershipRequest409,
->(
-  requestId: string,
-  options: {
-    query: Partial<
-      UseQueryOptions<
-        Awaited<ReturnType<typeof acceptMembershipRequest>>,
-        TError,
-        TData
-      >
-    > &
-      Pick<
-        DefinedInitialDataOptions<
-          Awaited<ReturnType<typeof acceptMembershipRequest>>,
-          TError,
-          Awaited<ReturnType<typeof acceptMembershipRequest>>
-        >,
-        "initialData"
-      >;
-    request?: SecondParameter<typeof coreverseFetch>;
-  },
-  queryClient?: QueryClient,
-): DefinedUseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-};
-export function useAcceptMembershipRequest<
-  TData = Awaited<ReturnType<typeof acceptMembershipRequest>>,
-  TError =
-    | AcceptMembershipRequest400
-    | AcceptMembershipRequest401
-    | AcceptMembershipRequest403
-    | AcceptMembershipRequest404
-    | AcceptMembershipRequest409,
->(
-  requestId: string,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<
-        Awaited<ReturnType<typeof acceptMembershipRequest>>,
-        TError,
-        TData
-      >
-    > &
-      Pick<
-        UndefinedInitialDataOptions<
-          Awaited<ReturnType<typeof acceptMembershipRequest>>,
-          TError,
-          Awaited<ReturnType<typeof acceptMembershipRequest>>
-        >,
-        "initialData"
-      >;
-    request?: SecondParameter<typeof coreverseFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-};
-export function useAcceptMembershipRequest<
-  TData = Awaited<ReturnType<typeof acceptMembershipRequest>>,
-  TError =
-    | AcceptMembershipRequest400
-    | AcceptMembershipRequest401
-    | AcceptMembershipRequest403
-    | AcceptMembershipRequest404
-    | AcceptMembershipRequest409,
->(
-  requestId: string,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<
-        Awaited<ReturnType<typeof acceptMembershipRequest>>,
-        TError,
-        TData
-      >
-    >;
-    request?: SecondParameter<typeof coreverseFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-};
 /**
  * @summary Accept a pending membership request (join request or invite/ownership-transfer target)
  */
-
-export function useAcceptMembershipRequest<
-  TData = Awaited<ReturnType<typeof acceptMembershipRequest>>,
+export const useAcceptMembershipRequest = <
   TError =
     | AcceptMembershipRequest400
     | AcceptMembershipRequest401
     | AcceptMembershipRequest403
     | AcceptMembershipRequest404
     | AcceptMembershipRequest409,
+  TContext = unknown,
 >(
-  requestId: string,
   options?: {
-    query?: Partial<
-      UseQueryOptions<
-        Awaited<ReturnType<typeof acceptMembershipRequest>>,
-        TError,
-        TData
-      >
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof acceptMembershipRequest>>,
+      TError,
+      AcceptMembershipRequestMutationVariables,
+      TContext
     >;
     request?: SecondParameter<typeof coreverseFetch>;
   },
   queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-} {
-  const queryOptions = getAcceptMembershipRequestQueryOptions(
-    requestId,
-    options,
+): UseMutationResult<
+  Awaited<ReturnType<typeof acceptMembershipRequest>>,
+  TError,
+  AcceptMembershipRequestMutationVariables,
+  TContext
+> => {
+  return useMutation(
+    getAcceptMembershipRequestMutationOptions(options),
+    queryClient,
   );
-
-  const query = useQuery(queryOptions, queryClient) as UseQueryResult<
-    TData,
-    TError
-  > & { queryKey: DataTag<QueryKey, TData, TError> };
-
-  return withQueryKey(query, queryOptions.queryKey);
-}
-
+};
 export type rejectMembershipRequestResponse200 = {
   data: RejectMembershipRequest200;
   status: 200;
@@ -381,192 +263,97 @@ export const rejectMembershipRequest = async (
   );
 };
 
-export const getRejectMembershipRequestQueryKey = (requestId: string) => {
-  return ["POST", `/requests/${requestId}/reject`] as const;
-};
+export const getRejectMembershipRequestMutationKey = () =>
+  ["rejectMembershipRequest"] as const;
 
-export const getRejectMembershipRequestQueryOptions = <
-  TData = Awaited<ReturnType<typeof rejectMembershipRequest>>,
+export const getRejectMembershipRequestMutationOptions = <
   TError =
     | RejectMembershipRequest400
     | RejectMembershipRequest401
     | RejectMembershipRequest403
     | RejectMembershipRequest404
     | RejectMembershipRequest409,
->(
-  requestId: string,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<
-        Awaited<ReturnType<typeof rejectMembershipRequest>>,
-        TError,
-        TData
-      >
-    >;
-    request?: SecondParameter<typeof coreverseFetch>;
-  },
-) => {
-  const { query: queryOptions, request: requestOptions } = options ?? {};
-
-  const queryKey =
-    queryOptions?.queryKey ?? getRejectMembershipRequestQueryKey(requestId);
-
-  const queryFn: QueryFunction<
-    Awaited<ReturnType<typeof rejectMembershipRequest>>
-  > = ({ signal }) =>
-    rejectMembershipRequest(requestId, { signal, ...requestOptions });
-
-  return {
-    queryKey,
-    queryFn,
-    enabled: requestId !== null && requestId !== undefined,
-    ...queryOptions,
-  } as UseQueryOptions<
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
     Awaited<ReturnType<typeof rejectMembershipRequest>>,
     TError,
-    TData
-  > & { queryKey: DataTag<QueryKey, TData, TError> };
+    RejectMembershipRequestMutationVariables,
+    TContext
+  >;
+  request?: SecondParameter<typeof coreverseFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof rejectMembershipRequest>>,
+  TError,
+  RejectMembershipRequestMutationVariables,
+  TContext
+> => {
+  const mutationKey = getRejectMembershipRequestMutationKey();
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof rejectMembershipRequest>>,
+    RejectMembershipRequestMutationVariables
+  > = (props) => {
+    const { requestId } = props ?? {};
+
+    return rejectMembershipRequest(requestId, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
 };
 
-export type RejectMembershipRequestQueryResult = NonNullable<
+export type RejectMembershipRequestMutationResult = NonNullable<
   Awaited<ReturnType<typeof rejectMembershipRequest>>
 >;
-export type RejectMembershipRequestQueryError =
+
+export type RejectMembershipRequestMutationError =
   | RejectMembershipRequest400
   | RejectMembershipRequest401
   | RejectMembershipRequest403
   | RejectMembershipRequest404
   | RejectMembershipRequest409;
+export type RejectMembershipRequestMutationVariables = { requestId: string };
 
-export function useRejectMembershipRequest<
-  TData = Awaited<ReturnType<typeof rejectMembershipRequest>>,
-  TError =
-    | RejectMembershipRequest400
-    | RejectMembershipRequest401
-    | RejectMembershipRequest403
-    | RejectMembershipRequest404
-    | RejectMembershipRequest409,
->(
-  requestId: string,
-  options: {
-    query: Partial<
-      UseQueryOptions<
-        Awaited<ReturnType<typeof rejectMembershipRequest>>,
-        TError,
-        TData
-      >
-    > &
-      Pick<
-        DefinedInitialDataOptions<
-          Awaited<ReturnType<typeof rejectMembershipRequest>>,
-          TError,
-          Awaited<ReturnType<typeof rejectMembershipRequest>>
-        >,
-        "initialData"
-      >;
-    request?: SecondParameter<typeof coreverseFetch>;
-  },
-  queryClient?: QueryClient,
-): DefinedUseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-};
-export function useRejectMembershipRequest<
-  TData = Awaited<ReturnType<typeof rejectMembershipRequest>>,
-  TError =
-    | RejectMembershipRequest400
-    | RejectMembershipRequest401
-    | RejectMembershipRequest403
-    | RejectMembershipRequest404
-    | RejectMembershipRequest409,
->(
-  requestId: string,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<
-        Awaited<ReturnType<typeof rejectMembershipRequest>>,
-        TError,
-        TData
-      >
-    > &
-      Pick<
-        UndefinedInitialDataOptions<
-          Awaited<ReturnType<typeof rejectMembershipRequest>>,
-          TError,
-          Awaited<ReturnType<typeof rejectMembershipRequest>>
-        >,
-        "initialData"
-      >;
-    request?: SecondParameter<typeof coreverseFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-};
-export function useRejectMembershipRequest<
-  TData = Awaited<ReturnType<typeof rejectMembershipRequest>>,
-  TError =
-    | RejectMembershipRequest400
-    | RejectMembershipRequest401
-    | RejectMembershipRequest403
-    | RejectMembershipRequest404
-    | RejectMembershipRequest409,
->(
-  requestId: string,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<
-        Awaited<ReturnType<typeof rejectMembershipRequest>>,
-        TError,
-        TData
-      >
-    >;
-    request?: SecondParameter<typeof coreverseFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-};
 /**
  * @summary Reject a pending membership request
  */
-
-export function useRejectMembershipRequest<
-  TData = Awaited<ReturnType<typeof rejectMembershipRequest>>,
+export const useRejectMembershipRequest = <
   TError =
     | RejectMembershipRequest400
     | RejectMembershipRequest401
     | RejectMembershipRequest403
     | RejectMembershipRequest404
     | RejectMembershipRequest409,
+  TContext = unknown,
 >(
-  requestId: string,
   options?: {
-    query?: Partial<
-      UseQueryOptions<
-        Awaited<ReturnType<typeof rejectMembershipRequest>>,
-        TError,
-        TData
-      >
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof rejectMembershipRequest>>,
+      TError,
+      RejectMembershipRequestMutationVariables,
+      TContext
     >;
     request?: SecondParameter<typeof coreverseFetch>;
   },
   queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-} {
-  const queryOptions = getRejectMembershipRequestQueryOptions(
-    requestId,
-    options,
+): UseMutationResult<
+  Awaited<ReturnType<typeof rejectMembershipRequest>>,
+  TError,
+  RejectMembershipRequestMutationVariables,
+  TContext
+> => {
+  return useMutation(
+    getRejectMembershipRequestMutationOptions(options),
+    queryClient,
   );
-
-  const query = useQuery(queryOptions, queryClient) as UseQueryResult<
-    TData,
-    TError
-  > & { queryKey: DataTag<QueryKey, TData, TError> };
-
-  return withQueryKey(query, queryOptions.queryKey);
-}
-
+};
 export type cancelMembershipRequestResponse200 = {
   data: CancelMembershipRequest200;
   status: 200;
@@ -622,176 +409,88 @@ export const cancelMembershipRequest = async (
   );
 };
 
-export const getCancelMembershipRequestQueryKey = (requestId: string) => {
-  return ["POST", `/requests/${requestId}/cancel`] as const;
-};
+export const getCancelMembershipRequestMutationKey = () =>
+  ["cancelMembershipRequest"] as const;
 
-export const getCancelMembershipRequestQueryOptions = <
-  TData = Awaited<ReturnType<typeof cancelMembershipRequest>>,
+export const getCancelMembershipRequestMutationOptions = <
   TError =
     | CancelMembershipRequest400
     | CancelMembershipRequest401
     | CancelMembershipRequest403,
->(
-  requestId: string,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<
-        Awaited<ReturnType<typeof cancelMembershipRequest>>,
-        TError,
-        TData
-      >
-    >;
-    request?: SecondParameter<typeof coreverseFetch>;
-  },
-) => {
-  const { query: queryOptions, request: requestOptions } = options ?? {};
-
-  const queryKey =
-    queryOptions?.queryKey ?? getCancelMembershipRequestQueryKey(requestId);
-
-  const queryFn: QueryFunction<
-    Awaited<ReturnType<typeof cancelMembershipRequest>>
-  > = ({ signal }) =>
-    cancelMembershipRequest(requestId, { signal, ...requestOptions });
-
-  return {
-    queryKey,
-    queryFn,
-    enabled: requestId !== null && requestId !== undefined,
-    ...queryOptions,
-  } as UseQueryOptions<
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
     Awaited<ReturnType<typeof cancelMembershipRequest>>,
     TError,
-    TData
-  > & { queryKey: DataTag<QueryKey, TData, TError> };
+    CancelMembershipRequestMutationVariables,
+    TContext
+  >;
+  request?: SecondParameter<typeof coreverseFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof cancelMembershipRequest>>,
+  TError,
+  CancelMembershipRequestMutationVariables,
+  TContext
+> => {
+  const mutationKey = getCancelMembershipRequestMutationKey();
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof cancelMembershipRequest>>,
+    CancelMembershipRequestMutationVariables
+  > = (props) => {
+    const { requestId } = props ?? {};
+
+    return cancelMembershipRequest(requestId, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
 };
 
-export type CancelMembershipRequestQueryResult = NonNullable<
+export type CancelMembershipRequestMutationResult = NonNullable<
   Awaited<ReturnType<typeof cancelMembershipRequest>>
 >;
-export type CancelMembershipRequestQueryError =
+
+export type CancelMembershipRequestMutationError =
   | CancelMembershipRequest400
   | CancelMembershipRequest401
   | CancelMembershipRequest403;
+export type CancelMembershipRequestMutationVariables = { requestId: string };
 
-export function useCancelMembershipRequest<
-  TData = Awaited<ReturnType<typeof cancelMembershipRequest>>,
-  TError =
-    | CancelMembershipRequest400
-    | CancelMembershipRequest401
-    | CancelMembershipRequest403,
->(
-  requestId: string,
-  options: {
-    query: Partial<
-      UseQueryOptions<
-        Awaited<ReturnType<typeof cancelMembershipRequest>>,
-        TError,
-        TData
-      >
-    > &
-      Pick<
-        DefinedInitialDataOptions<
-          Awaited<ReturnType<typeof cancelMembershipRequest>>,
-          TError,
-          Awaited<ReturnType<typeof cancelMembershipRequest>>
-        >,
-        "initialData"
-      >;
-    request?: SecondParameter<typeof coreverseFetch>;
-  },
-  queryClient?: QueryClient,
-): DefinedUseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-};
-export function useCancelMembershipRequest<
-  TData = Awaited<ReturnType<typeof cancelMembershipRequest>>,
-  TError =
-    | CancelMembershipRequest400
-    | CancelMembershipRequest401
-    | CancelMembershipRequest403,
->(
-  requestId: string,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<
-        Awaited<ReturnType<typeof cancelMembershipRequest>>,
-        TError,
-        TData
-      >
-    > &
-      Pick<
-        UndefinedInitialDataOptions<
-          Awaited<ReturnType<typeof cancelMembershipRequest>>,
-          TError,
-          Awaited<ReturnType<typeof cancelMembershipRequest>>
-        >,
-        "initialData"
-      >;
-    request?: SecondParameter<typeof coreverseFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-};
-export function useCancelMembershipRequest<
-  TData = Awaited<ReturnType<typeof cancelMembershipRequest>>,
-  TError =
-    | CancelMembershipRequest400
-    | CancelMembershipRequest401
-    | CancelMembershipRequest403,
->(
-  requestId: string,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<
-        Awaited<ReturnType<typeof cancelMembershipRequest>>,
-        TError,
-        TData
-      >
-    >;
-    request?: SecondParameter<typeof coreverseFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-};
 /**
  * @summary Cancel a pending membership request (initiator only)
  */
-
-export function useCancelMembershipRequest<
-  TData = Awaited<ReturnType<typeof cancelMembershipRequest>>,
+export const useCancelMembershipRequest = <
   TError =
     | CancelMembershipRequest400
     | CancelMembershipRequest401
     | CancelMembershipRequest403,
+  TContext = unknown,
 >(
-  requestId: string,
   options?: {
-    query?: Partial<
-      UseQueryOptions<
-        Awaited<ReturnType<typeof cancelMembershipRequest>>,
-        TError,
-        TData
-      >
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof cancelMembershipRequest>>,
+      TError,
+      CancelMembershipRequestMutationVariables,
+      TContext
     >;
     request?: SecondParameter<typeof coreverseFetch>;
   },
   queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-} {
-  const queryOptions = getCancelMembershipRequestQueryOptions(
-    requestId,
-    options,
+): UseMutationResult<
+  Awaited<ReturnType<typeof cancelMembershipRequest>>,
+  TError,
+  CancelMembershipRequestMutationVariables,
+  TContext
+> => {
+  return useMutation(
+    getCancelMembershipRequestMutationOptions(options),
+    queryClient,
   );
-
-  const query = useQuery(queryOptions, queryClient) as UseQueryResult<
-    TData,
-    TError
-  > & { queryKey: DataTag<QueryKey, TData, TError> };
-
-  return withQueryKey(query, queryOptions.queryKey);
-}
+};
