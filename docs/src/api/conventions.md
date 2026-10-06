@@ -11,8 +11,8 @@
 
 Two styles coexist, deliberately, rather than one being retrofitted onto the other:
 
-- **`releases`** uses offset/limit (`?limit=&?offset=`) and returns a bare array. This predates the pattern below and hasn't been migrated — see [Resources › Releases](resources/releases.md).
-- **Every other list endpoint** (`discussions`, a discussion's `replies`, `polls`, `news`) uses keyset ("cursor") pagination: `?limit=` (1-100, default 20) and `?cursor=`, and the response is `{ items: [...], next_cursor: string | null }` instead of a bare array. Fetch the next page by passing the previous page's `next_cursor` back as `?cursor=`; `next_cursor: null` means there is no next page. `cursor` is an opaque token — its encoding is an implementation detail (currently base64 of the last row's `created_at` and `id`) and shouldn't be parsed or constructed by clients. See `supabase/functions/_shared/pagination.ts` for the implementation.
+- **`releases`** uses offset/limit (`?limit=&?offset=`) and returns a bare array. This predates the pattern below and hasn't been migrated — see [Resources › Releases](resources/releases.md). `GET /faq` and `GET /docs/sources` are also bare arrays, but for a different reason: they are small, bounded reference datasets fetched whole, not paged.
+- **Every other list endpoint** (`discussions`, a discussion's `replies`, `polls`, `news`, `events`) uses keyset ("cursor") pagination: `?limit=` (1-100, default 20) and `?cursor=`, and the response is `{ items: [...], next_cursor: string | null }` instead of a bare array. Fetch the next page by passing the previous page's `next_cursor` back as `?cursor=`; `next_cursor: null` means there is no next page. `cursor` is an opaque token — its encoding is an implementation detail (currently base64 of the last row's `created_at` and `id`) and shouldn't be parsed or constructed by clients. See `supabase/functions/_shared/pagination.ts` for the implementation.
 
 See [OpenAPI › Schemas](../openapi/schemas.md) for the schema files these conventions are expressed in.
 

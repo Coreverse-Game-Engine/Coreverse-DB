@@ -5,6 +5,14 @@
 // DELETE /profiles/me/avatar
 // GET    /profiles/username-availability?username=
 //
+// This function is deployed with the platform JWT gate OFF
+// ([functions.profiles] in supabase/config.toml) because
+// username-availability must work for a signed-out user at signup. That
+// makes the in-function check below the only thing protecting /me and
+// /me/avatar: every one of those routes must keep going through
+// supabase.auth.getUser() (scripts/ops/static-checks.mjs checks that the
+// call is still here, and smoke.mjs checks that they answer 401 anonymously).
+//
 // GET/PATCH operate on the caller's own row only. GET resolves it via
 // supabase.auth.getUser() (reading the forwarded JWT); PATCH goes through
 // RLS (profiles_self_update: id = auth.uid()) as a normal PostgREST

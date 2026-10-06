@@ -7,7 +7,17 @@ info:
     defines and serves all data operations; Coreverse Launcher and
     Coreverse Website consume this API and never access Postgres/Supabase
     directly.
-  version: 0.4.2
+
+    Access model: the Supabase platform JWT gate is ON for every Edge
+    Function except `send-email`, `auth` and `profiles`, so a request
+    without a valid Supabase Auth JWT is rejected with 401 before the
+    function runs -- including the operations below that declare no
+    `security` requirement (those only mean the function itself does not
+    require a particular user). The only signed-out operations are
+    `POST /auth/password-reset` and `GET /profiles/username-availability`;
+    every other `/profiles` route authenticates the caller inside the
+    function.
+  version: 0.5.2
   license:
     name: GPL-3.0-only
     identifier: GPL-3.0-only
@@ -132,8 +142,10 @@ components:
         client from this token (see
         supabase/functions/_shared/supabase-client.ts) so RLS and
         SECURITY DEFINER functions evaluate auth.uid() correctly.
-        Operations without a `security` requirement are public reads;
-        /docs/reindex uses a separate shared-secret header instead of a
+        Operations without a `security` requirement need no particular
+        user inside the function, but the platform JWT gate still requires
+        a valid JWT for them (see the API description for the only
+        signed-out exceptions); /docs/reindex uses a separate shared-secret header instead of a
         user JWT (see its `X-Reindex-Token` parameter).
   schemas:
     Ok:
