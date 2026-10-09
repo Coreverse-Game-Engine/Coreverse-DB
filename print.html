@@ -1075,7 +1075,7 @@ set row_security = off
 <h2 id="redirectto-validation"><a class="header" href="#redirectto-validation"><code>redirectTo</code> validation</a></h2>
 <p><code>redirectTo</code> must be an exact <code>https://&lt;allowed-website-origin&gt;/{locale}/reset-password</code> URL — no query string or hash. The origin is checked against <code>WEBSITE_ALLOWED_ORIGINS</code> (see <a href="api/resources/../../reference/environment-variables.html">Environment Variables</a>) and the path against the known locale list. A <code>redirectTo</code> that fails either check is rejected with <code>400 invalid_redirect</code> rather than silently falling back to Supabase Auth's own Site URL.</p>
 <h2 id="delivery"><a class="header" href="#delivery">Delivery</a></h2>
-<p>The actual reset email is sent by Supabase Auth's mailer, not by this endpoint directly. A separate <code>send-email</code> function (a Supabase Auth "Send Email" hook target, not part of this OpenAPI contract) intercepts the send and renders it with the Website's own localized copy via Brevo — see <a href="api/resources/../../development/edge-functions.html">Development › Edge Functions</a>.</p>
+<p>The actual reset email is sent by Supabase Auth's mailer, not by this endpoint directly. A separate <code>send-email</code> function (a Supabase Auth "Send Email" hook target, not part of this OpenAPI contract) intercepts the send and renders it with the Website's own localized copy via Brevo — see <a href="api/resources/../../development/edge-functions.html">Development › Edge Functions</a>. The button in the email opens the Website's <code>/api/auth/confirm</code> route with <code>token_hash</code>, <code>type=recovery</code> and <code>next=/{locale}/reset-password</code>, not a Supabase URL; the origin is the one from <code>redirectTo</code>.</p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="profiles"><a class="header" href="#profiles">Profiles</a></h1>
 <div class="table-wrapper"><table><thead><tr><th>Method</th><th>Path</th><th>Auth</th><th>Does</th></tr></thead><tbody>
 <tr><td><code>GET</code></td><td><code>/profiles/me</code></td><td>Required</td><td>The caller's own profile, with <code>avatar_path</code> resolved to a public, cache-busted <code>avatar_url</code>, plus <code>platform_role</code></td></tr>
@@ -1465,6 +1465,28 @@ recovery) — <code>recovery</code>, <code>signup</code>, <code>magiclink</code>
 <code>email_change</code> (deliberately left uncovered — see <code>render.ts</code>'s module
 comment), falls back to a generic English message with a working link
 rather than failing the underlying Auth action.</p>
+<h3 id="links-in-the-emails"><a class="header" href="#links-in-the-emails">Links in the emails</a></h3>
+<p>For <code>signup</code>, <code>recovery</code>, <code>magiclink</code> and <code>invite</code> the email's button does not
+go to Supabase's <code>/auth/v1/verify</code>. It goes to the Website's confirm route,
+built in <code>render.ts</code> (<code>actionLinkFor</code>, <code>WEBSITE_CONFIRM_PATH</code>):</p>
+<pre><code class="language-text">&lt;origin&gt;/api/auth/confirm?token_hash=&lt;hash&gt;&amp;type=&lt;signup|recovery|magiclink|invite&gt;&amp;next=&lt;path&gt;
+</code></pre>
+<p><code>&lt;origin&gt;</code> and <code>&lt;path&gt;</code> are taken from <code>email_data.redirect_to</code>, the URL the
+Website gave Supabase Auth. The origin has to be in <code>WEBSITE_ALLOWED_ORIGINS</code>;
+otherwise (or if <code>redirect_to</code> is not a URL) the link falls back to the
+Supabase verify URL, because a non-2xx from the hook would fail the user's
+signup or reset. <code>email_change</code> always keeps the Supabase verify link.</p>
+<p>The Website route calls <code>supabase.auth.verifyOtp({ token_hash, type })</code> and then
+redirects to <code>next</code>, after treating <code>next</code> as an internal path only. Because
+<code>verifyOtp</code> needs no PKCE verifier cookie, the link works on any device.
+The link opens with a plain <code>GET</code>, so a mail scanner that prefetches links can
+consume the one-time token; the route should show a clear error for an expired
+or already used token.</p>
+<p>The local stack builds the same link from <code>supabase/templates/confirmation.html</code>
+and <code>recovery.html</code> (wired in <code>supabase/config.toml</code>, <code>{{ .SiteURL }}</code> is
+<code>site_url</code>). Hook and templates are different code paths, so
+<code>scripts/ops/static-checks.mjs</code> compares them: change the confirm path or its
+query parameters in one place only together with the other.</p>
 <p>Its file layout still mirrors the schemas.ts/index.ts split above, just
 with different names: <code>render.ts</code> holds the pure, testable logic
 (per-locale copy, action-link construction — no <code>Deno.serve</code>, no
@@ -1525,7 +1547,8 @@ bash scripts/ops/deploy.sh --apply         # confirms each mutating step
 <p>Order matters: migrations → secrets → functions. Ten functions are deployed with the platform JWT gate off, all declared in <code>supabase/config.toml</code>: <code>send-email</code> (Auth's hook call carries a signature, not a user JWT), <code>auth</code> (password reset is used by someone who cannot sign in), <code>profiles</code> (the signup form checks a username before an account exists) and the seven public-content functions <code>releases</code>, <code>news</code>, <code>events</code>, <code>faq</code>, <code>polls</code>, <code>discussions</code> and <code>docs</code> (a signed-out visitor may read public content; each one wraps its handler in <code>withTokenCheck</code>, so a bad token and every anonymous write still answer <code>401</code> from the function). <code>teams</code>, <code>requests</code> and <code>projects</code> keep the gate on. The gate setting is applied when a function is deployed, so <strong>redeploy every function</strong> after changing it, not only the ones whose code changed. See <a href="operations/../security/authentication.html#the-platform-jwt-gate">Security › Authentication</a>.</p>
 <p>Dashboard checks that live outside the repository (<code>config.toml</code> is local-only):</p>
 <ul>
-<li>Authentication → Hooks → Send Email: enabled, URL <code>&lt;project&gt;/functions/v1/send-email</code>, secret equals <code>SEND_EMAIL_HOOK_SECRET</code>.</li>
+<li>Authentication → Hooks → Send Email: enabled, URL <code>&lt;project&gt;/functions/v1/send-email</code>, secret equals <code>SEND_EMAIL_HOOK_SECRET</code>. Enable it only after the Website's <code>/api/auth/confirm</code> route is deployed: the emailed links point at it (see <a href="operations/../development/edge-functions.html">Development › Edge Functions</a>).</li>
+<li>Brevo account: click tracking off for transactional email, so the confirm link in a message is the Website URL itself and not a tracking redirect.</li>
 <li>Authentication → URL Configuration: Site URL and Redirect URLs cover the Website origin(s), including the <code>/*/reset-password</code> pattern.</li>
 <li>Authentication → Rate limits and password policy reviewed; local values in <code>config.toml</code> are not applied to the hosted project.</li>
 </ul>
@@ -1652,7 +1675,7 @@ edge functions). <code>SUPABASE_URL</code>, <code>SUPABASE_ANON_KEY</code> and
 <code>SERVICE_ROLE_KEY</code> are auto-injected into every edge function by
 the Supabase runtime; the only one this project manages itself is:</p>
 <div class="table-wrapper"><table><thead><tr><th>Variable</th><th>Purpose</th></tr></thead><tbody>
-<tr><td><code>WEBSITE_ALLOWED_ORIGINS</code></td><td>Comma-separated, exact origins (scheme + host + port, no trailing slash) allowed by CORS (<code>_shared/http.ts withCors</code>) and by <code>POST /auth/password-reset</code>'s <code>redirectTo</code> validation.</td></tr>
+<tr><td><code>WEBSITE_ALLOWED_ORIGINS</code></td><td>Comma-separated, exact origins (scheme + host + port, no trailing slash) allowed by CORS (<code>_shared/http.ts withCors</code>) and by <code>POST /auth/password-reset</code>'s <code>redirectTo</code> validation. Also read by <code>send-email</code>: an email link is only built for the Website when the <code>redirect_to</code> origin is listed here, otherwise it falls back to the Supabase verify link.</td></tr>
 <tr><td><code>SEND_EMAIL_HOOK_SECRET</code></td><td>Only read by <code>send-email</code>. Signature secret for Supabase Auth's Send Email hook — copy verbatim (including the <code>v1,whsec_</code> prefix) from Dashboard → Authentication → Hooks → Send Email hook.</td></tr>
 <tr><td><code>BREVO_API_KEY</code></td><td>Only read by <code>send-email</code>. Same Brevo account the Website already uses (<code>src/services/brevo.ts</code>).</td></tr>
 <tr><td><code>BREVO_SENDER_EMAIL</code> / <code>BREVO_SENDER_NAME</code></td><td>Only read by <code>send-email</code>. Keep in sync with the Website's own <code>BREVO_SENDER_EMAIL</code> / <code>BREVO_SENDER_NAME</code> so auth emails come from the same address as the Website's other transactional emails.</td></tr>
@@ -1712,6 +1735,48 @@ even though this endpoint's own validation passed).</p>
 </ul>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="changelog"><a class="header" href="#changelog">Changelog</a></h1>
 <p>Release notes for the <code>@Coreverse-Game-Engine/db-client</code> package and the backend it describes. GitHub's auto-generated release notes (grouped by PR label, see <code>.github/release.yml</code>) remain the per-PR record; this page is the consumer-facing summary of what changed <em>for API and SDK users</em>.</p>
+<h2 id="054"><a class="header" href="#054">0.5.4</a></h2>
+<p>Auth-email release. <strong>No API shape changes and no database migration.</strong> Only the <code>send-email</code> Edge Function changes, so redeploy that one function (<code>supabase functions deploy send-email</code>); the package version moves so that it matches the deployed backend and the spec. Run <code>pnpm run generate</code> and commit the result: the generated files carry the spec version in their header.</p>
+<h3 id="changed"><a class="header" href="#changed">Changed</a></h3>
+<ul>
+<li><strong>Emailed links go to the Website, not to Supabase.</strong> For <code>signup</code>, <code>recovery</code>, <code>magiclink</code> and <code>invite</code> the button in the email now points at the Website's confirm route, <code>&lt;origin&gt;/api/auth/confirm?token_hash=&lt;hash&gt;&amp;type=&lt;action&gt;&amp;next=&lt;path&gt;</code>, instead of Supabase Auth's <code>/auth/v1/verify</code>. The Website completes the action itself with <code>verifyOtp({ token_hash, type })</code>, which needs no PKCE code verifier. A link therefore also works when it is opened on another device or browser than the one that started the signup or reset, and it no longer depends on the project's Site URL.</li>
+<li><code>&lt;origin&gt;</code> and <code>&lt;path&gt;</code> come from the <code>redirect_to</code> the Website passed to Supabase Auth (<code>emailRedirectTo</code> on signup, <code>redirectTo</code> on password reset); <code>next</code> is its path without query string or hash. The origin must be listed in <code>WEBSITE_ALLOWED_ORIGINS</code>. If it is not, or if <code>redirect_to</code> is not a URL, the email falls back to the Supabase verify link instead of failing. <code>email_change</code> keeps the Supabase verify link, and <code>reauthentication</code> has no link.</li>
+<li><code>POST /auth/password-reset</code> is unchanged: <code>redirectTo</code> is still validated as <code>/{locale}/reset-password</code> on an allowed origin. The email link built from it now carries <code>next=/{locale}/reset-password</code>.</li>
+</ul>
+<h3 id="added"><a class="header" href="#added">Added</a></h3>
+<ul>
+<li><code>supabase/templates/confirmation.html</code> and <code>recovery.html</code>, wired in <code>supabase/config.toml</code>, so the local stack sends the same Website link (caught by Inbucket). The hosted project does not use them: its emails go through the hook.</li>
+<li><code>scripts/ops/static-checks.mjs</code> check 9 fails if the hook's confirm path, the local templates and the <code>[auth.email.template.*]</code> entries drift apart, or if the hook stops passing <code>WEBSITE_ALLOWED_ORIGINS</code> to the link builder.</li>
+<li><code>render.test.ts</code> covers the Website link for every supported action type, the <code>next</code> handling, and every fallback (origin not allowed, prefix-lookalike origin, empty <code>redirect_to</code>, <code>email_change</code>).</li>
+</ul>
+<h3 id="operations"><a class="header" href="#operations">Operations</a></h3>
+<ul>
+<li><strong>The Website's <code>/api/auth/confirm</code> route must be live before the hook sends these links.</strong> Deploying 0.5.4 changes nothing for users while the Send Email hook is not enabled in the Dashboard (Supabase's own mailer is still in use). Enable the hook only after the Website route is deployed; with the hook enabled, an older Website would send users to a missing page.</li>
+<li>Brevo wraps links in a click-tracking redirect domain when tracking is on for the account. Turn click tracking off for transactional email: a tracked link adds a hop to a one-time token link, and tracking domains are often flagged by mail filters.</li>
+<li>Supabase Auth's Redirect URLs must still list every Website origin: Auth replaces a <code>redirect_to</code> that is not listed with the Site URL, and the email would then be built for that origin.</li>
+</ul>
+<h2 id="053"><a class="header" href="#053">0.5.3</a></h2>
+<p>SDK fix release. <strong>No API shape changes, no database migration and no Edge Function redeploy</strong>; the backend is identical to 0.5.2.</p>
+<h3 id="fixed"><a class="header" href="#fixed">Fixed</a></h3>
+<ul>
+<li><strong>React hooks: every write operation was generated as a query.</strong> <code>override.query.useQuery: true</code> in <code>orval.config.ts</code> made Orval emit <code>useQuery</code> hooks for POST, PATCH, PUT and DELETE operations too. <code>useCastVote</code>, <code>useCreateDiscussion</code>, <code>useReplyToDiscussion</code>, <code>useUpdateMyProfile</code>, <code>useDeleteMyAccount</code> and the other 33 write hooks therefore ran their request when the component mounted, cached the response under a <code>["POST", url, body]</code> key, and had no <code>mutate</code>. All 38 non-GET operations are now <code>useMutation</code> hooks (GET operations stay <code>useQuery</code> hooks) (<code>use&lt;OperationId&gt;(options?, queryClient?)</code>) with a matching <code>get&lt;OperationId&gt;MutationOptions</code> helper, and the <code>get&lt;OperationId&gt;QueryKey</code> / <code>get&lt;OperationId&gt;QueryOptions</code> exports of those operations are gone.</li>
+<li><strong>Generated headers described the 0.5.1 access model.</strong> The generated files and <code>openapi/openapi.yaml</code> (<code>info.description</code>, <code>bearerAuth</code> description) still said the platform JWT gate is on for the public-content functions. They now describe the 0.5.2 model: signed-out reads work, writes need a session.</li>
+</ul>
+<h3 id="changed-1"><a class="header" href="#changed-1">Changed</a></h3>
+<ul>
+<li><code>orval.config.ts</code> derives every operation's verb from <code>openapi/paths/*.yaml</code> and pins its hook kind per operation (GET: <code>useQuery</code>, every other verb: <code>useMutation</code>), so a newly added operation cannot regress to the wrong kind.</li>
+<li><code>tests/react.test.ts</code> checks, for every operation in the spec, that GET operations export <code>get&lt;OperationId&gt;QueryOptions</code> (and no mutation helper) and every other verb exports <code>get&lt;OperationId&gt;MutationOptions</code> (and no query helper).</li>
+</ul>
+<h3 id="migrating-from-052"><a class="header" href="#migrating-from-052">Migrating from 0.5.2</a></h3>
+<p>Hooks of write operations changed shape. Variables are passed to <code>mutate</code> / <code>mutateAsync</code> as one object: path parameters by name, the request body as <code>data</code>, query parameters as <code>params</code>.</p>
+<pre><code class="language-ts">// 0.5.2 (a query that fired on mount -- never worked as a write)
+const vote = useCastVote(pollId, { option_id: optionId });
+
+// 0.5.3
+const vote = useCastVote();
+vote.mutate({ pollId, data: { option_id: optionId } });
+</code></pre>
+<p>Hooks of GET operations, the plain fetch functions (<code>castVote(pollId, body)</code>) and the Zod schemas are unchanged.</p>
 <h2 id="052"><a class="header" href="#052">0.5.2</a></h2>
 <p>Access-model release. <strong>No API shape changes and no database migration</strong>; the SDK surface is identical to 0.5.1 (the package version moves so that it matches the deployed backend and the spec). <strong>Redeploy every Edge Function</strong>: the JWT gate is a deploy-time setting.</p>
 <h3 id="access-model-signed-out-visitors-can-read-public-content"><a class="header" href="#access-model-signed-out-visitors-can-read-public-content">Access model: signed-out visitors can read public content</a></h3>
@@ -1722,7 +1787,7 @@ even though this endpoint's own validation passed).</p>
 <li><strong><code>GET /polls</code></strong> no longer queries the caller's own votes for a signed-out request. <code>anon</code> has no <code>select</code> grant on <code>poll_votes</code>, so that query would have failed on every public list request; <code>my_option_id</code> is <code>null</code> for signed-out callers, as documented.</li>
 <li><strong><code>POST /docs/reindex</code></strong> no longer needs a JWT: the CI job sends only <code>X-Reindex-Token</code>, which is checked before anything is written. (0.5.1 listed this as a known limitation.)</li>
 </ul>
-<h3 id="changed"><a class="header" href="#changed">Changed</a></h3>
+<h3 id="changed-2"><a class="header" href="#changed-2">Changed</a></h3>
 <ul>
 <li><code>supabase/config.toml</code> declares <code>verify_jwt = false</code> for the seven public-content functions, with a comment explaining the model and why <code>teams</code>, <code>requests</code> and <code>projects</code> keep the gate.</li>
 <li><code>scripts/ops/static-checks.mjs</code> pins the new list of ten gate-exempt functions, fails if a public-content function loses <code>withTokenCheck</code>, if anything but <code>docs</code> allows anonymous writes, if <code>docs</code> stops checking <code>X-Reindex-Token</code>, or if <code>teams</code>, <code>requests</code> or <code>projects</code> opt out of the gate.</li>
@@ -1731,7 +1796,7 @@ even though this endpoint's own validation passed).</p>
 <li>OpenAPI: <code>info.description</code> and the <code>bearerAuth</code> description state the access model above. No operation changed. An operation marked "Public" now really is reachable signed out, except in <code>teams</code>, <code>requests</code> and <code>projects</code>.</li>
 <li>Docs: Security › Authentication, API › Authentication, Architecture › Security model, Development › Edge Functions and Operations › Production Verification describe the new model.</li>
 </ul>
-<h3 id="operations"><a class="header" href="#operations">Operations</a></h3>
+<h3 id="operations-1"><a class="header" href="#operations-1">Operations</a></h3>
 <ul>
 <li><strong>Set <code>WEBSITE_ALLOWED_ORIGINS</code> for every origin that will call the API</strong> (production, staging, previews; <code>http://localhost:3000</code> only for a development project), then <code>supabase secrets set</code>. Without the Website's origin in the list the browser blocks every response, signed in or not, even though the request reaches the function.</li>
 <li>Redeploy all functions (<code>deploy.sh --apply</code>), then run <code>scripts/ops/smoke.mjs</code>.</li>
@@ -1746,7 +1811,7 @@ even though this endpoint's own validation passed).</p>
 <p>Access-model and operations release. <strong>No API shape changes and no database migration</strong>; the SDK surface is identical to 0.5.0 (the package version moves only so that it matches the deployed backend and the spec).</p>
 <h3 id="access-model-signed-out-visitors-cannot-read-data"><a class="header" href="#access-model-signed-out-visitors-cannot-read-data">Access model: signed-out visitors cannot read data</a></h3>
 <p>The platform JWT gate stays <strong>on</strong> for every Edge Function except <code>send-email</code>, <code>auth</code> and <code>profiles</code>. A signed-out caller is therefore rejected with <code>401</code> on releases, news, events, FAQ, polls, discussions and docs, even for operations the API reference marks "Public" (that label means "no particular user is required inside the function"). Clients must send the signed-in user's token and show a sign-in prompt when there is no session. See <a href="reference/../security/authentication.html#the-platform-jwt-gate">Security › Authentication</a>.</p>
-<h3 id="changed-1"><a class="header" href="#changed-1">Changed</a></h3>
+<h3 id="changed-3"><a class="header" href="#changed-3">Changed</a></h3>
 <ul>
 <li><strong>Two signed-out operations are now reachable:</strong> <code>[functions.auth]</code> and <code>[functions.profiles]</code> are declared <code>verify_jwt = false</code> in <code>supabase/config.toml</code>, so <code>POST /auth/password-reset</code> and <code>GET /profiles/username-availability</code> work without a session. With the platform's default gate (as 0.5.0's <code>config.toml</code> left it for these two functions) both are rejected for a signed-out caller, so password reset and the signup username check cannot work. <strong>Redeploy both functions</strong> (<code>supabase functions deploy auth</code> and <code>supabase functions deploy profiles</code>, or <code>deploy.sh --apply</code>) for this to take effect.</li>
 <li><strong><code>profiles</code> authenticates its own routes.</strong> With the gate off for that function, <code>/profiles/me</code> and <code>/profiles/me/avatar</code> rely on the in-function <code>supabase.auth.getUser()</code> check (unchanged) and RLS. <code>static-checks.mjs</code> now fails if that call is removed or if the list of gate-exempt functions changes.</li>
@@ -1754,7 +1819,7 @@ even though this endpoint's own validation passed).</p>
 <li><strong><code>WEBSITE_ALLOWED_ORIGINS</code> entries are normalized to bare origins</strong>, so <code>https://coreverse.dev/</code> (trailing slash) or an entry with a path now matches the browser's <code>Origin</code> instead of silently failing CORS and <code>redirectTo</code> validation. The value itself is a deployment secret: set every Website origin (production, staging, any preview or LAN address you test from) with <code>supabase secrets set</code>, and keep Supabase Auth's Redirect URLs in step.</li>
 <li><strong>OpenAPI:</strong> <code>info.description</code> and the <code>bearerAuth</code> description state the access model above. No operation changed.</li>
 </ul>
-<h3 id="operations-1"><a class="header" href="#operations-1">Operations</a></h3>
+<h3 id="operations-2"><a class="header" href="#operations-2">Operations</a></h3>
 <ul>
 <li><code>scripts/ops/smoke.mjs</code> is rewritten for the new model: anonymous reads must be rejected, the two signed-out operations must work, <code>/profiles/me</code> must answer <code>401</code> from the function (not the gateway), and data-reading checks need <code>COREVERSE_TEST_TOKEN</code> (skipped without it). <code>COREVERSE_ANON_KEY</code> is no longer used.</li>
 <li><code>scripts/ops/deploy.sh</code> checks that <code>send-email</code>, <code>auth</code> and <code>profiles</code> are declared in <code>config.toml</code>.</li>
@@ -1782,7 +1847,7 @@ even though this endpoint's own validation passed).</p>
 <li><strong>New error codes</strong> in the <code>Error</code> schema: <code>account_has_content</code>, <code>invalid_event_id</code>, <code>invalid_faq_id</code>, <code>invalid_locale</code>.</li>
 <li><strong>Rate limits (<code>429</code> + <code>Retry-After</code>)</strong> on creating a discussion (10/hour), posting a reply (30/hour) and casting a poll vote (60/hour), per user.</li>
 </ul>
-<h3 id="added"><a class="header" href="#added">Added</a></h3>
+<h3 id="added-1"><a class="header" href="#added-1">Added</a></h3>
 <ul>
 <li><strong>Events</strong> (<code>/events</code>) with <code>upcoming</code> filtering, slug lookup and an external <code>registration_url</code>. See <a href="reference/../api/resources/events.html">API › Events</a>.</li>
 <li><strong>FAQ</strong> (<code>/faq</code>) with per-locale translations, atomic creation, and per-locale <code>PUT</code>/<code>DELETE</code>. See <a href="reference/../api/resources/faq.html">API › FAQ</a>.</li>
@@ -1796,7 +1861,7 @@ even though this endpoint's own validation passed).</p>
 <li>New migrations: events and FAQ domains, <code>username_availability</code>, <code>account_deletion_readiness</code> (relaxes <code>ON DELETE</code> on several foreign keys so deletion is possible once blockers are resolved). Apply with <code>supabase db push</code>; take a backup first. See <a href="reference/../operations/production-verification.html">Production Verification</a>.</li>
 <li><code>send-email</code> is declared <code>verify_jwt = false</code> in <code>supabase/config.toml</code> (the Auth hook carries a signature, not a user JWT).</li>
 </ul>
-<h3 id="operations-2"><a class="header" href="#operations-2">Operations</a></h3>
+<h3 id="operations-3"><a class="header" href="#operations-3">Operations</a></h3>
 <ul>
 <li>New runbook and scripts for verifying and rolling out a release: <code>scripts/ops/verify-local.sh</code>, <code>scripts/ops/deploy.sh</code>, <code>scripts/ops/smoke.mjs</code>, <code>scripts/ops/static-checks.mjs</code>.</li>
 <li>The package is published as <code>@Coreverse-Game-Engine/db-client</code>; <code>publish.yml</code> no longer hard-codes a different scope.</li>

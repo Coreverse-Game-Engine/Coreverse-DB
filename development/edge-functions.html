@@ -229,6 +229,28 @@ recovery) — <code>recovery</code>, <code>signup</code>, <code>magiclink</code>
 <code>email_change</code> (deliberately left uncovered — see <code>render.ts</code>'s module
 comment), falls back to a generic English message with a working link
 rather than failing the underlying Auth action.</p>
+<h3 id="links-in-the-emails"><a class="header" href="#links-in-the-emails">Links in the emails</a></h3>
+<p>For <code>signup</code>, <code>recovery</code>, <code>magiclink</code> and <code>invite</code> the email's button does not
+go to Supabase's <code>/auth/v1/verify</code>. It goes to the Website's confirm route,
+built in <code>render.ts</code> (<code>actionLinkFor</code>, <code>WEBSITE_CONFIRM_PATH</code>):</p>
+<pre><code class="language-text">&lt;origin&gt;/api/auth/confirm?token_hash=&lt;hash&gt;&amp;type=&lt;signup|recovery|magiclink|invite&gt;&amp;next=&lt;path&gt;
+</code></pre>
+<p><code>&lt;origin&gt;</code> and <code>&lt;path&gt;</code> are taken from <code>email_data.redirect_to</code>, the URL the
+Website gave Supabase Auth. The origin has to be in <code>WEBSITE_ALLOWED_ORIGINS</code>;
+otherwise (or if <code>redirect_to</code> is not a URL) the link falls back to the
+Supabase verify URL, because a non-2xx from the hook would fail the user's
+signup or reset. <code>email_change</code> always keeps the Supabase verify link.</p>
+<p>The Website route calls <code>supabase.auth.verifyOtp({ token_hash, type })</code> and then
+redirects to <code>next</code>, after treating <code>next</code> as an internal path only. Because
+<code>verifyOtp</code> needs no PKCE verifier cookie, the link works on any device.
+The link opens with a plain <code>GET</code>, so a mail scanner that prefetches links can
+consume the one-time token; the route should show a clear error for an expired
+or already used token.</p>
+<p>The local stack builds the same link from <code>supabase/templates/confirmation.html</code>
+and <code>recovery.html</code> (wired in <code>supabase/config.toml</code>, <code>{{ .SiteURL }}</code> is
+<code>site_url</code>). Hook and templates are different code paths, so
+<code>scripts/ops/static-checks.mjs</code> compares them: change the confirm path or its
+query parameters in one place only together with the other.</p>
 <p>Its file layout still mirrors the schemas.ts/index.ts split above, just
 with different names: <code>render.ts</code> holds the pure, testable logic
 (per-locale copy, action-link construction — no <code>Deno.serve</code>, no
