@@ -86,6 +86,8 @@ echo "The gate setting only changes when a function is redeployed: deploy ALL of
 step "5. Manual follow-ups (cannot be scripted)"
 cat <<'TXT'
  [ ] Dashboard -> Authentication -> Hooks -> Send Email: enabled, URL = <project>/functions/v1/send-email, secret matches SEND_EMAIL_HOOK_SECRET
+ [ ] Website route /api/auth/confirm is deployed BEFORE the Send Email hook is enabled (the emailed links point at it)
+ [ ] Brevo: click tracking is off for transactional email
  [ ] Dashboard -> Authentication -> URL Configuration: Site URL + Redirect URLs match the Website origin(s) (incl. /*/reset-password)
  [ ] Dashboard -> Authentication -> Rate limits / password policy reviewed (config.toml is local-only)
  [ ] Secret WEBSITE_ALLOWED_ORIGINS lists every Website origin (production, staging, previews; http://localhost:3000 only for a dev project)
