@@ -3,19 +3,22 @@
  * Do not edit manually.
  * Coreverse DB API
  * Centralized data-access API for the Coreverse ecosystem. Coreverse DB defines and serves all data operations; Coreverse Launcher and Coreverse Website consume this API and never access Postgres/Supabase directly.
- * Access model: the Supabase platform JWT gate is ON for every Edge Function except `send-email`, `auth` and `profiles`, so a request without a valid Supabase Auth JWT is rejected with 401 before the function runs -- including the operations below that declare no `security` requirement (those only mean the function itself does not require a particular user). The only signed-out operations are `POST /auth/password-reset` and `GET /profiles/username-availability`; every other `/profiles` route authenticates the caller inside the function.
+ * Access model: the Supabase platform JWT gate is OFF for `releases`, `news`, `events`, `faq`, `polls`, `discussions`, `docs`, `auth`, `profiles` and `send-email`, and ON for `teams`, `requests` and `projects`. Signed-out callers can read public content (a `GET` on any public-content route answers 200); every write needs a user session and answers 401 `unauthorized` from the function without one. `POST /auth/password-reset` and `GET /profiles/username-availability` also work signed out; every other `/profiles` route authenticates the caller inside the function.
  *
- * OpenAPI spec version: 0.5.1
+ * OpenAPI spec version: 0.5.3
  */
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import type {
   DataTag,
   DefinedInitialDataOptions,
   DefinedUseQueryResult,
+  MutationFunction,
   QueryClient,
   QueryFunction,
   QueryKey,
   UndefinedInitialDataOptions,
+  UseMutationOptions,
+  UseMutationResult,
   UseQueryOptions,
   UseQueryResult,
 } from "@tanstack/react-query";
@@ -301,182 +304,90 @@ export const updateMyProfile = async (
   });
 };
 
-export const getUpdateMyProfileQueryKey = (
-  updateMyProfileBody?: UpdateMyProfileBody,
-) => {
-  return ["PATCH", `/profiles/me`, updateMyProfileBody] as const;
-};
+export const getUpdateMyProfileMutationKey = () => ["updateMyProfile"] as const;
 
-export const getUpdateMyProfileQueryOptions = <
-  TData = Awaited<ReturnType<typeof updateMyProfile>>,
+export const getUpdateMyProfileMutationOptions = <
   TError =
     | UpdateMyProfile400
     | UpdateMyProfile401
     | UpdateMyProfile404
     | UpdateMyProfile409,
->(
-  updateMyProfileBody: UpdateMyProfileBody,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<
-        Awaited<ReturnType<typeof updateMyProfile>>,
-        TError,
-        TData
-      >
-    >;
-    request?: SecondParameter<typeof coreverseFetch>;
-  },
-) => {
-  const { query: queryOptions, request: requestOptions } = options ?? {};
-
-  const queryKey =
-    queryOptions?.queryKey ?? getUpdateMyProfileQueryKey(updateMyProfileBody);
-
-  const queryFn: QueryFunction<Awaited<ReturnType<typeof updateMyProfile>>> = ({
-    signal,
-  }) => updateMyProfile(updateMyProfileBody, { signal, ...requestOptions });
-
-  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
     Awaited<ReturnType<typeof updateMyProfile>>,
     TError,
-    TData
-  > & { queryKey: DataTag<QueryKey, TData, TError> };
+    UpdateMyProfileMutationVariables,
+    TContext
+  >;
+  request?: SecondParameter<typeof coreverseFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof updateMyProfile>>,
+  TError,
+  UpdateMyProfileMutationVariables,
+  TContext
+> => {
+  const mutationKey = getUpdateMyProfileMutationKey();
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof updateMyProfile>>,
+    UpdateMyProfileMutationVariables
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return updateMyProfile(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
 };
 
-export type UpdateMyProfileQueryResult = NonNullable<
+export type UpdateMyProfileMutationResult = NonNullable<
   Awaited<ReturnType<typeof updateMyProfile>>
 >;
-export type UpdateMyProfileQueryError =
+export type UpdateMyProfileMutationBody = UpdateMyProfileBody;
+export type UpdateMyProfileMutationError =
   | UpdateMyProfile400
   | UpdateMyProfile401
   | UpdateMyProfile404
   | UpdateMyProfile409;
+export type UpdateMyProfileMutationVariables = { data: UpdateMyProfileBody };
 
-export function useUpdateMyProfile<
-  TData = Awaited<ReturnType<typeof updateMyProfile>>,
-  TError =
-    | UpdateMyProfile400
-    | UpdateMyProfile401
-    | UpdateMyProfile404
-    | UpdateMyProfile409,
->(
-  updateMyProfileBody: UpdateMyProfileBody,
-  options: {
-    query: Partial<
-      UseQueryOptions<
-        Awaited<ReturnType<typeof updateMyProfile>>,
-        TError,
-        TData
-      >
-    > &
-      Pick<
-        DefinedInitialDataOptions<
-          Awaited<ReturnType<typeof updateMyProfile>>,
-          TError,
-          Awaited<ReturnType<typeof updateMyProfile>>
-        >,
-        "initialData"
-      >;
-    request?: SecondParameter<typeof coreverseFetch>;
-  },
-  queryClient?: QueryClient,
-): DefinedUseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-};
-export function useUpdateMyProfile<
-  TData = Awaited<ReturnType<typeof updateMyProfile>>,
-  TError =
-    | UpdateMyProfile400
-    | UpdateMyProfile401
-    | UpdateMyProfile404
-    | UpdateMyProfile409,
->(
-  updateMyProfileBody: UpdateMyProfileBody,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<
-        Awaited<ReturnType<typeof updateMyProfile>>,
-        TError,
-        TData
-      >
-    > &
-      Pick<
-        UndefinedInitialDataOptions<
-          Awaited<ReturnType<typeof updateMyProfile>>,
-          TError,
-          Awaited<ReturnType<typeof updateMyProfile>>
-        >,
-        "initialData"
-      >;
-    request?: SecondParameter<typeof coreverseFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-};
-export function useUpdateMyProfile<
-  TData = Awaited<ReturnType<typeof updateMyProfile>>,
-  TError =
-    | UpdateMyProfile400
-    | UpdateMyProfile401
-    | UpdateMyProfile404
-    | UpdateMyProfile409,
->(
-  updateMyProfileBody: UpdateMyProfileBody,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<
-        Awaited<ReturnType<typeof updateMyProfile>>,
-        TError,
-        TData
-      >
-    >;
-    request?: SecondParameter<typeof coreverseFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-};
 /**
  * @summary Update the caller's own profile
  */
-
-export function useUpdateMyProfile<
-  TData = Awaited<ReturnType<typeof updateMyProfile>>,
+export const useUpdateMyProfile = <
   TError =
     | UpdateMyProfile400
     | UpdateMyProfile401
     | UpdateMyProfile404
     | UpdateMyProfile409,
+  TContext = unknown,
 >(
-  updateMyProfileBody: UpdateMyProfileBody,
   options?: {
-    query?: Partial<
-      UseQueryOptions<
-        Awaited<ReturnType<typeof updateMyProfile>>,
-        TError,
-        TData
-      >
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof updateMyProfile>>,
+      TError,
+      UpdateMyProfileMutationVariables,
+      TContext
     >;
     request?: SecondParameter<typeof coreverseFetch>;
   },
   queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-} {
-  const queryOptions = getUpdateMyProfileQueryOptions(
-    updateMyProfileBody,
-    options,
-  );
-
-  const query = useQuery(queryOptions, queryClient) as UseQueryResult<
-    TData,
-    TError
-  > & { queryKey: DataTag<QueryKey, TData, TError> };
-
-  return withQueryKey(query, queryOptions.queryKey);
-}
-
+): UseMutationResult<
+  Awaited<ReturnType<typeof updateMyProfile>>,
+  TError,
+  UpdateMyProfileMutationVariables,
+  TContext
+> => {
+  return useMutation(getUpdateMyProfileMutationOptions(options), queryClient);
+};
 export type deleteMyAccountResponse204 = {
   data: void;
   status: 204;
@@ -521,141 +432,76 @@ export const deleteMyAccount = async (
   });
 };
 
-export const getDeleteMyAccountQueryKey = () => {
-  return ["DELETE", `/profiles/me`] as const;
-};
+export const getDeleteMyAccountMutationKey = () => ["deleteMyAccount"] as const;
 
-export const getDeleteMyAccountQueryOptions = <
-  TData = Awaited<ReturnType<typeof deleteMyAccount>>,
+export const getDeleteMyAccountMutationOptions = <
   TError = DeleteMyAccount401 | DeleteMyAccount409,
+  TContext = unknown,
 >(options?: {
-  query?: Partial<
-    UseQueryOptions<Awaited<ReturnType<typeof deleteMyAccount>>, TError, TData>
-  >;
-  request?: SecondParameter<typeof coreverseFetch>;
-}) => {
-  const { query: queryOptions, request: requestOptions } = options ?? {};
-
-  const queryKey = queryOptions?.queryKey ?? getDeleteMyAccountQueryKey();
-
-  const queryFn: QueryFunction<Awaited<ReturnType<typeof deleteMyAccount>>> = ({
-    signal,
-  }) => deleteMyAccount({ signal, ...requestOptions });
-
-  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+  mutation?: UseMutationOptions<
     Awaited<ReturnType<typeof deleteMyAccount>>,
     TError,
-    TData
-  > & { queryKey: DataTag<QueryKey, TData, TError> };
+    void,
+    TContext
+  >;
+  request?: SecondParameter<typeof coreverseFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof deleteMyAccount>>,
+  TError,
+  void,
+  TContext
+> => {
+  const mutationKey = getDeleteMyAccountMutationKey();
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof deleteMyAccount>>,
+    void
+  > = () => {
+    return deleteMyAccount(requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
 };
 
-export type DeleteMyAccountQueryResult = NonNullable<
+export type DeleteMyAccountMutationResult = NonNullable<
   Awaited<ReturnType<typeof deleteMyAccount>>
 >;
-export type DeleteMyAccountQueryError = DeleteMyAccount401 | DeleteMyAccount409;
 
-export function useDeleteMyAccount<
-  TData = Awaited<ReturnType<typeof deleteMyAccount>>,
-  TError = DeleteMyAccount401 | DeleteMyAccount409,
->(
-  options: {
-    query: Partial<
-      UseQueryOptions<
-        Awaited<ReturnType<typeof deleteMyAccount>>,
-        TError,
-        TData
-      >
-    > &
-      Pick<
-        DefinedInitialDataOptions<
-          Awaited<ReturnType<typeof deleteMyAccount>>,
-          TError,
-          Awaited<ReturnType<typeof deleteMyAccount>>
-        >,
-        "initialData"
-      >;
-    request?: SecondParameter<typeof coreverseFetch>;
-  },
-  queryClient?: QueryClient,
-): DefinedUseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-};
-export function useDeleteMyAccount<
-  TData = Awaited<ReturnType<typeof deleteMyAccount>>,
-  TError = DeleteMyAccount401 | DeleteMyAccount409,
->(
-  options?: {
-    query?: Partial<
-      UseQueryOptions<
-        Awaited<ReturnType<typeof deleteMyAccount>>,
-        TError,
-        TData
-      >
-    > &
-      Pick<
-        UndefinedInitialDataOptions<
-          Awaited<ReturnType<typeof deleteMyAccount>>,
-          TError,
-          Awaited<ReturnType<typeof deleteMyAccount>>
-        >,
-        "initialData"
-      >;
-    request?: SecondParameter<typeof coreverseFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-};
-export function useDeleteMyAccount<
-  TData = Awaited<ReturnType<typeof deleteMyAccount>>,
-  TError = DeleteMyAccount401 | DeleteMyAccount409,
->(
-  options?: {
-    query?: Partial<
-      UseQueryOptions<
-        Awaited<ReturnType<typeof deleteMyAccount>>,
-        TError,
-        TData
-      >
-    >;
-    request?: SecondParameter<typeof coreverseFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-};
+export type DeleteMyAccountMutationError =
+  DeleteMyAccount401 | DeleteMyAccount409;
+
 /**
  * @summary Delete the caller's own account
  */
-
-export function useDeleteMyAccount<
-  TData = Awaited<ReturnType<typeof deleteMyAccount>>,
+export const useDeleteMyAccount = <
   TError = DeleteMyAccount401 | DeleteMyAccount409,
+  TContext = unknown,
 >(
   options?: {
-    query?: Partial<
-      UseQueryOptions<
-        Awaited<ReturnType<typeof deleteMyAccount>>,
-        TError,
-        TData
-      >
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof deleteMyAccount>>,
+      TError,
+      void,
+      TContext
     >;
     request?: SecondParameter<typeof coreverseFetch>;
   },
   queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-} {
-  const queryOptions = getDeleteMyAccountQueryOptions(options);
-
-  const query = useQuery(queryOptions, queryClient) as UseQueryResult<
-    TData,
-    TError
-  > & { queryKey: DataTag<QueryKey, TData, TError> };
-
-  return withQueryKey(query, queryOptions.queryKey);
-}
-
+): UseMutationResult<
+  Awaited<ReturnType<typeof deleteMyAccount>>,
+  TError,
+  void,
+  TContext
+> => {
+  return useMutation(getDeleteMyAccountMutationOptions(options), queryClient);
+};
 export type checkUsernameAvailabilityResponse200 = {
   data: CheckUsernameAvailability200;
   status: 200;
@@ -939,159 +785,87 @@ export const uploadMyAvatar = async (
   });
 };
 
-export const getUploadMyAvatarQueryKey = (
-  uploadMyAvatarBody?: UploadMyAvatarBody,
-) => {
-  return ["POST", `/profiles/me/avatar`, uploadMyAvatarBody] as const;
-};
+export const getUploadMyAvatarMutationKey = () => ["uploadMyAvatar"] as const;
 
-export const getUploadMyAvatarQueryOptions = <
-  TData = Awaited<ReturnType<typeof uploadMyAvatar>>,
+export const getUploadMyAvatarMutationOptions = <
   TError =
     | UploadMyAvatar400
     | UploadMyAvatar401
     | UploadMyAvatar404
     | UploadMyAvatar413,
->(
-  uploadMyAvatarBody: UploadMyAvatarBody,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof uploadMyAvatar>>, TError, TData>
-    >;
-    request?: SecondParameter<typeof coreverseFetch>;
-  },
-) => {
-  const { query: queryOptions, request: requestOptions } = options ?? {};
-
-  const queryKey =
-    queryOptions?.queryKey ?? getUploadMyAvatarQueryKey(uploadMyAvatarBody);
-
-  const queryFn: QueryFunction<Awaited<ReturnType<typeof uploadMyAvatar>>> = ({
-    signal,
-  }) => uploadMyAvatar(uploadMyAvatarBody, { signal, ...requestOptions });
-
-  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
     Awaited<ReturnType<typeof uploadMyAvatar>>,
     TError,
-    TData
-  > & { queryKey: DataTag<QueryKey, TData, TError> };
+    UploadMyAvatarMutationVariables,
+    TContext
+  >;
+  request?: SecondParameter<typeof coreverseFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof uploadMyAvatar>>,
+  TError,
+  UploadMyAvatarMutationVariables,
+  TContext
+> => {
+  const mutationKey = getUploadMyAvatarMutationKey();
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof uploadMyAvatar>>,
+    UploadMyAvatarMutationVariables
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return uploadMyAvatar(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
 };
 
-export type UploadMyAvatarQueryResult = NonNullable<
+export type UploadMyAvatarMutationResult = NonNullable<
   Awaited<ReturnType<typeof uploadMyAvatar>>
 >;
-export type UploadMyAvatarQueryError =
+export type UploadMyAvatarMutationBody = UploadMyAvatarBody;
+export type UploadMyAvatarMutationError =
   UploadMyAvatar400 | UploadMyAvatar401 | UploadMyAvatar404 | UploadMyAvatar413;
+export type UploadMyAvatarMutationVariables = { data: UploadMyAvatarBody };
 
-export function useUploadMyAvatar<
-  TData = Awaited<ReturnType<typeof uploadMyAvatar>>,
-  TError =
-    | UploadMyAvatar400
-    | UploadMyAvatar401
-    | UploadMyAvatar404
-    | UploadMyAvatar413,
->(
-  uploadMyAvatarBody: UploadMyAvatarBody,
-  options: {
-    query: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof uploadMyAvatar>>, TError, TData>
-    > &
-      Pick<
-        DefinedInitialDataOptions<
-          Awaited<ReturnType<typeof uploadMyAvatar>>,
-          TError,
-          Awaited<ReturnType<typeof uploadMyAvatar>>
-        >,
-        "initialData"
-      >;
-    request?: SecondParameter<typeof coreverseFetch>;
-  },
-  queryClient?: QueryClient,
-): DefinedUseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-};
-export function useUploadMyAvatar<
-  TData = Awaited<ReturnType<typeof uploadMyAvatar>>,
-  TError =
-    | UploadMyAvatar400
-    | UploadMyAvatar401
-    | UploadMyAvatar404
-    | UploadMyAvatar413,
->(
-  uploadMyAvatarBody: UploadMyAvatarBody,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof uploadMyAvatar>>, TError, TData>
-    > &
-      Pick<
-        UndefinedInitialDataOptions<
-          Awaited<ReturnType<typeof uploadMyAvatar>>,
-          TError,
-          Awaited<ReturnType<typeof uploadMyAvatar>>
-        >,
-        "initialData"
-      >;
-    request?: SecondParameter<typeof coreverseFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-};
-export function useUploadMyAvatar<
-  TData = Awaited<ReturnType<typeof uploadMyAvatar>>,
-  TError =
-    | UploadMyAvatar400
-    | UploadMyAvatar401
-    | UploadMyAvatar404
-    | UploadMyAvatar413,
->(
-  uploadMyAvatarBody: UploadMyAvatarBody,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof uploadMyAvatar>>, TError, TData>
-    >;
-    request?: SecondParameter<typeof coreverseFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-};
 /**
  * @summary Upload the caller's own avatar
  */
-
-export function useUploadMyAvatar<
-  TData = Awaited<ReturnType<typeof uploadMyAvatar>>,
+export const useUploadMyAvatar = <
   TError =
     | UploadMyAvatar400
     | UploadMyAvatar401
     | UploadMyAvatar404
     | UploadMyAvatar413,
+  TContext = unknown,
 >(
-  uploadMyAvatarBody: UploadMyAvatarBody,
   options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof uploadMyAvatar>>, TError, TData>
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof uploadMyAvatar>>,
+      TError,
+      UploadMyAvatarMutationVariables,
+      TContext
     >;
     request?: SecondParameter<typeof coreverseFetch>;
   },
   queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-} {
-  const queryOptions = getUploadMyAvatarQueryOptions(
-    uploadMyAvatarBody,
-    options,
-  );
-
-  const query = useQuery(queryOptions, queryClient) as UseQueryResult<
-    TData,
-    TError
-  > & { queryKey: DataTag<QueryKey, TData, TError> };
-
-  return withQueryKey(query, queryOptions.queryKey);
-}
-
+): UseMutationResult<
+  Awaited<ReturnType<typeof uploadMyAvatar>>,
+  TError,
+  UploadMyAvatarMutationVariables,
+  TContext
+> => {
+  return useMutation(getUploadMyAvatarMutationOptions(options), queryClient);
+};
 export type deleteMyAvatarResponse200 = {
   data: DeleteMyAvatar200;
   status: 200;
@@ -1136,121 +910,72 @@ export const deleteMyAvatar = async (
   });
 };
 
-export const getDeleteMyAvatarQueryKey = () => {
-  return ["DELETE", `/profiles/me/avatar`] as const;
-};
+export const getDeleteMyAvatarMutationKey = () => ["deleteMyAvatar"] as const;
 
-export const getDeleteMyAvatarQueryOptions = <
-  TData = Awaited<ReturnType<typeof deleteMyAvatar>>,
+export const getDeleteMyAvatarMutationOptions = <
   TError = DeleteMyAvatar401 | DeleteMyAvatar404,
+  TContext = unknown,
 >(options?: {
-  query?: Partial<
-    UseQueryOptions<Awaited<ReturnType<typeof deleteMyAvatar>>, TError, TData>
-  >;
-  request?: SecondParameter<typeof coreverseFetch>;
-}) => {
-  const { query: queryOptions, request: requestOptions } = options ?? {};
-
-  const queryKey = queryOptions?.queryKey ?? getDeleteMyAvatarQueryKey();
-
-  const queryFn: QueryFunction<Awaited<ReturnType<typeof deleteMyAvatar>>> = ({
-    signal,
-  }) => deleteMyAvatar({ signal, ...requestOptions });
-
-  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+  mutation?: UseMutationOptions<
     Awaited<ReturnType<typeof deleteMyAvatar>>,
     TError,
-    TData
-  > & { queryKey: DataTag<QueryKey, TData, TError> };
+    void,
+    TContext
+  >;
+  request?: SecondParameter<typeof coreverseFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof deleteMyAvatar>>,
+  TError,
+  void,
+  TContext
+> => {
+  const mutationKey = getDeleteMyAvatarMutationKey();
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof deleteMyAvatar>>,
+    void
+  > = () => {
+    return deleteMyAvatar(requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
 };
 
-export type DeleteMyAvatarQueryResult = NonNullable<
+export type DeleteMyAvatarMutationResult = NonNullable<
   Awaited<ReturnType<typeof deleteMyAvatar>>
 >;
-export type DeleteMyAvatarQueryError = DeleteMyAvatar401 | DeleteMyAvatar404;
 
-export function useDeleteMyAvatar<
-  TData = Awaited<ReturnType<typeof deleteMyAvatar>>,
-  TError = DeleteMyAvatar401 | DeleteMyAvatar404,
->(
-  options: {
-    query: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof deleteMyAvatar>>, TError, TData>
-    > &
-      Pick<
-        DefinedInitialDataOptions<
-          Awaited<ReturnType<typeof deleteMyAvatar>>,
-          TError,
-          Awaited<ReturnType<typeof deleteMyAvatar>>
-        >,
-        "initialData"
-      >;
-    request?: SecondParameter<typeof coreverseFetch>;
-  },
-  queryClient?: QueryClient,
-): DefinedUseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-};
-export function useDeleteMyAvatar<
-  TData = Awaited<ReturnType<typeof deleteMyAvatar>>,
-  TError = DeleteMyAvatar401 | DeleteMyAvatar404,
->(
-  options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof deleteMyAvatar>>, TError, TData>
-    > &
-      Pick<
-        UndefinedInitialDataOptions<
-          Awaited<ReturnType<typeof deleteMyAvatar>>,
-          TError,
-          Awaited<ReturnType<typeof deleteMyAvatar>>
-        >,
-        "initialData"
-      >;
-    request?: SecondParameter<typeof coreverseFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-};
-export function useDeleteMyAvatar<
-  TData = Awaited<ReturnType<typeof deleteMyAvatar>>,
-  TError = DeleteMyAvatar401 | DeleteMyAvatar404,
->(
-  options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof deleteMyAvatar>>, TError, TData>
-    >;
-    request?: SecondParameter<typeof coreverseFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-};
+export type DeleteMyAvatarMutationError = DeleteMyAvatar401 | DeleteMyAvatar404;
+
 /**
  * @summary Remove the caller's own avatar
  */
-
-export function useDeleteMyAvatar<
-  TData = Awaited<ReturnType<typeof deleteMyAvatar>>,
+export const useDeleteMyAvatar = <
   TError = DeleteMyAvatar401 | DeleteMyAvatar404,
+  TContext = unknown,
 >(
   options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof deleteMyAvatar>>, TError, TData>
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof deleteMyAvatar>>,
+      TError,
+      void,
+      TContext
     >;
     request?: SecondParameter<typeof coreverseFetch>;
   },
   queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-} {
-  const queryOptions = getDeleteMyAvatarQueryOptions(options);
-
-  const query = useQuery(queryOptions, queryClient) as UseQueryResult<
-    TData,
-    TError
-  > & { queryKey: DataTag<QueryKey, TData, TError> };
-
-  return withQueryKey(query, queryOptions.queryKey);
-}
+): UseMutationResult<
+  Awaited<ReturnType<typeof deleteMyAvatar>>,
+  TError,
+  void,
+  TContext
+> => {
+  return useMutation(getDeleteMyAvatarMutationOptions(options), queryClient);
+};
