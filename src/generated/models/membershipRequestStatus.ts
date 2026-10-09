@@ -3,9 +3,9 @@
  * Do not edit manually.
  * Coreverse DB API
  * Centralized data-access API for the Coreverse ecosystem. Coreverse DB defines and serves all data operations; Coreverse Launcher and Coreverse Website consume this API and never access Postgres/Supabase directly.
- * Access model: the Supabase platform JWT gate is ON for every Edge Function except `send-email`, `auth` and `profiles`, so a request without a valid Supabase Auth JWT is rejected with 401 before the function runs -- including the operations below that declare no `security` requirement (those only mean the function itself does not require a particular user). The only signed-out operations are `POST /auth/password-reset` and `GET /profiles/username-availability`; every other `/profiles` route authenticates the caller inside the function.
+ * Access model: the Supabase platform JWT gate is OFF for `releases`, `news`, `events`, `faq`, `polls`, `discussions`, `docs`, `auth`, `profiles` and `send-email`, and ON for `teams`, `requests` and `projects`. Signed-out callers can read public content (a `GET` on any public-content route answers 200); every write needs a user session and answers 401 `unauthorized` from the function without one. `POST /auth/password-reset` and `GET /profiles/username-availability` also work signed out; every other `/profiles` route authenticates the caller inside the function.
  *
- * OpenAPI spec version: 0.5.1
+ * OpenAPI spec version: 0.5.3
  */
 
 export type MembershipRequestStatus =

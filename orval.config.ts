@@ -1,3 +1,4 @@
+import { readdirSync, readFileSync } from "node:fs";
 import { defineConfig } from "orval";
 
 // Two output targets from the same multi-file spec:
@@ -58,6 +59,37 @@ const externalRefsAllow = [
 
   "./parameters/Pagination.yaml",
 ];
+
+// Hook kind per operation, read straight from openapi/paths/*.yaml.
+//
+// Orval's react-query client does not choose between useQuery and
+// useMutation by HTTP verb when `override.query` sets the global flags: a
+// global `useQuery: true` turned POST/PATCH/PUT/DELETE operations into
+// queries (fired on mount, cached by body, no `mutate`), and a global
+// `useMutation: true` turns GET operations into mutations. The kind is
+// therefore pinned per operation instead -- GET operations get
+// `useQuery: true, useMutation: false`, every other verb gets
+// `useQuery: false, useMutation: true` -- and no global useMutation flag is
+// set. Deriving the list from the spec means a newly added operation is
+// covered automatically instead of silently regressing to the wrong kind.
+const pathFilesDir = new URL("./openapi/paths/", import.meta.url);
+const operationPattern = /^ {2}(get|post|put|patch|delete):\n(?: {4}.*\n)*? {4}operationId: (\w+)/gm;
+
+const operationHookKinds = readdirSync(pathFilesDir)
+  .filter((file) => file.endsWith(".yaml"))
+  .flatMap((file) =>
+    Array.from(readFileSync(new URL(file, pathFilesDir), "utf8").matchAll(operationPattern), (match) => ({
+      verb: match[1]!,
+      operationId: match[2]!,
+    })),
+  );
+
+const hookKindOverrides = Object.fromEntries(
+  operationHookKinds.map(({ verb, operationId }) => [
+    operationId,
+    { query: verb === "get" ? { useQuery: true, useMutation: false } : { useQuery: false, useMutation: true } },
+  ]),
+);
 
 export default defineConfig({
   coreverseDb: {
@@ -135,11 +167,13 @@ export default defineConfig({
           name: "coreverseFetch",
         },
         query: {
-          // Emit `useXxx()` hooks (not just queryOptions helpers) --
-          // GET operations become useQuery hooks, non-GET become
-          // useMutation hooks.
+          // Emit `useXxx()` hooks (not just queryOptions helpers). Do NOT
+          // add a global `useMutation` flag here: it would turn GET
+          // operations into mutations. The hook kind of every operation
+          // is pinned in `operations` below (see hookKindOverrides).
           useQuery: true,
         },
+        operations: hookKindOverrides,
       },
     },
   },
