@@ -59,6 +59,35 @@ recovery) — `recovery`, `signup`, `magiclink`, `invite` and
 comment), falls back to a generic English message with a working link
 rather than failing the underlying Auth action.
 
+### Links in the emails
+
+For `signup`, `recovery`, `magiclink` and `invite` the email's button does not
+go to Supabase's `/auth/v1/verify`. It goes to the Website's confirm route,
+built in `render.ts` (`actionLinkFor`, `WEBSITE_CONFIRM_PATH`):
+
+```text
+<origin>/api/auth/confirm?token_hash=<hash>&type=<signup|recovery|magiclink|invite>&next=<path>
+```
+
+`<origin>` and `<path>` are taken from `email_data.redirect_to`, the URL the
+Website gave Supabase Auth. The origin has to be in `WEBSITE_ALLOWED_ORIGINS`;
+otherwise (or if `redirect_to` is not a URL) the link falls back to the
+Supabase verify URL, because a non-2xx from the hook would fail the user's
+signup or reset. `email_change` always keeps the Supabase verify link.
+
+The Website route calls `supabase.auth.verifyOtp({ token_hash, type })` and then
+redirects to `next`, after treating `next` as an internal path only. Because
+`verifyOtp` needs no PKCE verifier cookie, the link works on any device.
+The link opens with a plain `GET`, so a mail scanner that prefetches links can
+consume the one-time token; the route should show a clear error for an expired
+or already used token.
+
+The local stack builds the same link from `supabase/templates/confirmation.html`
+and `recovery.html` (wired in `supabase/config.toml`, `{{ .SiteURL }}` is
+`site_url`). Hook and templates are different code paths, so
+`scripts/ops/static-checks.mjs` compares them: change the confirm path or its
+query parameters in one place only together with the other.
+
 Its file layout still mirrors the schemas.ts/index.ts split above, just
 with different names: `render.ts` holds the pure, testable logic
 (per-locale copy, action-link construction — no `Deno.serve`, no
