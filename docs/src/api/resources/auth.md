@@ -25,4 +25,4 @@ Both limits are enforced through the generic `identity.hit_rate_limit()` / `iden
 
 ## Delivery
 
-The actual reset email is sent by Supabase Auth's mailer, not by this endpoint directly. A separate `send-email` function (a Supabase Auth "Send Email" hook target, not part of this OpenAPI contract) intercepts the send and renders it with the Website's own localized copy via Brevo — see [Development › Edge Functions](../../development/edge-functions.md).
+The actual reset email is sent by Supabase Auth's mailer, not by this endpoint directly. A separate `send-email` function (a Supabase Auth "Send Email" hook target, not part of this OpenAPI contract) intercepts the send and renders it with the Website's own localized copy via Brevo — see [Development › Edge Functions](../../development/edge-functions.md). The button in the email opens the Website's `/api/auth/confirm` route with `token_hash`, `type=recovery` and `next=/{locale}/reset-password`, not a Supabase URL; the origin is the one from `redirectTo`.

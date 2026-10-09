@@ -48,7 +48,8 @@ Order matters: migrations → secrets → functions. Ten functions are deployed 
 
 Dashboard checks that live outside the repository (`config.toml` is local-only):
 
-- Authentication → Hooks → Send Email: enabled, URL `<project>/functions/v1/send-email`, secret equals `SEND_EMAIL_HOOK_SECRET`.
+- Authentication → Hooks → Send Email: enabled, URL `<project>/functions/v1/send-email`, secret equals `SEND_EMAIL_HOOK_SECRET`. Enable it only after the Website's `/api/auth/confirm` route is deployed: the emailed links point at it (see [Development › Edge Functions](../development/edge-functions.md)).
+- Brevo account: click tracking off for transactional email, so the confirm link in a message is the Website URL itself and not a tracking redirect.
 - Authentication → URL Configuration: Site URL and Redirect URLs cover the Website origin(s), including the `/*/reset-password` pattern.
 - Authentication → Rate limits and password policy reviewed; local values in `config.toml` are not applied to the hosted project.
 

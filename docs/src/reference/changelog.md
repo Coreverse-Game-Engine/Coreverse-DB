@@ -2,6 +2,28 @@
 
 Release notes for the `@Coreverse-Game-Engine/db-client` package and the backend it describes. GitHub's auto-generated release notes (grouped by PR label, see `.github/release.yml`) remain the per-PR record; this page is the consumer-facing summary of what changed *for API and SDK users*.
 
+## 0.5.4
+
+Auth-email release. **No API shape changes and no database migration.** Only the `send-email` Edge Function changes, so redeploy that one function (`supabase functions deploy send-email`); the package version moves so that it matches the deployed backend and the spec. Run `pnpm run generate` and commit the result: the generated files carry the spec version in their header.
+
+### Changed
+
+- **Emailed links go to the Website, not to Supabase.** For `signup`, `recovery`, `magiclink` and `invite` the button in the email now points at the Website's confirm route, `<origin>/api/auth/confirm?token_hash=<hash>&type=<action>&next=<path>`, instead of Supabase Auth's `/auth/v1/verify`. The Website completes the action itself with `verifyOtp({ token_hash, type })`, which needs no PKCE code verifier. A link therefore also works when it is opened on another device or browser than the one that started the signup or reset, and it no longer depends on the project's Site URL.
+- `<origin>` and `<path>` come from the `redirect_to` the Website passed to Supabase Auth (`emailRedirectTo` on signup, `redirectTo` on password reset); `next` is its path without query string or hash. The origin must be listed in `WEBSITE_ALLOWED_ORIGINS`. If it is not, or if `redirect_to` is not a URL, the email falls back to the Supabase verify link instead of failing. `email_change` keeps the Supabase verify link, and `reauthentication` has no link.
+- `POST /auth/password-reset` is unchanged: `redirectTo` is still validated as `/{locale}/reset-password` on an allowed origin. The email link built from it now carries `next=/{locale}/reset-password`.
+
+### Added
+
+- `supabase/templates/confirmation.html` and `recovery.html`, wired in `supabase/config.toml`, so the local stack sends the same Website link (caught by Inbucket). The hosted project does not use them: its emails go through the hook.
+- `scripts/ops/static-checks.mjs` check 9 fails if the hook's confirm path, the local templates and the `[auth.email.template.*]` entries drift apart, or if the hook stops passing `WEBSITE_ALLOWED_ORIGINS` to the link builder.
+- `render.test.ts` covers the Website link for every supported action type, the `next` handling, and every fallback (origin not allowed, prefix-lookalike origin, empty `redirect_to`, `email_change`).
+
+### Operations
+
+- **The Website's `/api/auth/confirm` route must be live before the hook sends these links.** Deploying 0.5.4 changes nothing for users while the Send Email hook is not enabled in the Dashboard (Supabase's own mailer is still in use). Enable the hook only after the Website route is deployed; with the hook enabled, an older Website would send users to a missing page.
+- Brevo wraps links in a click-tracking redirect domain when tracking is on for the account. Turn click tracking off for transactional email: a tracked link adds a hop to a one-time token link, and tracking domains are often flagged by mail filters.
+- Supabase Auth's Redirect URLs must still list every Website origin: Auth replaces a `redirect_to` that is not listed with the Site URL, and the email would then be built for that origin.
+
 ## 0.5.3
 
 SDK fix release. **No API shape changes, no database migration and no Edge Function redeploy**; the backend is identical to 0.5.2.
