@@ -25,6 +25,15 @@ function jsonResponse(
 
 const BASE_URL = "https://api.example.test/functions/v1";
 
+// The client keeps its configuration on globalThis (see src/client/http.ts)
+// so every bundled copy shares it; a "never configured" test has to clear
+// that slot.
+function clearSharedConfig(): void {
+  delete (globalThis as unknown as Record<symbol, unknown>)[
+    Symbol.for("@Coreverse-Game-Engine/db-client:config")
+    ];
+}
+
 describe("coreverseFetch", () => {
   let mockFetch: ReturnType<typeof vi.fn>;
 
@@ -46,12 +55,50 @@ describe("coreverseFetch", () => {
       // Use a fresh, never-configured module instance so this doesn't
       // depend on test execution order relative to the configure() calls
       // in every other describe block below.
+      clearSharedConfig();
       vi.resetModules();
       const fresh = await import("../../src/client/http");
 
       await expect(fresh.coreverseFetch("/teams")).rejects.toThrow(
         /configureCoreverseClient\(\) was called/,
       );
+    });
+  });
+
+  // --- separately bundled copies --------------------------------------------
+  // The base entry and the "/react" entry each bundle their own copy of this
+  // module (tsup splitting: false). Loading the module a second time after
+  // vi.resetModules() reproduces that: two independent module instances.
+  describe("separately bundled copies of the client", () => {
+    it("a second copy uses the configuration set through the first", async () => {
+      configure();
+      mockFetch.mockResolvedValue(jsonResponse({ ok: true }));
+
+      vi.resetModules();
+      const second = await import("../../src/client/http");
+      expect(second.coreverseFetch).not.toBe(coreverseFetch);
+
+      const result = await second.coreverseFetch<{ status: number }>("/teams");
+
+      expect(result.status).toBe(200);
+      expect(mockFetch).toHaveBeenCalledWith(`${BASE_URL}/teams`, expect.anything());
+    });
+
+    it("recognizes an error thrown by another copy with instanceof", async () => {
+      vi.resetModules();
+      const second = await import("../../src/client/http");
+      const error = new second.CoreverseApiError(404, { error: "not_found", message: "nope" });
+
+      expect(second.CoreverseApiError).not.toBe(CoreverseApiError);
+      expect(error instanceof CoreverseApiError).toBe(true);
+      expect(error.status).toBe(404);
+    });
+
+    it("does not treat other errors or values as CoreverseApiError", () => {
+      expect(new Error("boom") instanceof CoreverseApiError).toBe(false);
+      expect(new TypeError("Failed to fetch") instanceof CoreverseApiError).toBe(false);
+      expect({ status: 404, code: "not_found" } instanceof CoreverseApiError).toBe(false);
+      expect(null instanceof CoreverseApiError).toBe(false);
     });
   });
 
