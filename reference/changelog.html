@@ -175,6 +175,22 @@
                     <main>
                         <h1 id="changelog"><a class="header" href="#changelog">Changelog</a></h1>
 <p>Release notes for the <code>@Coreverse-Game-Engine/db-client</code> package and the backend it describes. GitHub's auto-generated release notes (grouped by PR label, see <code>.github/release.yml</code>) remain the per-PR record; this page is the consumer-facing summary of what changed <em>for API and SDK users</em>.</p>
+<h2 id="055"><a class="header" href="#055">0.5.5</a></h2>
+<p>SDK fix release. <strong>No API shape changes, no database migration and no Edge Function changes</strong>: only the published package (<code>@Coreverse-Game-Engine/db-client</code>) changes. Run <code>pnpm run generate</code> and commit the result (the generated files carry the spec version in their header), then publish.</p>
+<h3 id="fixed"><a class="header" href="#fixed">Fixed</a></h3>
+<ul>
+<li><strong>The React hooks never received the configuration.</strong> The base entry (<code>@Coreverse-Game-Engine/db-client</code>) and the React entry (<code>@Coreverse-Game-Engine/db-client/react</code>) are bundled separately (<code>splitting: false</code>), so each contained its own copy of <code>src/client/http.ts</code> with its own module-level <code>config</code>. A consumer calls <code>configureCoreverseClient()</code> from the base entry, which configured only the base entry's copy; every hook from <code>/react</code> then threw <code>Coreverse DB client used before configureCoreverseClient() was called</code>. The configuration is now stored on <code>globalThis</code> under a registered symbol, so every bundled copy (and a duplicate install of the package) shares one configuration.</li>
+<li><strong><code>error instanceof CoreverseApiError</code> failed for errors thrown by a React hook.</strong> Same cause: the hook's error was an instance of the <code>/react</code> copy of the class, not of the one the consumer imported from the base entry. <code>CoreverseApiError</code> now answers <code>instanceof</code> with a registered-symbol brand on the instance (<code>static [Symbol.hasInstance]</code>), so it works across copies. The brand is a non-enumerable property; <code>status</code>, <code>code</code> and <code>body</code> are unchanged.</li>
+</ul>
+<h3 id="added"><a class="header" href="#added">Added</a></h3>
+<ul>
+<li><code>tests/client/http.test.ts</code> covers a second copy of the client using the configuration set through the first, <code>instanceof</code> across copies, and that unrelated errors are not matched.</li>
+</ul>
+<h3 id="notes-for-consumers"><a class="header" href="#notes-for-consumers">Notes for consumers</a></h3>
+<ul>
+<li>No call-site changes. Bump the dependency to <code>^0.5.5</code> (for pnpm with <code>minimumReleaseAge</code>, also add <code>0.5.5</code> to the exclude list until the package is old enough).</li>
+<li><code>configureCoreverseClient()</code> is global per JavaScript realm. A server process that configures the client in more than one place (for example a Next.js server that configures it both for Server Actions and for server-rendered client components) now shares one configuration, and the last call wins.</li>
+</ul>
 <h2 id="054"><a class="header" href="#054">0.5.4</a></h2>
 <p>Auth-email release. <strong>No API shape changes and no database migration.</strong> Only the <code>send-email</code> Edge Function changes, so redeploy that one function (<code>supabase functions deploy send-email</code>); the package version moves so that it matches the deployed backend and the spec. Run <code>pnpm run generate</code> and commit the result: the generated files carry the spec version in their header.</p>
 <h3 id="changed"><a class="header" href="#changed">Changed</a></h3>
@@ -183,7 +199,7 @@
 <li><code>&lt;origin&gt;</code> and <code>&lt;path&gt;</code> come from the <code>redirect_to</code> the Website passed to Supabase Auth (<code>emailRedirectTo</code> on signup, <code>redirectTo</code> on password reset); <code>next</code> is its path without query string or hash. The origin must be listed in <code>WEBSITE_ALLOWED_ORIGINS</code>. If it is not, or if <code>redirect_to</code> is not a URL, the email falls back to the Supabase verify link instead of failing. <code>email_change</code> keeps the Supabase verify link, and <code>reauthentication</code> has no link.</li>
 <li><code>POST /auth/password-reset</code> is unchanged: <code>redirectTo</code> is still validated as <code>/{locale}/reset-password</code> on an allowed origin. The email link built from it now carries <code>next=/{locale}/reset-password</code>.</li>
 </ul>
-<h3 id="added"><a class="header" href="#added">Added</a></h3>
+<h3 id="added-1"><a class="header" href="#added-1">Added</a></h3>
 <ul>
 <li><code>supabase/templates/confirmation.html</code> and <code>recovery.html</code>, wired in <code>supabase/config.toml</code>, so the local stack sends the same Website link (caught by Inbucket). The hosted project does not use them: its emails go through the hook.</li>
 <li><code>scripts/ops/static-checks.mjs</code> check 9 fails if the hook's confirm path, the local templates and the <code>[auth.email.template.*]</code> entries drift apart, or if the hook stops passing <code>WEBSITE_ALLOWED_ORIGINS</code> to the link builder.</li>
@@ -197,7 +213,7 @@
 </ul>
 <h2 id="053"><a class="header" href="#053">0.5.3</a></h2>
 <p>SDK fix release. <strong>No API shape changes, no database migration and no Edge Function redeploy</strong>; the backend is identical to 0.5.2.</p>
-<h3 id="fixed"><a class="header" href="#fixed">Fixed</a></h3>
+<h3 id="fixed-1"><a class="header" href="#fixed-1">Fixed</a></h3>
 <ul>
 <li><strong>React hooks: every write operation was generated as a query.</strong> <code>override.query.useQuery: true</code> in <code>orval.config.ts</code> made Orval emit <code>useQuery</code> hooks for POST, PATCH, PUT and DELETE operations too. <code>useCastVote</code>, <code>useCreateDiscussion</code>, <code>useReplyToDiscussion</code>, <code>useUpdateMyProfile</code>, <code>useDeleteMyAccount</code> and the other 33 write hooks therefore ran their request when the component mounted, cached the response under a <code>["POST", url, body]</code> key, and had no <code>mutate</code>. All 38 non-GET operations are now <code>useMutation</code> hooks (GET operations stay <code>useQuery</code> hooks) (<code>use&lt;OperationId&gt;(options?, queryClient?)</code>) with a matching <code>get&lt;OperationId&gt;MutationOptions</code> helper, and the <code>get&lt;OperationId&gt;QueryKey</code> / <code>get&lt;OperationId&gt;QueryOptions</code> exports of those operations are gone.</li>
 <li><strong>Generated headers described the 0.5.1 access model.</strong> The generated files and <code>openapi/openapi.yaml</code> (<code>info.description</code>, <code>bearerAuth</code> description) still said the platform JWT gate is on for the public-content functions. They now describe the 0.5.2 model: signed-out reads work, writes need a session.</li>
@@ -287,7 +303,7 @@ vote.mutate({ pollId, data: { option_id: optionId } });
 <li><strong>New error codes</strong> in the <code>Error</code> schema: <code>account_has_content</code>, <code>invalid_event_id</code>, <code>invalid_faq_id</code>, <code>invalid_locale</code>.</li>
 <li><strong>Rate limits (<code>429</code> + <code>Retry-After</code>)</strong> on creating a discussion (10/hour), posting a reply (30/hour) and casting a poll vote (60/hour), per user.</li>
 </ul>
-<h3 id="added-1"><a class="header" href="#added-1">Added</a></h3>
+<h3 id="added-2"><a class="header" href="#added-2">Added</a></h3>
 <ul>
 <li><strong>Events</strong> (<code>/events</code>) with <code>upcoming</code> filtering, slug lookup and an external <code>registration_url</code>. See <a href="../api/resources/events.html">API › Events</a>.</li>
 <li><strong>FAQ</strong> (<code>/faq</code>) with per-locale translations, atomic creation, and per-locale <code>PUT</code>/<code>DELETE</code>. See <a href="../api/resources/faq.html">API › FAQ</a>.</li>
