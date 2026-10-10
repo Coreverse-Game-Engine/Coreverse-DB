@@ -22,6 +22,12 @@ import { defineConfig } from "tsup";
 //                           `pnpm typecheck` script runs)
 // Aliasing only "typescript" (without the second entry) removes the real
 // `tsc` binary entirely, since @typescript/typescript6 only ships `tsc6`.
+//
+// splitting is false, so the two entries do NOT share code: each bundles its
+// own copy of src/client/http.ts. That is why the client's configuration and
+// CoreverseApiError's instanceof check live on globalThis / a symbol brand
+// there instead of in module state -- otherwise configureCoreverseClient()
+// (base entry) would never reach the React hooks.
 export default defineConfig({
   entry: {
     index: "src/index.ts",

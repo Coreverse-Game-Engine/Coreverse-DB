@@ -19,6 +19,15 @@ export interface CoreverseErrorBody {
 // Mirrors openapi/schemas/Error.yaml. Thrown for any non-2xx response;
 // operations documented with `security: []` (public reads, plus
 // /docs/reindex's own X-Reindex-Token) never need getAuthToken at all.
+//
+// `instanceof CoreverseApiError` is answered by a brand on the instance, not
+// by the prototype chain: the base entry and the "/react" entry are bundled
+// separately (tsup `splitting: false`, see tsup.config.ts), so each carries
+// its own copy of this class, and an error thrown by a React hook would
+// otherwise fail `instanceof` against the class a consumer imported from the
+// base entry.
+const API_ERROR_BRAND = Symbol.for("@Coreverse-Game-Engine/db-client:CoreverseApiError");
+
 export class CoreverseApiError extends Error {
   readonly status: number;
   readonly code: string;
@@ -30,6 +39,15 @@ export class CoreverseApiError extends Error {
     this.status = status;
     this.code = body?.error ?? "unknown_error";
     this.body = body;
+    Object.defineProperty(this, API_ERROR_BRAND, { value: true });
+  }
+
+  static [Symbol.hasInstance](value: unknown): value is CoreverseApiError {
+    return (
+      typeof value === "object" &&
+      value !== null &&
+      (value as Record<symbol, unknown>)[API_ERROR_BRAND] === true
+    );
   }
 }
 
@@ -57,13 +75,25 @@ export interface CoreverseClientConfig {
   fetch?: typeof fetch;
 }
 
-let config: CoreverseClientConfig | null = null;
+// The configuration is kept on globalThis, not in a module variable. The base
+// entry ("@Coreverse-Game-Engine/db-client") and the React entry
+// ("@Coreverse-Game-Engine/db-client/react") are bundled separately and each
+// contains its own copy of this module, so a module variable would be set by
+// the consumer's configureCoreverseClient() call (base entry) while the React
+// hooks read their own, never-configured copy. Sharing one slot keyed by a
+// registered symbol makes every copy see the same configuration.
+const CONFIG_KEY = Symbol.for("@Coreverse-Game-Engine/db-client:config");
+
+function configSlot(): Record<symbol, CoreverseClientConfig | undefined> {
+  return globalThis as unknown as Record<symbol, CoreverseClientConfig | undefined>;
+}
 
 export function configureCoreverseClient(next: CoreverseClientConfig): void {
-  config = next;
+  configSlot()[CONFIG_KEY] = next;
 }
 
 function requireConfig(): CoreverseClientConfig {
+  const config = configSlot()[CONFIG_KEY];
   if (!config) {
     throw new Error(
       "Coreverse DB client used before configureCoreverseClient() was called. " +
