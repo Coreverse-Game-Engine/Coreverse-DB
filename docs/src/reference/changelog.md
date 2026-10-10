@@ -2,6 +2,24 @@
 
 Release notes for the `@Coreverse-Game-Engine/db-client` package and the backend it describes. GitHub's auto-generated release notes (grouped by PR label, see `.github/release.yml`) remain the per-PR record; this page is the consumer-facing summary of what changed *for API and SDK users*.
 
+## 0.5.5
+
+SDK fix release. **No API shape changes, no database migration and no Edge Function changes**: only the published package (`@Coreverse-Game-Engine/db-client`) changes. Run `pnpm run generate` and commit the result (the generated files carry the spec version in their header), then publish.
+
+### Fixed
+
+- **The React hooks never received the configuration.** The base entry (`@Coreverse-Game-Engine/db-client`) and the React entry (`@Coreverse-Game-Engine/db-client/react`) are bundled separately (`splitting: false`), so each contained its own copy of `src/client/http.ts` with its own module-level `config`. A consumer calls `configureCoreverseClient()` from the base entry, which configured only the base entry's copy; every hook from `/react` then threw `Coreverse DB client used before configureCoreverseClient() was called`. The configuration is now stored on `globalThis` under a registered symbol, so every bundled copy (and a duplicate install of the package) shares one configuration.
+- **`error instanceof CoreverseApiError` failed for errors thrown by a React hook.** Same cause: the hook's error was an instance of the `/react` copy of the class, not of the one the consumer imported from the base entry. `CoreverseApiError` now answers `instanceof` with a registered-symbol brand on the instance (`static [Symbol.hasInstance]`), so it works across copies. The brand is a non-enumerable property; `status`, `code` and `body` are unchanged.
+
+### Added
+
+- `tests/client/http.test.ts` covers a second copy of the client using the configuration set through the first, `instanceof` across copies, and that unrelated errors are not matched.
+
+### Notes for consumers
+
+- No call-site changes. Bump the dependency to `^0.5.5` (for pnpm with `minimumReleaseAge`, also add `0.5.5` to the exclude list until the package is old enough).
+- `configureCoreverseClient()` is global per JavaScript realm. A server process that configures the client in more than one place (for example a Next.js server that configures it both for Server Actions and for server-rendered client components) now shares one configuration, and the last call wins.
+
 ## 0.5.4
 
 Auth-email release. **No API shape changes and no database migration.** Only the `send-email` Edge Function changes, so redeploy that one function (`supabase functions deploy send-email`); the package version moves so that it matches the deployed backend and the spec. Run `pnpm run generate` and commit the result: the generated files carry the spec version in their header.
