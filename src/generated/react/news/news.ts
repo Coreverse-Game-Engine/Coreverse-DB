@@ -3,19 +3,22 @@
  * Do not edit manually.
  * Coreverse DB API
  * Centralized data-access API for the Coreverse ecosystem. Coreverse DB defines and serves all data operations; Coreverse Launcher and Coreverse Website consume this API and never access Postgres/Supabase directly.
- * Access model: the Supabase platform JWT gate is ON for every Edge Function except `send-email`, `auth` and `profiles`, so a request without a valid Supabase Auth JWT is rejected with 401 before the function runs -- including the operations below that declare no `security` requirement (those only mean the function itself does not require a particular user). The only signed-out operations are `POST /auth/password-reset` and `GET /profiles/username-availability`; every other `/profiles` route authenticates the caller inside the function.
+ * Access model: the Supabase platform JWT gate is OFF for `releases`, `news`, `events`, `faq`, `polls`, `discussions`, `docs`, `auth`, `profiles` and `send-email`, and ON for `teams`, `requests` and `projects`. Signed-out callers can read public content (a `GET` on any public-content route answers 200); every write needs a user session and answers 401 `unauthorized` from the function without one. `POST /auth/password-reset` and `GET /profiles/username-availability` also work signed out; every other `/profiles` route authenticates the caller inside the function.
  *
- * OpenAPI spec version: 0.5.2
+ * OpenAPI spec version: 0.5.4
  */
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import type {
   DataTag,
   DefinedInitialDataOptions,
   DefinedUseQueryResult,
+  MutationFunction,
   QueryClient,
   QueryFunction,
   QueryKey,
   UndefinedInitialDataOptions,
+  UseMutationOptions,
+  UseMutationResult,
   UseQueryOptions,
   UseQueryResult,
 } from "@tanstack/react-query";
@@ -306,134 +309,79 @@ export const createNews = async (
   });
 };
 
-export const getCreateNewsQueryKey = (createNewsBody?: CreateNewsBody) => {
-  return ["POST", `/news`, createNewsBody] as const;
-};
+export const getCreateNewsMutationKey = () => ["createNews"] as const;
 
-export const getCreateNewsQueryOptions = <
-  TData = Awaited<ReturnType<typeof createNews>>,
+export const getCreateNewsMutationOptions = <
   TError = CreateNews400 | CreateNews401 | CreateNews403 | CreateNews409,
->(
-  createNewsBody: CreateNewsBody,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof createNews>>, TError, TData>
-    >;
-    request?: SecondParameter<typeof coreverseFetch>;
-  },
-) => {
-  const { query: queryOptions, request: requestOptions } = options ?? {};
-
-  const queryKey =
-    queryOptions?.queryKey ?? getCreateNewsQueryKey(createNewsBody);
-
-  const queryFn: QueryFunction<Awaited<ReturnType<typeof createNews>>> = ({
-    signal,
-  }) => createNews(createNewsBody, { signal, ...requestOptions });
-
-  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
     Awaited<ReturnType<typeof createNews>>,
     TError,
-    TData
-  > & { queryKey: DataTag<QueryKey, TData, TError> };
+    CreateNewsMutationVariables,
+    TContext
+  >;
+  request?: SecondParameter<typeof coreverseFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof createNews>>,
+  TError,
+  CreateNewsMutationVariables,
+  TContext
+> => {
+  const mutationKey = getCreateNewsMutationKey();
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof createNews>>,
+    CreateNewsMutationVariables
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return createNews(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
 };
 
-export type CreateNewsQueryResult = NonNullable<
+export type CreateNewsMutationResult = NonNullable<
   Awaited<ReturnType<typeof createNews>>
 >;
-export type CreateNewsQueryError =
+export type CreateNewsMutationBody = CreateNewsBody;
+export type CreateNewsMutationError =
   CreateNews400 | CreateNews401 | CreateNews403 | CreateNews409;
+export type CreateNewsMutationVariables = { data: CreateNewsBody };
 
-export function useCreateNews<
-  TData = Awaited<ReturnType<typeof createNews>>,
-  TError = CreateNews400 | CreateNews401 | CreateNews403 | CreateNews409,
->(
-  createNewsBody: CreateNewsBody,
-  options: {
-    query: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof createNews>>, TError, TData>
-    > &
-      Pick<
-        DefinedInitialDataOptions<
-          Awaited<ReturnType<typeof createNews>>,
-          TError,
-          Awaited<ReturnType<typeof createNews>>
-        >,
-        "initialData"
-      >;
-    request?: SecondParameter<typeof coreverseFetch>;
-  },
-  queryClient?: QueryClient,
-): DefinedUseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-};
-export function useCreateNews<
-  TData = Awaited<ReturnType<typeof createNews>>,
-  TError = CreateNews400 | CreateNews401 | CreateNews403 | CreateNews409,
->(
-  createNewsBody: CreateNewsBody,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof createNews>>, TError, TData>
-    > &
-      Pick<
-        UndefinedInitialDataOptions<
-          Awaited<ReturnType<typeof createNews>>,
-          TError,
-          Awaited<ReturnType<typeof createNews>>
-        >,
-        "initialData"
-      >;
-    request?: SecondParameter<typeof coreverseFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-};
-export function useCreateNews<
-  TData = Awaited<ReturnType<typeof createNews>>,
-  TError = CreateNews400 | CreateNews401 | CreateNews403 | CreateNews409,
->(
-  createNewsBody: CreateNewsBody,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof createNews>>, TError, TData>
-    >;
-    request?: SecondParameter<typeof coreverseFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-};
 /**
  * @summary Create a news item as a draft (moderator/admin only)
  */
-
-export function useCreateNews<
-  TData = Awaited<ReturnType<typeof createNews>>,
+export const useCreateNews = <
   TError = CreateNews400 | CreateNews401 | CreateNews403 | CreateNews409,
+  TContext = unknown,
 >(
-  createNewsBody: CreateNewsBody,
   options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof createNews>>, TError, TData>
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof createNews>>,
+      TError,
+      CreateNewsMutationVariables,
+      TContext
     >;
     request?: SecondParameter<typeof coreverseFetch>;
   },
   queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-} {
-  const queryOptions = getCreateNewsQueryOptions(createNewsBody, options);
-
-  const query = useQuery(queryOptions, queryClient) as UseQueryResult<
-    TData,
-    TError
-  > & { queryKey: DataTag<QueryKey, TData, TError> };
-
-  return withQueryKey(query, queryOptions.queryKey);
-}
-
+): UseMutationResult<
+  Awaited<ReturnType<typeof createNews>>,
+  TError,
+  CreateNewsMutationVariables,
+  TContext
+> => {
+  return useMutation(getCreateNewsMutationOptions(options), queryClient);
+};
 export type getNewsResponse200 = {
   data: GetNews200;
   status: 200;
@@ -663,151 +611,82 @@ export const updateNews = async (
   });
 };
 
-export const getUpdateNewsQueryKey = (
-  newsId: string,
-  updateNewsBody?: UpdateNewsBody,
-) => {
-  return ["PATCH", `/news/${newsId}`, updateNewsBody] as const;
-};
+export const getUpdateNewsMutationKey = () => ["updateNews"] as const;
 
-export const getUpdateNewsQueryOptions = <
-  TData = Awaited<ReturnType<typeof updateNews>>,
+export const getUpdateNewsMutationOptions = <
   TError = UpdateNews400 | UpdateNews403 | UpdateNews404,
->(
-  newsId: string,
-  updateNewsBody: UpdateNewsBody,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof updateNews>>, TError, TData>
-    >;
-    request?: SecondParameter<typeof coreverseFetch>;
-  },
-) => {
-  const { query: queryOptions, request: requestOptions } = options ?? {};
-
-  const queryKey =
-    queryOptions?.queryKey ?? getUpdateNewsQueryKey(newsId, updateNewsBody);
-
-  const queryFn: QueryFunction<Awaited<ReturnType<typeof updateNews>>> = ({
-    signal,
-  }) => updateNews(newsId, updateNewsBody, { signal, ...requestOptions });
-
-  return {
-    queryKey,
-    queryFn,
-    enabled: newsId !== null && newsId !== undefined,
-    ...queryOptions,
-  } as UseQueryOptions<
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
     Awaited<ReturnType<typeof updateNews>>,
     TError,
-    TData
-  > & { queryKey: DataTag<QueryKey, TData, TError> };
+    UpdateNewsMutationVariables,
+    TContext
+  >;
+  request?: SecondParameter<typeof coreverseFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof updateNews>>,
+  TError,
+  UpdateNewsMutationVariables,
+  TContext
+> => {
+  const mutationKey = getUpdateNewsMutationKey();
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof updateNews>>,
+    UpdateNewsMutationVariables
+  > = (props) => {
+    const { newsId, data } = props ?? {};
+
+    return updateNews(newsId, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
 };
 
-export type UpdateNewsQueryResult = NonNullable<
+export type UpdateNewsMutationResult = NonNullable<
   Awaited<ReturnType<typeof updateNews>>
 >;
-export type UpdateNewsQueryError =
+export type UpdateNewsMutationBody = UpdateNewsBody;
+export type UpdateNewsMutationError =
   UpdateNews400 | UpdateNews403 | UpdateNews404;
+export type UpdateNewsMutationVariables = {
+  newsId: string;
+  data: UpdateNewsBody;
+};
 
-export function useUpdateNews<
-  TData = Awaited<ReturnType<typeof updateNews>>,
-  TError = UpdateNews400 | UpdateNews403 | UpdateNews404,
->(
-  newsId: string,
-  updateNewsBody: UpdateNewsBody,
-  options: {
-    query: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof updateNews>>, TError, TData>
-    > &
-      Pick<
-        DefinedInitialDataOptions<
-          Awaited<ReturnType<typeof updateNews>>,
-          TError,
-          Awaited<ReturnType<typeof updateNews>>
-        >,
-        "initialData"
-      >;
-    request?: SecondParameter<typeof coreverseFetch>;
-  },
-  queryClient?: QueryClient,
-): DefinedUseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-};
-export function useUpdateNews<
-  TData = Awaited<ReturnType<typeof updateNews>>,
-  TError = UpdateNews400 | UpdateNews403 | UpdateNews404,
->(
-  newsId: string,
-  updateNewsBody: UpdateNewsBody,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof updateNews>>, TError, TData>
-    > &
-      Pick<
-        UndefinedInitialDataOptions<
-          Awaited<ReturnType<typeof updateNews>>,
-          TError,
-          Awaited<ReturnType<typeof updateNews>>
-        >,
-        "initialData"
-      >;
-    request?: SecondParameter<typeof coreverseFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-};
-export function useUpdateNews<
-  TData = Awaited<ReturnType<typeof updateNews>>,
-  TError = UpdateNews400 | UpdateNews403 | UpdateNews404,
->(
-  newsId: string,
-  updateNewsBody: UpdateNewsBody,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof updateNews>>, TError, TData>
-    >;
-    request?: SecondParameter<typeof coreverseFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-};
 /**
  * @summary Update a news item, e.g. to publish it (moderator/admin only)
  */
-
-export function useUpdateNews<
-  TData = Awaited<ReturnType<typeof updateNews>>,
+export const useUpdateNews = <
   TError = UpdateNews400 | UpdateNews403 | UpdateNews404,
+  TContext = unknown,
 >(
-  newsId: string,
-  updateNewsBody: UpdateNewsBody,
   options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof updateNews>>, TError, TData>
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof updateNews>>,
+      TError,
+      UpdateNewsMutationVariables,
+      TContext
     >;
     request?: SecondParameter<typeof coreverseFetch>;
   },
   queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-} {
-  const queryOptions = getUpdateNewsQueryOptions(
-    newsId,
-    updateNewsBody,
-    options,
-  );
-
-  const query = useQuery(queryOptions, queryClient) as UseQueryResult<
-    TData,
-    TError
-  > & { queryKey: DataTag<QueryKey, TData, TError> };
-
-  return withQueryKey(query, queryOptions.queryKey);
-}
-
+): UseMutationResult<
+  Awaited<ReturnType<typeof updateNews>>,
+  TError,
+  UpdateNewsMutationVariables,
+  TContext
+> => {
+  return useMutation(getUpdateNewsMutationOptions(options), queryClient);
+};
 export type deleteNewsResponse204 = {
   data: void;
   status: 204;
@@ -852,133 +731,75 @@ export const deleteNews = async (
   });
 };
 
-export const getDeleteNewsQueryKey = (newsId: string) => {
-  return ["DELETE", `/news/${newsId}`] as const;
-};
+export const getDeleteNewsMutationKey = () => ["deleteNews"] as const;
 
-export const getDeleteNewsQueryOptions = <
-  TData = Awaited<ReturnType<typeof deleteNews>>,
+export const getDeleteNewsMutationOptions = <
   TError = DeleteNews400 | DeleteNews404,
->(
-  newsId: string,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof deleteNews>>, TError, TData>
-    >;
-    request?: SecondParameter<typeof coreverseFetch>;
-  },
-) => {
-  const { query: queryOptions, request: requestOptions } = options ?? {};
-
-  const queryKey = queryOptions?.queryKey ?? getDeleteNewsQueryKey(newsId);
-
-  const queryFn: QueryFunction<Awaited<ReturnType<typeof deleteNews>>> = ({
-    signal,
-  }) => deleteNews(newsId, { signal, ...requestOptions });
-
-  return {
-    queryKey,
-    queryFn,
-    enabled: newsId !== null && newsId !== undefined,
-    ...queryOptions,
-  } as UseQueryOptions<
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
     Awaited<ReturnType<typeof deleteNews>>,
     TError,
-    TData
-  > & { queryKey: DataTag<QueryKey, TData, TError> };
+    DeleteNewsMutationVariables,
+    TContext
+  >;
+  request?: SecondParameter<typeof coreverseFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof deleteNews>>,
+  TError,
+  DeleteNewsMutationVariables,
+  TContext
+> => {
+  const mutationKey = getDeleteNewsMutationKey();
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof deleteNews>>,
+    DeleteNewsMutationVariables
+  > = (props) => {
+    const { newsId } = props ?? {};
+
+    return deleteNews(newsId, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
 };
 
-export type DeleteNewsQueryResult = NonNullable<
+export type DeleteNewsMutationResult = NonNullable<
   Awaited<ReturnType<typeof deleteNews>>
 >;
-export type DeleteNewsQueryError = DeleteNews400 | DeleteNews404;
 
-export function useDeleteNews<
-  TData = Awaited<ReturnType<typeof deleteNews>>,
-  TError = DeleteNews400 | DeleteNews404,
->(
-  newsId: string,
-  options: {
-    query: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof deleteNews>>, TError, TData>
-    > &
-      Pick<
-        DefinedInitialDataOptions<
-          Awaited<ReturnType<typeof deleteNews>>,
-          TError,
-          Awaited<ReturnType<typeof deleteNews>>
-        >,
-        "initialData"
-      >;
-    request?: SecondParameter<typeof coreverseFetch>;
-  },
-  queryClient?: QueryClient,
-): DefinedUseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-};
-export function useDeleteNews<
-  TData = Awaited<ReturnType<typeof deleteNews>>,
-  TError = DeleteNews400 | DeleteNews404,
->(
-  newsId: string,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof deleteNews>>, TError, TData>
-    > &
-      Pick<
-        UndefinedInitialDataOptions<
-          Awaited<ReturnType<typeof deleteNews>>,
-          TError,
-          Awaited<ReturnType<typeof deleteNews>>
-        >,
-        "initialData"
-      >;
-    request?: SecondParameter<typeof coreverseFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-};
-export function useDeleteNews<
-  TData = Awaited<ReturnType<typeof deleteNews>>,
-  TError = DeleteNews400 | DeleteNews404,
->(
-  newsId: string,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof deleteNews>>, TError, TData>
-    >;
-    request?: SecondParameter<typeof coreverseFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-};
+export type DeleteNewsMutationError = DeleteNews400 | DeleteNews404;
+export type DeleteNewsMutationVariables = { newsId: string };
+
 /**
  * @summary Delete a news item (moderator/admin only)
  */
-
-export function useDeleteNews<
-  TData = Awaited<ReturnType<typeof deleteNews>>,
+export const useDeleteNews = <
   TError = DeleteNews400 | DeleteNews404,
+  TContext = unknown,
 >(
-  newsId: string,
   options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof deleteNews>>, TError, TData>
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof deleteNews>>,
+      TError,
+      DeleteNewsMutationVariables,
+      TContext
     >;
     request?: SecondParameter<typeof coreverseFetch>;
   },
   queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-} {
-  const queryOptions = getDeleteNewsQueryOptions(newsId, options);
-
-  const query = useQuery(queryOptions, queryClient) as UseQueryResult<
-    TData,
-    TError
-  > & { queryKey: DataTag<QueryKey, TData, TError> };
-
-  return withQueryKey(query, queryOptions.queryKey);
-}
+): UseMutationResult<
+  Awaited<ReturnType<typeof deleteNews>>,
+  TError,
+  DeleteNewsMutationVariables,
+  TContext
+> => {
+  return useMutation(getDeleteNewsMutationOptions(options), queryClient);
+};

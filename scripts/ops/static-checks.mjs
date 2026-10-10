@@ -20,6 +20,9 @@
 //   8. the platform JWT gate is off for exactly the functions that are meant
 //      to serve signed-out callers, and those functions still authenticate
 //      the routes that need a user themselves (withTokenCheck, getUser())
+//   9. the emailed-link contract with the Website: the send-email hook and
+//      the local email templates build the same /api/auth/confirm URL, and
+//      the hook checks the redirect origin against WEBSITE_ALLOWED_ORIGINS
 
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { dirname, join, relative, resolve } from 'node:path';
@@ -186,6 +189,35 @@ for (const fn of PUBLIC_CONTENT) {
 // The one anonymous write must stay protected by its shared secret.
 if (!/X-Reindex-Token/.test(read('supabase/functions/docs/index.ts'))) {
   fail('jwt-gate', 'supabase/functions/docs/index.ts no longer checks X-Reindex-Token; POST /docs/reindex would be unauthenticated');
+}
+
+// 9 -- emailed-link contract with the Website ------------------------------
+// The hook (hosted) and the templates under supabase/templates (local stack)
+// must send users to the same Website route with the same query parameters,
+// otherwise a local end-to-end run would pass while production links break.
+const renderSource = read('supabase/functions/send-email/render.ts');
+const confirmPath = renderSource.match(/export const WEBSITE_CONFIRM_PATH = '([^']+)'/)?.[1];
+if (!confirmPath) {
+  fail('email-links', "supabase/functions/send-email/render.ts no longer exports WEBSITE_CONFIRM_PATH = '...'");
+} else {
+  const configToml = read('supabase/config.toml');
+  for (const [template, type] of [['confirmation', 'signup'], ['recovery', 'recovery']]) {
+    const file = `supabase/templates/${template}.html`;
+    if (!existsSync(join(root, file))) {
+      fail('email-links', `${file} is missing (local stack template for the ${type} email)`);
+      continue;
+    }
+    const expected = `${confirmPath}?token_hash={{ .TokenHash }}&type=${type}&next=/`;
+    if (!read(file).includes(expected)) {
+      fail('email-links', `${file} must link to "${expected}..." to match send-email/render.ts`);
+    }
+    if (!configToml.includes(`content_path = "./${file}"`)) {
+      fail('email-links', `supabase/config.toml has no [auth.email.template.${template}] pointing at ./${file}`);
+    }
+  }
+}
+if (!/actionLinkFor\([^)]*allowedOrigins\(/.test(read('supabase/functions/send-email/index.ts'))) {
+  fail('email-links', 'supabase/functions/send-email/index.ts must pass allowedOrigins() to actionLinkFor so a token is only ever sent to an allowed Website origin');
 }
 
 if (warnings.length) {

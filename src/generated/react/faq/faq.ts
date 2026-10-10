@@ -3,19 +3,22 @@
  * Do not edit manually.
  * Coreverse DB API
  * Centralized data-access API for the Coreverse ecosystem. Coreverse DB defines and serves all data operations; Coreverse Launcher and Coreverse Website consume this API and never access Postgres/Supabase directly.
- * Access model: the Supabase platform JWT gate is ON for every Edge Function except `send-email`, `auth` and `profiles`, so a request without a valid Supabase Auth JWT is rejected with 401 before the function runs -- including the operations below that declare no `security` requirement (those only mean the function itself does not require a particular user). The only signed-out operations are `POST /auth/password-reset` and `GET /profiles/username-availability`; every other `/profiles` route authenticates the caller inside the function.
+ * Access model: the Supabase platform JWT gate is OFF for `releases`, `news`, `events`, `faq`, `polls`, `discussions`, `docs`, `auth`, `profiles` and `send-email`, and ON for `teams`, `requests` and `projects`. Signed-out callers can read public content (a `GET` on any public-content route answers 200); every write needs a user session and answers 401 `unauthorized` from the function without one. `POST /auth/password-reset` and `GET /profiles/username-availability` also work signed out; every other `/profiles` route authenticates the caller inside the function.
  *
- * OpenAPI spec version: 0.5.2
+ * OpenAPI spec version: 0.5.4
  */
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import type {
   DataTag,
   DefinedInitialDataOptions,
   DefinedUseQueryResult,
+  MutationFunction,
   QueryClient,
   QueryFunction,
   QueryKey,
   UndefinedInitialDataOptions,
+  UseMutationOptions,
+  UseMutationResult,
   UseQueryOptions,
   UseQueryResult,
 } from "@tanstack/react-query";
@@ -305,136 +308,79 @@ export const createFaqItem = async (
   });
 };
 
-export const getCreateFaqItemQueryKey = (
-  createFaqItemBody?: CreateFaqItemBody,
-) => {
-  return ["POST", `/faq`, createFaqItemBody] as const;
-};
+export const getCreateFaqItemMutationKey = () => ["createFaqItem"] as const;
 
-export const getCreateFaqItemQueryOptions = <
-  TData = Awaited<ReturnType<typeof createFaqItem>>,
+export const getCreateFaqItemMutationOptions = <
   TError = CreateFaqItem400 | CreateFaqItem401 | CreateFaqItem403,
->(
-  createFaqItemBody: CreateFaqItemBody,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof createFaqItem>>, TError, TData>
-    >;
-    request?: SecondParameter<typeof coreverseFetch>;
-  },
-) => {
-  const { query: queryOptions, request: requestOptions } = options ?? {};
-
-  const queryKey =
-    queryOptions?.queryKey ?? getCreateFaqItemQueryKey(createFaqItemBody);
-
-  const queryFn: QueryFunction<Awaited<ReturnType<typeof createFaqItem>>> = ({
-    signal,
-  }) => createFaqItem(createFaqItemBody, { signal, ...requestOptions });
-
-  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
     Awaited<ReturnType<typeof createFaqItem>>,
     TError,
-    TData
-  > & { queryKey: DataTag<QueryKey, TData, TError> };
+    CreateFaqItemMutationVariables,
+    TContext
+  >;
+  request?: SecondParameter<typeof coreverseFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof createFaqItem>>,
+  TError,
+  CreateFaqItemMutationVariables,
+  TContext
+> => {
+  const mutationKey = getCreateFaqItemMutationKey();
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof createFaqItem>>,
+    CreateFaqItemMutationVariables
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return createFaqItem(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
 };
 
-export type CreateFaqItemQueryResult = NonNullable<
+export type CreateFaqItemMutationResult = NonNullable<
   Awaited<ReturnType<typeof createFaqItem>>
 >;
-export type CreateFaqItemQueryError =
+export type CreateFaqItemMutationBody = CreateFaqItemBody;
+export type CreateFaqItemMutationError =
   CreateFaqItem400 | CreateFaqItem401 | CreateFaqItem403;
+export type CreateFaqItemMutationVariables = { data: CreateFaqItemBody };
 
-export function useCreateFaqItem<
-  TData = Awaited<ReturnType<typeof createFaqItem>>,
-  TError = CreateFaqItem400 | CreateFaqItem401 | CreateFaqItem403,
->(
-  createFaqItemBody: CreateFaqItemBody,
-  options: {
-    query: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof createFaqItem>>, TError, TData>
-    > &
-      Pick<
-        DefinedInitialDataOptions<
-          Awaited<ReturnType<typeof createFaqItem>>,
-          TError,
-          Awaited<ReturnType<typeof createFaqItem>>
-        >,
-        "initialData"
-      >;
-    request?: SecondParameter<typeof coreverseFetch>;
-  },
-  queryClient?: QueryClient,
-): DefinedUseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-};
-export function useCreateFaqItem<
-  TData = Awaited<ReturnType<typeof createFaqItem>>,
-  TError = CreateFaqItem400 | CreateFaqItem401 | CreateFaqItem403,
->(
-  createFaqItemBody: CreateFaqItemBody,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof createFaqItem>>, TError, TData>
-    > &
-      Pick<
-        UndefinedInitialDataOptions<
-          Awaited<ReturnType<typeof createFaqItem>>,
-          TError,
-          Awaited<ReturnType<typeof createFaqItem>>
-        >,
-        "initialData"
-      >;
-    request?: SecondParameter<typeof coreverseFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-};
-export function useCreateFaqItem<
-  TData = Awaited<ReturnType<typeof createFaqItem>>,
-  TError = CreateFaqItem400 | CreateFaqItem401 | CreateFaqItem403,
->(
-  createFaqItemBody: CreateFaqItemBody,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof createFaqItem>>, TError, TData>
-    >;
-    request?: SecondParameter<typeof coreverseFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-};
 /**
  * @summary Create a FAQ item with its translations (moderator/admin only)
  */
-
-export function useCreateFaqItem<
-  TData = Awaited<ReturnType<typeof createFaqItem>>,
+export const useCreateFaqItem = <
   TError = CreateFaqItem400 | CreateFaqItem401 | CreateFaqItem403,
+  TContext = unknown,
 >(
-  createFaqItemBody: CreateFaqItemBody,
   options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof createFaqItem>>, TError, TData>
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof createFaqItem>>,
+      TError,
+      CreateFaqItemMutationVariables,
+      TContext
     >;
     request?: SecondParameter<typeof coreverseFetch>;
   },
   queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-} {
-  const queryOptions = getCreateFaqItemQueryOptions(createFaqItemBody, options);
-
-  const query = useQuery(queryOptions, queryClient) as UseQueryResult<
-    TData,
-    TError
-  > & { queryKey: DataTag<QueryKey, TData, TError> };
-
-  return withQueryKey(query, queryOptions.queryKey);
-}
-
+): UseMutationResult<
+  Awaited<ReturnType<typeof createFaqItem>>,
+  TError,
+  CreateFaqItemMutationVariables,
+  TContext
+> => {
+  return useMutation(getCreateFaqItemMutationOptions(options), queryClient);
+};
 export type getFaqItemResponse200 = {
   data: GetFaqItem200;
   status: 200;
@@ -667,152 +613,82 @@ export const updateFaqItem = async (
   });
 };
 
-export const getUpdateFaqItemQueryKey = (
-  faqId: string,
-  updateFaqItemBody?: UpdateFaqItemBody,
-) => {
-  return ["PATCH", `/faq/${faqId}`, updateFaqItemBody] as const;
-};
+export const getUpdateFaqItemMutationKey = () => ["updateFaqItem"] as const;
 
-export const getUpdateFaqItemQueryOptions = <
-  TData = Awaited<ReturnType<typeof updateFaqItem>>,
+export const getUpdateFaqItemMutationOptions = <
   TError = UpdateFaqItem400 | UpdateFaqItem403 | UpdateFaqItem404,
->(
-  faqId: string,
-  updateFaqItemBody: UpdateFaqItemBody,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof updateFaqItem>>, TError, TData>
-    >;
-    request?: SecondParameter<typeof coreverseFetch>;
-  },
-) => {
-  const { query: queryOptions, request: requestOptions } = options ?? {};
-
-  const queryKey =
-    queryOptions?.queryKey ??
-    getUpdateFaqItemQueryKey(faqId, updateFaqItemBody);
-
-  const queryFn: QueryFunction<Awaited<ReturnType<typeof updateFaqItem>>> = ({
-    signal,
-  }) => updateFaqItem(faqId, updateFaqItemBody, { signal, ...requestOptions });
-
-  return {
-    queryKey,
-    queryFn,
-    enabled: faqId !== null && faqId !== undefined,
-    ...queryOptions,
-  } as UseQueryOptions<
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
     Awaited<ReturnType<typeof updateFaqItem>>,
     TError,
-    TData
-  > & { queryKey: DataTag<QueryKey, TData, TError> };
+    UpdateFaqItemMutationVariables,
+    TContext
+  >;
+  request?: SecondParameter<typeof coreverseFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof updateFaqItem>>,
+  TError,
+  UpdateFaqItemMutationVariables,
+  TContext
+> => {
+  const mutationKey = getUpdateFaqItemMutationKey();
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof updateFaqItem>>,
+    UpdateFaqItemMutationVariables
+  > = (props) => {
+    const { faqId, data } = props ?? {};
+
+    return updateFaqItem(faqId, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
 };
 
-export type UpdateFaqItemQueryResult = NonNullable<
+export type UpdateFaqItemMutationResult = NonNullable<
   Awaited<ReturnType<typeof updateFaqItem>>
 >;
-export type UpdateFaqItemQueryError =
+export type UpdateFaqItemMutationBody = UpdateFaqItemBody;
+export type UpdateFaqItemMutationError =
   UpdateFaqItem400 | UpdateFaqItem403 | UpdateFaqItem404;
+export type UpdateFaqItemMutationVariables = {
+  faqId: string;
+  data: UpdateFaqItemBody;
+};
 
-export function useUpdateFaqItem<
-  TData = Awaited<ReturnType<typeof updateFaqItem>>,
-  TError = UpdateFaqItem400 | UpdateFaqItem403 | UpdateFaqItem404,
->(
-  faqId: string,
-  updateFaqItemBody: UpdateFaqItemBody,
-  options: {
-    query: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof updateFaqItem>>, TError, TData>
-    > &
-      Pick<
-        DefinedInitialDataOptions<
-          Awaited<ReturnType<typeof updateFaqItem>>,
-          TError,
-          Awaited<ReturnType<typeof updateFaqItem>>
-        >,
-        "initialData"
-      >;
-    request?: SecondParameter<typeof coreverseFetch>;
-  },
-  queryClient?: QueryClient,
-): DefinedUseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-};
-export function useUpdateFaqItem<
-  TData = Awaited<ReturnType<typeof updateFaqItem>>,
-  TError = UpdateFaqItem400 | UpdateFaqItem403 | UpdateFaqItem404,
->(
-  faqId: string,
-  updateFaqItemBody: UpdateFaqItemBody,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof updateFaqItem>>, TError, TData>
-    > &
-      Pick<
-        UndefinedInitialDataOptions<
-          Awaited<ReturnType<typeof updateFaqItem>>,
-          TError,
-          Awaited<ReturnType<typeof updateFaqItem>>
-        >,
-        "initialData"
-      >;
-    request?: SecondParameter<typeof coreverseFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-};
-export function useUpdateFaqItem<
-  TData = Awaited<ReturnType<typeof updateFaqItem>>,
-  TError = UpdateFaqItem400 | UpdateFaqItem403 | UpdateFaqItem404,
->(
-  faqId: string,
-  updateFaqItemBody: UpdateFaqItemBody,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof updateFaqItem>>, TError, TData>
-    >;
-    request?: SecondParameter<typeof coreverseFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-};
 /**
  * @summary Update a FAQ item's category/display_order (moderator/admin only)
  */
-
-export function useUpdateFaqItem<
-  TData = Awaited<ReturnType<typeof updateFaqItem>>,
+export const useUpdateFaqItem = <
   TError = UpdateFaqItem400 | UpdateFaqItem403 | UpdateFaqItem404,
+  TContext = unknown,
 >(
-  faqId: string,
-  updateFaqItemBody: UpdateFaqItemBody,
   options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof updateFaqItem>>, TError, TData>
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof updateFaqItem>>,
+      TError,
+      UpdateFaqItemMutationVariables,
+      TContext
     >;
     request?: SecondParameter<typeof coreverseFetch>;
   },
   queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-} {
-  const queryOptions = getUpdateFaqItemQueryOptions(
-    faqId,
-    updateFaqItemBody,
-    options,
-  );
-
-  const query = useQuery(queryOptions, queryClient) as UseQueryResult<
-    TData,
-    TError
-  > & { queryKey: DataTag<QueryKey, TData, TError> };
-
-  return withQueryKey(query, queryOptions.queryKey);
-}
-
+): UseMutationResult<
+  Awaited<ReturnType<typeof updateFaqItem>>,
+  TError,
+  UpdateFaqItemMutationVariables,
+  TContext
+> => {
+  return useMutation(getUpdateFaqItemMutationOptions(options), queryClient);
+};
 export type deleteFaqItemResponse204 = {
   data: void;
   status: 204;
@@ -857,137 +733,78 @@ export const deleteFaqItem = async (
   });
 };
 
-export const getDeleteFaqItemQueryKey = (faqId: string) => {
-  return ["DELETE", `/faq/${faqId}`] as const;
-};
+export const getDeleteFaqItemMutationKey = () => ["deleteFaqItem"] as const;
 
-export const getDeleteFaqItemQueryOptions = <
-  TData = Awaited<ReturnType<typeof deleteFaqItem>>,
+export const getDeleteFaqItemMutationOptions = <
   TError = DeleteFaqItem400 | DeleteFaqItem404,
->(
-  faqId: string,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof deleteFaqItem>>, TError, TData>
-    >;
-    request?: SecondParameter<typeof coreverseFetch>;
-  },
-) => {
-  const { query: queryOptions, request: requestOptions } = options ?? {};
-
-  const queryKey = queryOptions?.queryKey ?? getDeleteFaqItemQueryKey(faqId);
-
-  const queryFn: QueryFunction<Awaited<ReturnType<typeof deleteFaqItem>>> = ({
-    signal,
-  }) => deleteFaqItem(faqId, { signal, ...requestOptions });
-
-  return {
-    queryKey,
-    queryFn,
-    enabled: faqId !== null && faqId !== undefined,
-    ...queryOptions,
-  } as UseQueryOptions<
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
     Awaited<ReturnType<typeof deleteFaqItem>>,
     TError,
-    TData
-  > & { queryKey: DataTag<QueryKey, TData, TError> };
+    DeleteFaqItemMutationVariables,
+    TContext
+  >;
+  request?: SecondParameter<typeof coreverseFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof deleteFaqItem>>,
+  TError,
+  DeleteFaqItemMutationVariables,
+  TContext
+> => {
+  const mutationKey = getDeleteFaqItemMutationKey();
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof deleteFaqItem>>,
+    DeleteFaqItemMutationVariables
+  > = (props) => {
+    const { faqId } = props ?? {};
+
+    return deleteFaqItem(faqId, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
 };
 
-export type DeleteFaqItemQueryResult = NonNullable<
+export type DeleteFaqItemMutationResult = NonNullable<
   Awaited<ReturnType<typeof deleteFaqItem>>
 >;
-export type DeleteFaqItemQueryError = DeleteFaqItem400 | DeleteFaqItem404;
 
-export function useDeleteFaqItem<
-  TData = Awaited<ReturnType<typeof deleteFaqItem>>,
-  TError = DeleteFaqItem400 | DeleteFaqItem404,
->(
-  faqId: string,
-  options: {
-    query: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof deleteFaqItem>>, TError, TData>
-    > &
-      Pick<
-        DefinedInitialDataOptions<
-          Awaited<ReturnType<typeof deleteFaqItem>>,
-          TError,
-          Awaited<ReturnType<typeof deleteFaqItem>>
-        >,
-        "initialData"
-      >;
-    request?: SecondParameter<typeof coreverseFetch>;
-  },
-  queryClient?: QueryClient,
-): DefinedUseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-};
-export function useDeleteFaqItem<
-  TData = Awaited<ReturnType<typeof deleteFaqItem>>,
-  TError = DeleteFaqItem400 | DeleteFaqItem404,
->(
-  faqId: string,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof deleteFaqItem>>, TError, TData>
-    > &
-      Pick<
-        UndefinedInitialDataOptions<
-          Awaited<ReturnType<typeof deleteFaqItem>>,
-          TError,
-          Awaited<ReturnType<typeof deleteFaqItem>>
-        >,
-        "initialData"
-      >;
-    request?: SecondParameter<typeof coreverseFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-};
-export function useDeleteFaqItem<
-  TData = Awaited<ReturnType<typeof deleteFaqItem>>,
-  TError = DeleteFaqItem400 | DeleteFaqItem404,
->(
-  faqId: string,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof deleteFaqItem>>, TError, TData>
-    >;
-    request?: SecondParameter<typeof coreverseFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-};
+export type DeleteFaqItemMutationError = DeleteFaqItem400 | DeleteFaqItem404;
+export type DeleteFaqItemMutationVariables = { faqId: string };
+
 /**
  * @summary Delete a FAQ item, including every locale's translation (moderator/admin only)
  */
-
-export function useDeleteFaqItem<
-  TData = Awaited<ReturnType<typeof deleteFaqItem>>,
+export const useDeleteFaqItem = <
   TError = DeleteFaqItem400 | DeleteFaqItem404,
+  TContext = unknown,
 >(
-  faqId: string,
   options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof deleteFaqItem>>, TError, TData>
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof deleteFaqItem>>,
+      TError,
+      DeleteFaqItemMutationVariables,
+      TContext
     >;
     request?: SecondParameter<typeof coreverseFetch>;
   },
   queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-} {
-  const queryOptions = getDeleteFaqItemQueryOptions(faqId, options);
-
-  const query = useQuery(queryOptions, queryClient) as UseQueryResult<
-    TData,
-    TError
-  > & { queryKey: DataTag<QueryKey, TData, TError> };
-
-  return withQueryKey(query, queryOptions.queryKey);
-}
-
+): UseMutationResult<
+  Awaited<ReturnType<typeof deleteFaqItem>>,
+  TError,
+  DeleteFaqItemMutationVariables,
+  TContext
+> => {
+  return useMutation(getDeleteFaqItemMutationOptions(options), queryClient);
+};
 export type upsertFaqTranslationResponse200 = {
   data: UpsertFaqTranslation200;
   status: 200;
@@ -1058,196 +875,89 @@ export const upsertFaqTranslation = async (
   );
 };
 
-export const getUpsertFaqTranslationQueryKey = (
-  faqId: string,
-  locale: string,
-  upsertFaqTranslationBody?: UpsertFaqTranslationBody,
-) => {
-  return [
-    "PUT",
-    `/faq/${faqId}/translations/${locale}`,
-    upsertFaqTranslationBody,
-  ] as const;
-};
+export const getUpsertFaqTranslationMutationKey = () =>
+  ["upsertFaqTranslation"] as const;
 
-export const getUpsertFaqTranslationQueryOptions = <
-  TData = Awaited<ReturnType<typeof upsertFaqTranslation>>,
+export const getUpsertFaqTranslationMutationOptions = <
   TError =
     UpsertFaqTranslation400 | UpsertFaqTranslation403 | UpsertFaqTranslation404,
->(
-  faqId: string,
-  locale: string,
-  upsertFaqTranslationBody: UpsertFaqTranslationBody,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<
-        Awaited<ReturnType<typeof upsertFaqTranslation>>,
-        TError,
-        TData
-      >
-    >;
-    request?: SecondParameter<typeof coreverseFetch>;
-  },
-) => {
-  const { query: queryOptions, request: requestOptions } = options ?? {};
-
-  const queryKey =
-    queryOptions?.queryKey ??
-    getUpsertFaqTranslationQueryKey(faqId, locale, upsertFaqTranslationBody);
-
-  const queryFn: QueryFunction<
-    Awaited<ReturnType<typeof upsertFaqTranslation>>
-  > = ({ signal }) =>
-    upsertFaqTranslation(faqId, locale, upsertFaqTranslationBody, {
-      signal,
-      ...requestOptions,
-    });
-
-  return {
-    queryKey,
-    queryFn,
-    enabled:
-      faqId !== null &&
-      faqId !== undefined &&
-      locale !== null &&
-      locale !== undefined,
-    ...queryOptions,
-  } as UseQueryOptions<
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
     Awaited<ReturnType<typeof upsertFaqTranslation>>,
     TError,
-    TData
-  > & { queryKey: DataTag<QueryKey, TData, TError> };
+    UpsertFaqTranslationMutationVariables,
+    TContext
+  >;
+  request?: SecondParameter<typeof coreverseFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof upsertFaqTranslation>>,
+  TError,
+  UpsertFaqTranslationMutationVariables,
+  TContext
+> => {
+  const mutationKey = getUpsertFaqTranslationMutationKey();
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof upsertFaqTranslation>>,
+    UpsertFaqTranslationMutationVariables
+  > = (props) => {
+    const { faqId, locale, data } = props ?? {};
+
+    return upsertFaqTranslation(faqId, locale, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
 };
 
-export type UpsertFaqTranslationQueryResult = NonNullable<
+export type UpsertFaqTranslationMutationResult = NonNullable<
   Awaited<ReturnType<typeof upsertFaqTranslation>>
 >;
-export type UpsertFaqTranslationQueryError =
+export type UpsertFaqTranslationMutationBody = UpsertFaqTranslationBody;
+export type UpsertFaqTranslationMutationError =
   UpsertFaqTranslation400 | UpsertFaqTranslation403 | UpsertFaqTranslation404;
+export type UpsertFaqTranslationMutationVariables = {
+  faqId: string;
+  locale: string;
+  data: UpsertFaqTranslationBody;
+};
 
-export function useUpsertFaqTranslation<
-  TData = Awaited<ReturnType<typeof upsertFaqTranslation>>,
-  TError =
-    UpsertFaqTranslation400 | UpsertFaqTranslation403 | UpsertFaqTranslation404,
->(
-  faqId: string,
-  locale: string,
-  upsertFaqTranslationBody: UpsertFaqTranslationBody,
-  options: {
-    query: Partial<
-      UseQueryOptions<
-        Awaited<ReturnType<typeof upsertFaqTranslation>>,
-        TError,
-        TData
-      >
-    > &
-      Pick<
-        DefinedInitialDataOptions<
-          Awaited<ReturnType<typeof upsertFaqTranslation>>,
-          TError,
-          Awaited<ReturnType<typeof upsertFaqTranslation>>
-        >,
-        "initialData"
-      >;
-    request?: SecondParameter<typeof coreverseFetch>;
-  },
-  queryClient?: QueryClient,
-): DefinedUseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-};
-export function useUpsertFaqTranslation<
-  TData = Awaited<ReturnType<typeof upsertFaqTranslation>>,
-  TError =
-    UpsertFaqTranslation400 | UpsertFaqTranslation403 | UpsertFaqTranslation404,
->(
-  faqId: string,
-  locale: string,
-  upsertFaqTranslationBody: UpsertFaqTranslationBody,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<
-        Awaited<ReturnType<typeof upsertFaqTranslation>>,
-        TError,
-        TData
-      >
-    > &
-      Pick<
-        UndefinedInitialDataOptions<
-          Awaited<ReturnType<typeof upsertFaqTranslation>>,
-          TError,
-          Awaited<ReturnType<typeof upsertFaqTranslation>>
-        >,
-        "initialData"
-      >;
-    request?: SecondParameter<typeof coreverseFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-};
-export function useUpsertFaqTranslation<
-  TData = Awaited<ReturnType<typeof upsertFaqTranslation>>,
-  TError =
-    UpsertFaqTranslation400 | UpsertFaqTranslation403 | UpsertFaqTranslation404,
->(
-  faqId: string,
-  locale: string,
-  upsertFaqTranslationBody: UpsertFaqTranslationBody,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<
-        Awaited<ReturnType<typeof upsertFaqTranslation>>,
-        TError,
-        TData
-      >
-    >;
-    request?: SecondParameter<typeof coreverseFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-};
 /**
  * @summary Create or replace one locale's translation for a FAQ item (moderator/admin only)
  */
-
-export function useUpsertFaqTranslation<
-  TData = Awaited<ReturnType<typeof upsertFaqTranslation>>,
+export const useUpsertFaqTranslation = <
   TError =
     UpsertFaqTranslation400 | UpsertFaqTranslation403 | UpsertFaqTranslation404,
+  TContext = unknown,
 >(
-  faqId: string,
-  locale: string,
-  upsertFaqTranslationBody: UpsertFaqTranslationBody,
   options?: {
-    query?: Partial<
-      UseQueryOptions<
-        Awaited<ReturnType<typeof upsertFaqTranslation>>,
-        TError,
-        TData
-      >
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof upsertFaqTranslation>>,
+      TError,
+      UpsertFaqTranslationMutationVariables,
+      TContext
     >;
     request?: SecondParameter<typeof coreverseFetch>;
   },
   queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-} {
-  const queryOptions = getUpsertFaqTranslationQueryOptions(
-    faqId,
-    locale,
-    upsertFaqTranslationBody,
-    options,
+): UseMutationResult<
+  Awaited<ReturnType<typeof upsertFaqTranslation>>,
+  TError,
+  UpsertFaqTranslationMutationVariables,
+  TContext
+> => {
+  return useMutation(
+    getUpsertFaqTranslationMutationOptions(options),
+    queryClient,
   );
-
-  const query = useQuery(queryOptions, queryClient) as UseQueryResult<
-    TData,
-    TError
-  > & { queryKey: DataTag<QueryKey, TData, TError> };
-
-  return withQueryKey(query, queryOptions.queryKey);
-}
-
+};
 export type deleteFaqTranslationResponse204 = {
   data: void;
   status: 204;
@@ -1298,172 +1008,83 @@ export const deleteFaqTranslation = async (
   );
 };
 
-export const getDeleteFaqTranslationQueryKey = (
-  faqId: string,
-  locale: string,
-) => {
-  return ["DELETE", `/faq/${faqId}/translations/${locale}`] as const;
-};
+export const getDeleteFaqTranslationMutationKey = () =>
+  ["deleteFaqTranslation"] as const;
 
-export const getDeleteFaqTranslationQueryOptions = <
-  TData = Awaited<ReturnType<typeof deleteFaqTranslation>>,
+export const getDeleteFaqTranslationMutationOptions = <
   TError = DeleteFaqTranslation400 | DeleteFaqTranslation404,
->(
-  faqId: string,
-  locale: string,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<
-        Awaited<ReturnType<typeof deleteFaqTranslation>>,
-        TError,
-        TData
-      >
-    >;
-    request?: SecondParameter<typeof coreverseFetch>;
-  },
-) => {
-  const { query: queryOptions, request: requestOptions } = options ?? {};
-
-  const queryKey =
-    queryOptions?.queryKey ?? getDeleteFaqTranslationQueryKey(faqId, locale);
-
-  const queryFn: QueryFunction<
-    Awaited<ReturnType<typeof deleteFaqTranslation>>
-  > = ({ signal }) =>
-    deleteFaqTranslation(faqId, locale, { signal, ...requestOptions });
-
-  return {
-    queryKey,
-    queryFn,
-    enabled:
-      faqId !== null &&
-      faqId !== undefined &&
-      locale !== null &&
-      locale !== undefined,
-    ...queryOptions,
-  } as UseQueryOptions<
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
     Awaited<ReturnType<typeof deleteFaqTranslation>>,
     TError,
-    TData
-  > & { queryKey: DataTag<QueryKey, TData, TError> };
+    DeleteFaqTranslationMutationVariables,
+    TContext
+  >;
+  request?: SecondParameter<typeof coreverseFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof deleteFaqTranslation>>,
+  TError,
+  DeleteFaqTranslationMutationVariables,
+  TContext
+> => {
+  const mutationKey = getDeleteFaqTranslationMutationKey();
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof deleteFaqTranslation>>,
+    DeleteFaqTranslationMutationVariables
+  > = (props) => {
+    const { faqId, locale } = props ?? {};
+
+    return deleteFaqTranslation(faqId, locale, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
 };
 
-export type DeleteFaqTranslationQueryResult = NonNullable<
+export type DeleteFaqTranslationMutationResult = NonNullable<
   Awaited<ReturnType<typeof deleteFaqTranslation>>
 >;
-export type DeleteFaqTranslationQueryError =
-  DeleteFaqTranslation400 | DeleteFaqTranslation404;
 
-export function useDeleteFaqTranslation<
-  TData = Awaited<ReturnType<typeof deleteFaqTranslation>>,
-  TError = DeleteFaqTranslation400 | DeleteFaqTranslation404,
->(
-  faqId: string,
-  locale: string,
-  options: {
-    query: Partial<
-      UseQueryOptions<
-        Awaited<ReturnType<typeof deleteFaqTranslation>>,
-        TError,
-        TData
-      >
-    > &
-      Pick<
-        DefinedInitialDataOptions<
-          Awaited<ReturnType<typeof deleteFaqTranslation>>,
-          TError,
-          Awaited<ReturnType<typeof deleteFaqTranslation>>
-        >,
-        "initialData"
-      >;
-    request?: SecondParameter<typeof coreverseFetch>;
-  },
-  queryClient?: QueryClient,
-): DefinedUseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
+export type DeleteFaqTranslationMutationError =
+  DeleteFaqTranslation400 | DeleteFaqTranslation404;
+export type DeleteFaqTranslationMutationVariables = {
+  faqId: string;
+  locale: string;
 };
-export function useDeleteFaqTranslation<
-  TData = Awaited<ReturnType<typeof deleteFaqTranslation>>,
-  TError = DeleteFaqTranslation400 | DeleteFaqTranslation404,
->(
-  faqId: string,
-  locale: string,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<
-        Awaited<ReturnType<typeof deleteFaqTranslation>>,
-        TError,
-        TData
-      >
-    > &
-      Pick<
-        UndefinedInitialDataOptions<
-          Awaited<ReturnType<typeof deleteFaqTranslation>>,
-          TError,
-          Awaited<ReturnType<typeof deleteFaqTranslation>>
-        >,
-        "initialData"
-      >;
-    request?: SecondParameter<typeof coreverseFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-};
-export function useDeleteFaqTranslation<
-  TData = Awaited<ReturnType<typeof deleteFaqTranslation>>,
-  TError = DeleteFaqTranslation400 | DeleteFaqTranslation404,
->(
-  faqId: string,
-  locale: string,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<
-        Awaited<ReturnType<typeof deleteFaqTranslation>>,
-        TError,
-        TData
-      >
-    >;
-    request?: SecondParameter<typeof coreverseFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-};
+
 /**
  * @summary Remove one locale's translation from a FAQ item (moderator/admin only)
  */
-
-export function useDeleteFaqTranslation<
-  TData = Awaited<ReturnType<typeof deleteFaqTranslation>>,
+export const useDeleteFaqTranslation = <
   TError = DeleteFaqTranslation400 | DeleteFaqTranslation404,
+  TContext = unknown,
 >(
-  faqId: string,
-  locale: string,
   options?: {
-    query?: Partial<
-      UseQueryOptions<
-        Awaited<ReturnType<typeof deleteFaqTranslation>>,
-        TError,
-        TData
-      >
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof deleteFaqTranslation>>,
+      TError,
+      DeleteFaqTranslationMutationVariables,
+      TContext
     >;
     request?: SecondParameter<typeof coreverseFetch>;
   },
   queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-} {
-  const queryOptions = getDeleteFaqTranslationQueryOptions(
-    faqId,
-    locale,
-    options,
+): UseMutationResult<
+  Awaited<ReturnType<typeof deleteFaqTranslation>>,
+  TError,
+  DeleteFaqTranslationMutationVariables,
+  TContext
+> => {
+  return useMutation(
+    getDeleteFaqTranslationMutationOptions(options),
+    queryClient,
   );
-
-  const query = useQuery(queryOptions, queryClient) as UseQueryResult<
-    TData,
-    TError
-  > & { queryKey: DataTag<QueryKey, TData, TError> };
-
-  return withQueryKey(query, queryOptions.queryKey);
-}
+};

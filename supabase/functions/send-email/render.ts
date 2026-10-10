@@ -100,13 +100,64 @@ const RESET_EMAIL_COPY: Record<WebsiteLocale, { subject: string; body: string; c
   },
 };
 
-export function actionLinkFor(supabaseUrl: string, data: EmailData,): string {
+// Path of the Website route that completes an emailed action. The
+// Website's route reads `token_hash`, `type` and `next` from the query
+// string and calls supabase.auth.verifyOtp({ token_hash, type }), which
+// needs no PKCE code verifier, so the link also works when it is opened
+// on another device or browser than the one that started the flow.
+// supabase/templates/*.html (local stack) must build the same URL;
+// scripts/ops/static-checks.mjs fails if they drift apart.
+export const WEBSITE_CONFIRM_PATH = '/api/auth/confirm';
+
+// Action types whose link goes to the Website confirm route. 'email_change'
+// is left out on purpose (see ACTION_COPY below) and keeps the Supabase
+// verify link; 'reauthentication' has no link at all.
+const WEBSITE_CONFIRM_ACTIONS: ReadonlySet<string> = new Set([
+  'signup',
+  'recovery',
+  'magiclink',
+  'invite',
+],);
+
+// `websiteOrigins` is the WEBSITE_ALLOWED_ORIGINS list. GoTrue only passes
+// a redirect_to that is on the project's Redirect URLs list (anything
+// else is replaced by the Site URL), and this check repeats that against
+// our own list so an unexpected origin can never receive a token. When
+// the origin is not allowed (or redirect_to is not a URL) the link falls
+// back to Supabase's own /auth/v1/verify endpoint: a non-2xx from the hook
+// would fail the user's signup or reset, not just the email.
+export function actionLinkFor(
+  supabaseUrl: string,
+  data: EmailData,
+  websiteOrigins: readonly string[] = [],
+): string {
+  const websiteLink = websiteConfirmLink(data, websiteOrigins,);
+  if (websiteLink) return websiteLink;
+
   const params = new URLSearchParams({
     token: data.token_hash,
     type: data.email_action_type,
     redirect_to: data.redirect_to,
   },);
   return `${supabaseUrl}/auth/v1/verify?${params.toString()}`;
+}
+
+function websiteConfirmLink(data: EmailData, websiteOrigins: readonly string[],): string | null {
+  if (!WEBSITE_CONFIRM_ACTIONS.has(data.email_action_type,)) return null;
+
+  let redirect: URL;
+  try {
+    redirect = new URL(data.redirect_to,);
+  } catch {
+    return null;
+  }
+  if (!websiteOrigins.includes(redirect.origin,)) return null;
+
+  const link = new URL(WEBSITE_CONFIRM_PATH, redirect.origin,);
+  link.searchParams.set('token_hash', data.token_hash,);
+  link.searchParams.set('type', data.email_action_type,);
+  link.searchParams.set('next', redirect.pathname,);
+  return link.toString();
 }
 
 export function escapeHtml(value: string,): string {

@@ -203,6 +203,22 @@ otp_expiry = 3600
 # admin_email = "admin@email.com"
 # sender_name = "Admin"
 
+# Local stack only: the hosted project sends every auth email through the
+# send-email hook (supabase/functions/send-email), which these templates
+# mirror for the two flows the Website tests end to end. Both build the same
+# link as send-email/render.ts (WEBSITE_CONFIRM_PATH) -- the Website's
+# /api/auth/confirm route with token_hash, type and next -- so a local
+# signup or reset email (caught by Inbucket) exercises the real Website
+# route. {{ .SiteURL }} is site_url above; serve the Website there for local
+# end-to-end runs. scripts/ops/static-checks.mjs keeps these in sync.
+[auth.email.template.confirmation]
+subject = "Confirm your email address"
+content_path = "./supabase/templates/confirmation.html"
+
+[auth.email.template.recovery]
+subject = "Reset your password"
+content_path = "./supabase/templates/recovery.html"
+
 # Uncomment to customize email template
 # [auth.email.template.invite]
 # subject = "You have been invited"

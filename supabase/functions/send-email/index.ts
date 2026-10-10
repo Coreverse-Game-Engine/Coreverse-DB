@@ -10,17 +10,22 @@
 // (the JWT verifier Supabase normally enforces would reject Auth's own
 // signed request, which carries no user Authorization header at all).
 //
-// Why this exists: the Website's password-reset flow currently sends
-// its own localized email via Brevo directly (src/services/brevo.ts +
-// src/constants/i18n.json's auth.resetEmail.*), calling
-// admin.auth.admin.generateLink() -- entirely bypassing Supabase Auth's
-// mailer. Once the Website switches to this package's
-// POST /auth/password-reset (supabase.auth.resetPasswordForEmail),
-// Supabase Auth's own mailer fires instead, and by default that means
-// Supabase's built-in (non-localized, differently-branded) template.
-// This hook is what keeps the *content* identical -- the same per-locale
-// copy, verbatim, from the Website's own translations -- while moving
-// delivery through Supabase Auth's flow.
+// Why this exists: Coreverse-DB owns every Supabase Auth email (signup
+// confirmation, password recovery, magic link, invite, reauthentication).
+// Supabase Auth's own mailer would send its built-in, non-localized,
+// differently-branded template through whatever SMTP the project has
+// configured. With this hook configured, Auth hands the message to this
+// function instead, which renders the per-locale copy and sends it via
+// Brevo's transactional API.
+//
+// Links: for signup, recovery, magiclink and invite the button does not
+// point at Supabase's /auth/v1/verify. It points at the Website's confirm
+// route (render.ts's WEBSITE_CONFIRM_PATH) with token_hash, type and next,
+// and the Website calls verifyOtp itself. That works across devices (no
+// PKCE verifier cookie is needed) and does not depend on the Site URL.
+// The origin comes from email_data.redirect_to and must be listed in
+// WEBSITE_ALLOWED_ORIGINS; otherwise the link falls back to the Supabase
+// verify URL.
 //
 // Coverage: this hook fires for every Supabase Auth email type once
 // configured, not just password recovery -- if e.g. signup
@@ -47,6 +52,7 @@
 // ---------------------------------------------------------------------
 
 import { Webhook, } from 'https://esm.sh/standardwebhooks@1.0.0';
+import { allowedOrigins, } from '../_shared/http.ts';
 import { extractLocale, } from '../_shared/locales.ts';
 import { actionLinkFor, emailContentFor, type HookPayload, } from './render.ts';
 
@@ -80,7 +86,7 @@ Deno.serve(async (req: Request,): Promise<Response> => {
   }
 
   const { user, email_data, } = verified;
-  const actionLink = actionLinkFor(supabaseUrl, email_data,);
+  const actionLink = actionLinkFor(supabaseUrl, email_data, allowedOrigins(),);
 
   let redirectPathname: string;
   try {

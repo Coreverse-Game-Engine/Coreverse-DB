@@ -18,12 +18,12 @@ edge functions). `SUPABASE_URL`, `SUPABASE_ANON_KEY` and
 `SERVICE_ROLE_KEY` are auto-injected into every edge function by
 the Supabase runtime; the only one this project manages itself is:
 
-| Variable | Purpose |
-|---|---|
-| `WEBSITE_ALLOWED_ORIGINS` | Comma-separated, exact origins (scheme + host + port, no trailing slash) allowed by CORS (`_shared/http.ts withCors`) and by `POST /auth/password-reset`'s `redirectTo` validation. |
-| `SEND_EMAIL_HOOK_SECRET` | Only read by `send-email`. Signature secret for Supabase Auth's Send Email hook — copy verbatim (including the `v1,whsec_` prefix) from Dashboard → Authentication → Hooks → Send Email hook. |
-| `BREVO_API_KEY` | Only read by `send-email`. Same Brevo account the Website already uses (`src/services/brevo.ts`). |
-| `BREVO_SENDER_EMAIL` / `BREVO_SENDER_NAME` | Only read by `send-email`. Keep in sync with the Website's own `BREVO_SENDER_EMAIL` / `BREVO_SENDER_NAME` so auth emails come from the same address as the Website's other transactional emails. |
+| Variable                                   | Purpose                                                                                                                                                                                                                                                                                                                                                       |
+|--------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `WEBSITE_ALLOWED_ORIGINS`                  | Comma-separated, exact origins (scheme + host + port, no trailing slash) allowed by CORS (`_shared/http.ts withCors`) and by `POST /auth/password-reset`'s `redirectTo` validation. Also read by `send-email`: an email link is only built for the Website when the `redirect_to` origin is listed here, otherwise it falls back to the Supabase verify link. |
+| `SEND_EMAIL_HOOK_SECRET`                   | Only read by `send-email`. Signature secret for Supabase Auth's Send Email hook — copy verbatim (including the `v1,whsec_` prefix) from Dashboard → Authentication → Hooks → Send Email hook.                                                                                                                                                                 |
+| `BREVO_API_KEY`                            | Only read by `send-email`. Same Brevo account the Website already uses (`src/services/brevo.ts`).                                                                                                                                                                                                                                                             |
+| `BREVO_SENDER_EMAIL` / `BREVO_SENDER_NAME` | Only read by `send-email`. Keep in sync with the Website's own `BREVO_SENDER_EMAIL` / `BREVO_SENDER_NAME` so auth emails come from the same address as the Website's other transactional emails.                                                                                                                                                              |
 
 Local dev: copy `supabase/functions/.env.example` to
 `supabase/functions/.env` (gitignored) — `supabase functions serve` picks

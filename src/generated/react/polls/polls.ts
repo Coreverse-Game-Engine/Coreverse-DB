@@ -3,19 +3,22 @@
  * Do not edit manually.
  * Coreverse DB API
  * Centralized data-access API for the Coreverse ecosystem. Coreverse DB defines and serves all data operations; Coreverse Launcher and Coreverse Website consume this API and never access Postgres/Supabase directly.
- * Access model: the Supabase platform JWT gate is ON for every Edge Function except `send-email`, `auth` and `profiles`, so a request without a valid Supabase Auth JWT is rejected with 401 before the function runs -- including the operations below that declare no `security` requirement (those only mean the function itself does not require a particular user). The only signed-out operations are `POST /auth/password-reset` and `GET /profiles/username-availability`; every other `/profiles` route authenticates the caller inside the function.
+ * Access model: the Supabase platform JWT gate is OFF for `releases`, `news`, `events`, `faq`, `polls`, `discussions`, `docs`, `auth`, `profiles` and `send-email`, and ON for `teams`, `requests` and `projects`. Signed-out callers can read public content (a `GET` on any public-content route answers 200); every write needs a user session and answers 401 `unauthorized` from the function without one. `POST /auth/password-reset` and `GET /profiles/username-availability` also work signed out; every other `/profiles` route authenticates the caller inside the function.
  *
- * OpenAPI spec version: 0.5.2
+ * OpenAPI spec version: 0.5.4
  */
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import type {
   DataTag,
   DefinedInitialDataOptions,
   DefinedUseQueryResult,
+  MutationFunction,
   QueryClient,
   QueryFunction,
   QueryKey,
   UndefinedInitialDataOptions,
+  UseMutationOptions,
+  UseMutationResult,
   UseQueryOptions,
   UseQueryResult,
 } from "@tanstack/react-query";
@@ -294,133 +297,78 @@ export const createPoll = async (
   });
 };
 
-export const getCreatePollQueryKey = (createPollBody?: CreatePollBody) => {
-  return ["POST", `/polls`, createPollBody] as const;
-};
+export const getCreatePollMutationKey = () => ["createPoll"] as const;
 
-export const getCreatePollQueryOptions = <
-  TData = Awaited<ReturnType<typeof createPoll>>,
+export const getCreatePollMutationOptions = <
   TError = CreatePoll400 | CreatePoll403,
->(
-  createPollBody: CreatePollBody,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof createPoll>>, TError, TData>
-    >;
-    request?: SecondParameter<typeof coreverseFetch>;
-  },
-) => {
-  const { query: queryOptions, request: requestOptions } = options ?? {};
-
-  const queryKey =
-    queryOptions?.queryKey ?? getCreatePollQueryKey(createPollBody);
-
-  const queryFn: QueryFunction<Awaited<ReturnType<typeof createPoll>>> = ({
-    signal,
-  }) => createPoll(createPollBody, { signal, ...requestOptions });
-
-  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
     Awaited<ReturnType<typeof createPoll>>,
     TError,
-    TData
-  > & { queryKey: DataTag<QueryKey, TData, TError> };
+    CreatePollMutationVariables,
+    TContext
+  >;
+  request?: SecondParameter<typeof coreverseFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof createPoll>>,
+  TError,
+  CreatePollMutationVariables,
+  TContext
+> => {
+  const mutationKey = getCreatePollMutationKey();
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof createPoll>>,
+    CreatePollMutationVariables
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return createPoll(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
 };
 
-export type CreatePollQueryResult = NonNullable<
+export type CreatePollMutationResult = NonNullable<
   Awaited<ReturnType<typeof createPoll>>
 >;
-export type CreatePollQueryError = CreatePoll400 | CreatePoll403;
+export type CreatePollMutationBody = CreatePollBody;
+export type CreatePollMutationError = CreatePoll400 | CreatePoll403;
+export type CreatePollMutationVariables = { data: CreatePollBody };
 
-export function useCreatePoll<
-  TData = Awaited<ReturnType<typeof createPoll>>,
-  TError = CreatePoll400 | CreatePoll403,
->(
-  createPollBody: CreatePollBody,
-  options: {
-    query: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof createPoll>>, TError, TData>
-    > &
-      Pick<
-        DefinedInitialDataOptions<
-          Awaited<ReturnType<typeof createPoll>>,
-          TError,
-          Awaited<ReturnType<typeof createPoll>>
-        >,
-        "initialData"
-      >;
-    request?: SecondParameter<typeof coreverseFetch>;
-  },
-  queryClient?: QueryClient,
-): DefinedUseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-};
-export function useCreatePoll<
-  TData = Awaited<ReturnType<typeof createPoll>>,
-  TError = CreatePoll400 | CreatePoll403,
->(
-  createPollBody: CreatePollBody,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof createPoll>>, TError, TData>
-    > &
-      Pick<
-        UndefinedInitialDataOptions<
-          Awaited<ReturnType<typeof createPoll>>,
-          TError,
-          Awaited<ReturnType<typeof createPoll>>
-        >,
-        "initialData"
-      >;
-    request?: SecondParameter<typeof coreverseFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-};
-export function useCreatePoll<
-  TData = Awaited<ReturnType<typeof createPoll>>,
-  TError = CreatePoll400 | CreatePoll403,
->(
-  createPollBody: CreatePollBody,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof createPoll>>, TError, TData>
-    >;
-    request?: SecondParameter<typeof coreverseFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-};
 /**
  * @summary Create a poll with its options (moderator/admin only)
  */
-
-export function useCreatePoll<
-  TData = Awaited<ReturnType<typeof createPoll>>,
+export const useCreatePoll = <
   TError = CreatePoll400 | CreatePoll403,
+  TContext = unknown,
 >(
-  createPollBody: CreatePollBody,
   options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof createPoll>>, TError, TData>
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof createPoll>>,
+      TError,
+      CreatePollMutationVariables,
+      TContext
     >;
     request?: SecondParameter<typeof coreverseFetch>;
   },
   queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-} {
-  const queryOptions = getCreatePollQueryOptions(createPollBody, options);
-
-  const query = useQuery(queryOptions, queryClient) as UseQueryResult<
-    TData,
-    TError
-  > & { queryKey: DataTag<QueryKey, TData, TError> };
-
-  return withQueryKey(query, queryOptions.queryKey);
-}
-
+): UseMutationResult<
+  Awaited<ReturnType<typeof createPoll>>,
+  TError,
+  CreatePollMutationVariables,
+  TContext
+> => {
+  return useMutation(getCreatePollMutationOptions(options), queryClient);
+};
 export type castVoteResponse201 = {
   data: CastVote201;
   status: 201;
@@ -497,145 +445,79 @@ export const castVote = async (
   });
 };
 
-export const getCastVoteQueryKey = (
-  pollId: string,
-  castVoteBody?: CastVoteBody,
-) => {
-  return ["POST", `/polls/${pollId}/vote`, castVoteBody] as const;
-};
+export const getCastVoteMutationKey = () => ["castVote"] as const;
 
-export const getCastVoteQueryOptions = <
-  TData = Awaited<ReturnType<typeof castVote>>,
+export const getCastVoteMutationOptions = <
   TError = CastVote400 | CastVote401 | CastVote404 | CastVote409 | CastVote429,
->(
-  pollId: string,
-  castVoteBody: CastVoteBody,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof castVote>>, TError, TData>
-    >;
-    request?: SecondParameter<typeof coreverseFetch>;
-  },
-) => {
-  const { query: queryOptions, request: requestOptions } = options ?? {};
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof castVote>>,
+    TError,
+    CastVoteMutationVariables,
+    TContext
+  >;
+  request?: SecondParameter<typeof coreverseFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof castVote>>,
+  TError,
+  CastVoteMutationVariables,
+  TContext
+> => {
+  const mutationKey = getCastVoteMutationKey();
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
 
-  const queryKey =
-    queryOptions?.queryKey ?? getCastVoteQueryKey(pollId, castVoteBody);
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof castVote>>,
+    CastVoteMutationVariables
+  > = (props) => {
+    const { pollId, data } = props ?? {};
 
-  const queryFn: QueryFunction<Awaited<ReturnType<typeof castVote>>> = ({
-    signal,
-  }) => castVote(pollId, castVoteBody, { signal, ...requestOptions });
-
-  return {
-    queryKey,
-    queryFn,
-    enabled: pollId !== null && pollId !== undefined,
-    ...queryOptions,
-  } as UseQueryOptions<Awaited<ReturnType<typeof castVote>>, TError, TData> & {
-    queryKey: DataTag<QueryKey, TData, TError>;
+    return castVote(pollId, data, requestOptions);
   };
+
+  return { mutationFn, ...mutationOptions };
 };
 
-export type CastVoteQueryResult = NonNullable<
+export type CastVoteMutationResult = NonNullable<
   Awaited<ReturnType<typeof castVote>>
 >;
-export type CastVoteQueryError =
+export type CastVoteMutationBody = CastVoteBody;
+export type CastVoteMutationError =
   CastVote400 | CastVote401 | CastVote404 | CastVote409 | CastVote429;
+export type CastVoteMutationVariables = { pollId: string; data: CastVoteBody };
 
-export function useCastVote<
-  TData = Awaited<ReturnType<typeof castVote>>,
-  TError = CastVote400 | CastVote401 | CastVote404 | CastVote409 | CastVote429,
->(
-  pollId: string,
-  castVoteBody: CastVoteBody,
-  options: {
-    query: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof castVote>>, TError, TData>
-    > &
-      Pick<
-        DefinedInitialDataOptions<
-          Awaited<ReturnType<typeof castVote>>,
-          TError,
-          Awaited<ReturnType<typeof castVote>>
-        >,
-        "initialData"
-      >;
-    request?: SecondParameter<typeof coreverseFetch>;
-  },
-  queryClient?: QueryClient,
-): DefinedUseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-};
-export function useCastVote<
-  TData = Awaited<ReturnType<typeof castVote>>,
-  TError = CastVote400 | CastVote401 | CastVote404 | CastVote409 | CastVote429,
->(
-  pollId: string,
-  castVoteBody: CastVoteBody,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof castVote>>, TError, TData>
-    > &
-      Pick<
-        UndefinedInitialDataOptions<
-          Awaited<ReturnType<typeof castVote>>,
-          TError,
-          Awaited<ReturnType<typeof castVote>>
-        >,
-        "initialData"
-      >;
-    request?: SecondParameter<typeof coreverseFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-};
-export function useCastVote<
-  TData = Awaited<ReturnType<typeof castVote>>,
-  TError = CastVote400 | CastVote401 | CastVote404 | CastVote409 | CastVote429,
->(
-  pollId: string,
-  castVoteBody: CastVoteBody,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof castVote>>, TError, TData>
-    >;
-    request?: SecondParameter<typeof coreverseFetch>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-};
 /**
  * @summary Cast a vote (one per poll per user; rejected if the poll is closed)
  */
-
-export function useCastVote<
-  TData = Awaited<ReturnType<typeof castVote>>,
+export const useCastVote = <
   TError = CastVote400 | CastVote401 | CastVote404 | CastVote409 | CastVote429,
+  TContext = unknown,
 >(
-  pollId: string,
-  castVoteBody: CastVoteBody,
   options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof castVote>>, TError, TData>
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof castVote>>,
+      TError,
+      CastVoteMutationVariables,
+      TContext
     >;
     request?: SecondParameter<typeof coreverseFetch>;
   },
   queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-} {
-  const queryOptions = getCastVoteQueryOptions(pollId, castVoteBody, options);
-
-  const query = useQuery(queryOptions, queryClient) as UseQueryResult<
-    TData,
-    TError
-  > & { queryKey: DataTag<QueryKey, TData, TError> };
-
-  return withQueryKey(query, queryOptions.queryKey);
-}
-
+): UseMutationResult<
+  Awaited<ReturnType<typeof castVote>>,
+  TError,
+  CastVoteMutationVariables,
+  TContext
+> => {
+  return useMutation(getCastVoteMutationOptions(options), queryClient);
+};
 export type getPollResultsResponse200 = {
   data: GetPollResults200Item[];
   status: 200;
