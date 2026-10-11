@@ -56,6 +56,15 @@ for fn in "${JWT_EXEMPT[@]}"; do
   grep -q "^\[functions\.$fn\]" supabase/config.toml || { echo "config.toml has no [functions.$fn] section (verify_jwt = false)" >&2; exit 1; }
 done
 
+# `supabase functions deploy` needs an import map for the bare specifiers
+# (`@std/http/server`, `zod`, ...); the repo-root deno.json is not used for
+# bundling. We pass supabase/functions/import_map.json explicitly (--import-map)
+# so nothing depends on CLI discovery. Do NOT add a supabase/functions/deno.json:
+# `deno fmt` would pick it up as a nested config and drop the fmt settings.
+IMPORT_MAP=supabase/functions/import_map.json
+[[ -f "$IMPORT_MAP" ]] || { echo "$IMPORT_MAP is missing (import map for 'supabase functions deploy')" >&2; exit 1; }
+node scripts/ops/static-checks.mjs --strict >/dev/null || { echo "static checks failed -- run: node scripts/ops/static-checks.mjs --strict" >&2; exit 1; }
+
 step "1. Pending migrations (read-only)"
 supabase db push --dry-run
 
@@ -78,7 +87,7 @@ echo "(SUPABASE_URL / SUPABASE_ANON_KEY / SERVICE_ROLE_KEY are injected by the p
 
 step "4. Edge Functions: ${FUNCTIONS[*]}"
 for fn in "${FUNCTIONS[@]}"; do
-  if confirm "Deploy function '$fn'?"; then supabase functions deploy "$fn"; else echo "(skipped $fn)"; fi
+  if confirm "Deploy function '$fn'?"; then supabase functions deploy "$fn" --import-map "$IMPORT_MAP"; else echo "(skipped $fn)"; fi
 done
 echo "${JWT_EXEMPT[*]} pick up verify_jwt=false from supabase/config.toml (do not add flags that override it); teams, requests and projects keep the JWT gate on."
 echo "The gate setting only changes when a function is redeployed: deploy ALL of them for 0.5.2, not just the ones whose code changed."

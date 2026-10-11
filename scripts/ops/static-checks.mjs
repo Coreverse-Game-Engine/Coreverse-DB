@@ -23,6 +23,9 @@
 //   9. the emailed-link contract with the Website: the send-email hook and
 //      the local email templates build the same /api/auth/confirm URL, and
 //      the hook checks the redirect origin against WEBSITE_ALLOWED_ORIGINS
+//  10. the Edge Function import map used by `supabase functions deploy`
+//      (supabase/functions/import_map.json) matches the repo-root deno.json imports,
+//      and no nested supabase/functions/**/deno.json exists (see check 10)
 
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { dirname, join, relative, resolve } from 'node:path';
@@ -218,6 +221,34 @@ if (!confirmPath) {
 }
 if (!/actionLinkFor\([^)]*allowedOrigins\(/.test(read('supabase/functions/send-email/index.ts'))) {
   fail('email-links', 'supabase/functions/send-email/index.ts must pass allowedOrigins() to actionLinkFor so a token is only ever sent to an allowed Website origin');
+}
+
+// 10 -- Edge Function import map for `supabase functions deploy` ---------
+// The bundler cannot see the repo-root deno.json, so the same `imports` live in
+// supabase/functions/import_map.json (passed via --import-map by deploy.sh/.ps1).
+// It is deliberately NOT named deno.json: Deno treats a nested deno.json as its
+// own config for `deno fmt` / `deno lint`, which silently replaces the root fmt
+// settings (single quotes, 100 cols) with defaults and fails `deno fmt --check`.
+{
+  const mapPath = 'supabase/functions/import_map.json';
+  const nested = walk('supabase/functions', '.json').filter((f) => /(^|[\\/])deno\.jsonc?$/.test(f));
+  for (const f of nested) fail('import-map', `${f} must not exist: a nested deno.json overrides the root fmt/lint config for supabase/functions (use import_map.json)`);
+  if (!existsSync(join(root, mapPath))) {
+    fail('import-map', `${mapPath} is missing: \`supabase functions deploy\` cannot resolve bare imports (@std/http/server, zod, ...)`);
+  } else {
+    const rootImports = JSON.parse(read('deno.json')).imports ?? {};
+    const mapImports = JSON.parse(read(mapPath)).imports ?? {};
+    if (JSON.stringify(Object.entries(rootImports).sort()) !== JSON.stringify(Object.entries(mapImports).sort())) {
+      fail('import-map', `${mapPath} "imports" differs from the root deno.json "imports"; keep them identical`);
+    }
+    const bare = new Set();
+    for (const f of walk('supabase/functions', '.ts')) {
+      for (const m of read(f).matchAll(/from\s+['"]([^'"./][^'"]*)['"]/g)) {
+        if (!/^(https?:|jsr:|npm:|node:)/.test(m[1])) bare.add(m[1]);
+      }
+    }
+    for (const spec of bare) if (!(spec in mapImports)) fail('import-map', `functions import "${spec}" but ${mapPath} has no mapping for it`);
+  }
 }
 
 if (warnings.length) {
