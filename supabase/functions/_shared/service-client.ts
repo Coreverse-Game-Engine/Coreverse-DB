@@ -1,4 +1,5 @@
 import { createClient, } from '@supabase/supabase-js';
+import { loggingFetch, } from './db-log.ts';
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL',)!;
 // Provided automatically in the Supabase Edge Functions runtime; never
@@ -10,6 +11,7 @@ const SERVICE_ROLE_KEY = Deno.env.get('SERVICE_ROLE_KEY',)!;
 // RLS. This client bypasses RLS entirely.
 export function createServiceClient() {
   return createClient(SUPABASE_URL, SERVICE_ROLE_KEY, {
+    global: { fetch: loggingFetch, },
     auth: { persistSession: false, },
   },);
 }

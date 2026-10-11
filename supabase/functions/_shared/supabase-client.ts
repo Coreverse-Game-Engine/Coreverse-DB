@@ -1,4 +1,5 @@
 import { createClient, } from '@supabase/supabase-js';
+import { loggingFetch, } from './db-log.ts';
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL',)!;
 const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY',)!;
@@ -19,7 +20,9 @@ const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY',)!;
 export function createUserClient(req: Request,) {
   const authHeader = req.headers.get('Authorization',);
   return createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-    global: authHeader ? { headers: { Authorization: authHeader, }, } : {},
+    global: authHeader
+      ? { fetch: loggingFetch, headers: { Authorization: authHeader, }, }
+      : { fetch: loggingFetch, },
     auth: { persistSession: false, },
   },);
 }
@@ -31,6 +34,7 @@ export function createUserClient(req: Request,) {
 // unauthenticated browser session would use.
 export function createAnonClient() {
   return createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+    global: { fetch: loggingFetch, },
     auth: { persistSession: false, },
   },);
 }
