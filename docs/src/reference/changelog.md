@@ -10,8 +10,11 @@ Edge Function routing fix. **No API shape changes, no database migration and no 
 
 - **List and single-resource calls answered `invalid_*_id` / `not_found` on the hosted project.** Every function cut `/functions/v1/<function>` off the pathname with a regex. When the pathname arrives as `/<function>/...` (the gateway has already removed `/functions/v1`), nothing was cut, the function name itself became the first path segment, and the function treated it as a resource id: `GET /faq` answered `400 invalid_faq_id` (`"faq" is not a valid UUID`), `/polls`, `/discussions` and `/discussions/categories` likewise, `GET /events` ran a slug lookup for `events` and answered `500 query_error`, `GET /profiles/me` answered `404 Unknown profiles route`, and `POST /auth/password-reset` answered `404 Unknown auth route`. Routing now goes through `routePath` / `routeSegments` in `_shared/route.ts`, which accept both pathname shapes.
 
+- **Database failures were invisible in the function logs.** Handlers answer a failed query with a generic `500 query_error`, so the real PostgREST cause (missing table, permission denied, schema not exposed) was never recorded. All three Supabase clients now go through `loggingFetch` (`_shared/db-log.ts`), which writes `[postgrest] {method, path, status, code, message, hint}` to the function logs for every failed REST call (not for 401s and not for non-REST calls; `details` is never logged). Responses are unchanged.
+
 ### Added
 
+- `supabase/functions/_shared/db-log.test.ts` covers the log line, that the response is returned intact, and that success, 401 and non-REST calls stay quiet.
 - `supabase/functions/_shared/route.test.ts` covers both pathname shapes, trailing slashes, sub-routes, and that a longer function name (`/faqs`) or another function's name is not stripped.
 
 ## 0.5.5
