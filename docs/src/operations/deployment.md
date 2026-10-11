@@ -11,12 +11,6 @@ supabase functions deploy <name>   # deploy one Edge Function
 
 CI's `ci.yml` workflow validates migrations and functions (lint, pgTAP, Deno tests) on every push/PR, but does **not** itself push to the hosted project — that's a deliberate manual step, matching the project's "no surprise production changes" policy. For a full release, follow [Production Verification](production-verification.md): `scripts/ops/verify-local.sh` (gates), `scripts/ops/deploy.sh` (guarded rollout), `scripts/ops/smoke.mjs` (post-deploy smoke test).
 
-## Client package (`@Coreverse-Game-Engine/db-client`)
+On Windows use the PowerShell ports `scripts/ops/verify-local.ps1` and `scripts/ops/deploy.ps1` (`pwsh scripts/ops/deploy.ps1 -Apply`; `-Only faq,auth` redeploys a subset, `-UseApi` bundles server-side without Docker).
 
-Publishing is **tag-triggered, not automatic on every merge**:
-
-1. A maintainer bumps the version locally: `pnpm version <patch|minor|major> --no-git-tag-version`, then sets the same version in `openapi/openapi.yaml` (`info.version`) — `pnpm run check:version-sync` (part of `pnpm run verify`) fails if the two differ — regenerates (`pnpm run generate`), and commits. Tag that commit (`git tag vX.Y.Z`).
-2. They push the tag.
-3. `publish.yml` in `.github/workflows/` runs: verifies the tag matches `package.json`'s version, builds (`pnpm run build`), and publishes to GitHub Packages under the `@Coreverse-Game-Engine` scope.
-
-CI's only responsibility in this flow is the tag/version match check and the build+publish step — it never writes a version bump itself. See [Environments](environments.md) for where each thing is deployed to, and [Troubleshooting](troubleshooting.md) for the first-publish permission issue this pipeline has hit before.
+> **Import map.** `supabase functions deploy` cannot see the repo-root `deno.json` (it only drives `deno test` / `deno fmt`), so bare imports (`@std/http/server`, `zod`, `@supabase/supabase-js`, `@std/assert`) are resolved from `supabase/functions/import_map.json`, which `deploy.sh` / `deploy.ps1` pass explicitly with `--import-map` (do the same if you deploy by hand: `supabase functions deploy <n> --import-map supabase/functions/import_map.json`). Keep its `imports` identical to the root `deno.json`. Do **not** name it `deno.json`: Deno treats a nested `deno.json` as its own config for `deno fmt` / `deno lint`, which replaces the root formatting settings with defaults and makes `deno fmt --check` fail. `scripts/ops/static-checks.mjs` enforces both rules. Symptom of a missing map: `Relative import path "@std/http/server" not prefixed with / or ./ or ../`.
