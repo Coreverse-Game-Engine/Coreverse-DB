@@ -2,6 +2,18 @@
 
 Release notes for the `@Coreverse-Game-Engine/db-client` package and the backend it describes. GitHub's auto-generated release notes (grouped by PR label, see `.github/release.yml`) remain the per-PR record; this page is the consumer-facing summary of what changed *for API and SDK users*.
 
+## Unreleased
+
+Edge Function routing fix. **No API shape changes, no database migration and no SDK change**: `package.json` and `openapi.yaml` stay at 0.5.5 and the Website keeps `^0.5.5`. Redeploy **every** Edge Function that routes on its path (all of them except `send-email`), then run the production smoke check.
+
+### Fixed
+
+- **List and single-resource calls answered `invalid_*_id` / `not_found` on the hosted project.** Every function cut `/functions/v1/<function>` off the pathname with a regex. When the pathname arrives as `/<function>/...` (the gateway has already removed `/functions/v1`), nothing was cut, the function name itself became the first path segment, and the function treated it as a resource id: `GET /faq` answered `400 invalid_faq_id` (`"faq" is not a valid UUID`), `/polls`, `/discussions` and `/discussions/categories` likewise, `GET /events` ran a slug lookup for `events` and answered `500 query_error`, `GET /profiles/me` answered `404 Unknown profiles route`, and `POST /auth/password-reset` answered `404 Unknown auth route`. Routing now goes through `routePath` / `routeSegments` in `_shared/route.ts`, which accept both pathname shapes.
+
+### Added
+
+- `supabase/functions/_shared/route.test.ts` covers both pathname shapes, trailing slashes, sub-routes, and that a longer function name (`/faqs`) or another function's name is not stripped.
+
 ## 0.5.5
 
 SDK fix release. **No API shape changes, no database migration and no Edge Function changes**: only the published package (`@Coreverse-Game-Engine/db-client`) changes. Run `pnpm run generate` and commit the result (the generated files carry the spec version in their header), then publish.

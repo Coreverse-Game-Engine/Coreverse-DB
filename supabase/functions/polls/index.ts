@@ -10,6 +10,7 @@ import { classifyCaller, withTokenCheck, } from '../_shared/caller.ts';
 import { buildCursorFilter, paginate, parsePagination, } from '../_shared/pagination.ts';
 import { hitRateLimit, } from '../_shared/rate-limit.ts';
 import { CastVoteSchema, CreatePollSchema, UuidSchema, } from './schemas.ts';
+import { routeSegments, } from '../_shared/route.ts';
 
 const POLL_COLUMNS =
   'id, question, closes_at, created_at, options:poll_options(id, label, display_order)';
@@ -25,10 +26,7 @@ function isClosed(closesAt: string | null,): boolean {
 
 serve(withCors(withTokenCheck(async (req,) => {
   const url = new URL(req.url,);
-  const segments = url.pathname
-    .replace(/^\/functions\/v1\/polls\/?/, '',)
-    .split('/',)
-    .filter(Boolean,);
+  const segments = routeSegments(url, 'polls',);
 
   const supabase = createUserClient(req,);
 

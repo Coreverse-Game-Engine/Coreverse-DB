@@ -11,6 +11,7 @@ import { serve, } from '@std/http/server';
 import { createUserClient, } from '../_shared/supabase-client.ts';
 import { errorResponse, jsonResponse, statusForPgError, withCors, } from '../_shared/http.ts';
 import { UuidSchema, } from './schemas.ts';
+import { routeSegments, } from '../_shared/route.ts';
 
 const RESPOND_RPC_BY_TYPE: Record<string, string> = {
   join_request: 'respond_to_join_request',
@@ -24,10 +25,7 @@ serve(withCors(async (req,) => {
   }
 
   const url = new URL(req.url,);
-  const segments = url.pathname
-    .replace(/^\/functions\/v1\/requests\/?/, '',)
-    .split('/',)
-    .filter(Boolean,);
+  const segments = routeSegments(url, 'requests',);
 
   if (segments.length !== 2) {
     return errorResponse('not_found', 'Unknown requests route.', 404,);

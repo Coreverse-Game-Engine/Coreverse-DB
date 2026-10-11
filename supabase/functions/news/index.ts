@@ -15,6 +15,7 @@ import { buildCursorFilter, paginate, parsePagination, } from '../_shared/pagina
 import { fetchAuthors, unknownAuthor, } from '../_shared/authors.ts';
 import { publicUrlWithCacheBust, } from '../_shared/storage.ts';
 import { CreateNewsSchema, UpdateNewsSchema, UuidSchema, } from './schemas.ts';
+import { routeSegments, } from '../_shared/route.ts';
 
 const SELECT_COLUMNS =
   'id, title, slug, body, summary, cover_image_path, author_id, status, published_at, created_at, updated_at';
@@ -43,10 +44,7 @@ async function withAuthor(
 
 serve(withCors(withTokenCheck(async (req,) => {
   const url = new URL(req.url,);
-  const segments = url.pathname
-    .replace(/^\/functions\/v1\/news\/?/, '',)
-    .split('/',)
-    .filter(Boolean,);
+  const segments = routeSegments(url, 'news',);
 
   const supabase = createUserClient(req,);
 

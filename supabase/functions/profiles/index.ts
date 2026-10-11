@@ -51,6 +51,7 @@ import {
   UsernameAvailabilityQuerySchema,
   validateAvatarFile,
 } from './schemas.ts';
+import { routePath, } from '../_shared/route.ts';
 
 function withAvatarUrl(
   supabase: ReturnType<typeof createUserClient>,
@@ -81,7 +82,7 @@ const USERNAME_CHECK_LIMIT = { maxHits: 30, windowSeconds: 60, }; // 30 / min, p
 
 serve(withCors(async (req,) => {
   const url = new URL(req.url,);
-  const path = url.pathname.replace(/^\/functions\/v1\/profiles\/?/, '',);
+  const path = routePath(url, 'profiles',);
 
   if (path !== 'me' && path !== 'me/avatar' && path !== 'username-availability') {
     return errorResponse('not_found', 'Unknown profiles route.', 404,);

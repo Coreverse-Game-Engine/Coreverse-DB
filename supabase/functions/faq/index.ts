@@ -24,6 +24,7 @@ import {
   UpsertTranslationSchema,
   UuidSchema,
 } from './schemas.ts';
+import { routeSegments, } from '../_shared/route.ts';
 
 interface FaqTranslationRow {
   locale: string;
@@ -71,10 +72,7 @@ async function fetchFaqItemDetail(
 
 serve(withCors(withTokenCheck(async (req,) => {
   const url = new URL(req.url,);
-  const segments = url.pathname
-    .replace(/^\/functions\/v1\/faq\/?/, '',)
-    .split('/',)
-    .filter(Boolean,);
+  const segments = routeSegments(url, 'faq',);
 
   const supabase = createUserClient(req,);
 

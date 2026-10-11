@@ -17,12 +17,13 @@ import { createServiceClient, } from '../_shared/service-client.ts';
 import { errorResponse, jsonResponse, withCors, } from '../_shared/http.ts';
 import { withTokenCheck, } from '../_shared/caller.ts';
 import { ReindexBodySchema, SearchQuerySchema, } from './schemas.ts';
+import { routePath, } from '../_shared/route.ts';
 
 const REINDEX_TOKEN = Deno.env.get('DOCS_REINDEX_TOKEN',);
 
 serve(withCors(withTokenCheck(async (req,) => {
   const url = new URL(req.url,);
-  const path = url.pathname.replace(/^\/functions\/v1\/docs\/?/, '',);
+  const path = routePath(url, 'docs',);
 
   try {
     // GET /docs/sources

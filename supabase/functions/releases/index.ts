@@ -13,6 +13,7 @@ import { createClient, } from '@supabase/supabase-js';
 import { errorResponse, jsonResponse, withCors, } from '../_shared/http.ts';
 import { withTokenCheck, } from '../_shared/caller.ts';
 import { LatestQuerySchema, ListQuerySchema, VersionParamSchema, } from './schemas.ts';
+import { routeSegments, } from '../_shared/route.ts';
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL',)!;
 const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY',)!;
@@ -29,10 +30,7 @@ serve(withCors(withTokenCheck(async (req,) => {
   }
 
   const url = new URL(req.url,);
-  const segments = url.pathname
-    .replace(/^\/functions\/v1\/releases\/?/, '',)
-    .split('/',)
-    .filter(Boolean,);
+  const segments = routeSegments(url, 'releases',);
 
   try {
     // GET /releases/latest

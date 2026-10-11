@@ -28,13 +28,14 @@ import { createAnonClient, } from '../_shared/supabase-client.ts';
 import { allowedOrigins, errorResponse, jsonResponse, withCors, } from '../_shared/http.ts';
 import { callerIp, hitRateLimit, } from '../_shared/rate-limit.ts';
 import { PasswordResetSchema, RESET_REDIRECT_PATH_PATTERN, } from './schemas.ts';
+import { routePath, } from '../_shared/route.ts';
 
 const EMAIL_LIMIT = { maxHits: 3, windowSeconds: 15 * 60, }; // 3 / 15 min, per email
 const IP_LIMIT = { maxHits: 10, windowSeconds: 60 * 60, }; // 10 / hour, per IP
 
 serve(withCors(async (req,) => {
   const url = new URL(req.url,);
-  const path = url.pathname.replace(/^\/functions\/v1\/auth\/?/, '',);
+  const path = routePath(url, 'auth',);
 
   if (path !== 'password-reset') {
     return errorResponse('not_found', 'Unknown auth route.', 404,);
