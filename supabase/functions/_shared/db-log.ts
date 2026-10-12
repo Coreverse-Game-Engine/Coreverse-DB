@@ -52,7 +52,9 @@ export async function loggingFetch(
       '[postgrest]',
       JSON.stringify({
         method,
-        path: url.pathname.slice(url.pathname.indexOf(REST_PATH_MARKER,) + REST_PATH_MARKER.length,),
+        path: url.pathname.slice(
+          url.pathname.indexOf(REST_PATH_MARKER,) + REST_PATH_MARKER.length,
+        ),
         status: response.status,
         ...failure,
       },),

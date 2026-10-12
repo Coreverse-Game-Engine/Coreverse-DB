@@ -27,8 +27,9 @@
 -- must never be reachable over HTTP.
 -- ---------------------------------------------------------------------
 
+-- SQLFluff's PostgreSQL parser cannot parse this PostgREST setting syntax.
 alter role authenticator
-  set pgrst.db_schemas = 'public, graphql_public, releases, identity, content, docs';
+  set pgrst.db_schemas = 'public, graphql_public, releases, identity, content, docs'; -- noqa: PRS
 
 -- Ask the running PostgREST to pick up the new configuration and schema
 -- cache now, instead of at its next restart.
