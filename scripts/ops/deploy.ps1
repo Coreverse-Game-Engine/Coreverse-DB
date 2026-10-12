@@ -144,6 +144,7 @@ if ($Apply) {
 Step '5. Manual follow-ups (cannot be scripted)'
 @'
  [ ] supabase functions list  -> all functions ACTIVE
+ [ ] Dashboard -> Settings -> API -> Exposed schemas lists: public, graphql_public, releases, identity, content, docs (set by migration 20261012090000; if you edited it by hand, keep this list)
  [ ] Dashboard -> Authentication -> Hooks -> Send Email: enabled, URL = <project>/functions/v1/send-email, secret matches SEND_EMAIL_HOOK_SECRET
      (enable ONLY after the functions are deployed AND the Website route /api/auth/confirm is live)
  [ ] Brevo: click tracking is off for transactional email

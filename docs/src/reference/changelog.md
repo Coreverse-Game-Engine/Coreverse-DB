@@ -4,14 +4,22 @@ Release notes for the `@Coreverse-Game-Engine/db-client` package and the backend
 
 ## Unreleased
 
-Edge Function routing fix. **No API shape changes, no database migration and no SDK change**: `package.json` and `openapi.yaml` stay at 0.5.5 and the Website keeps `^0.5.5`. Redeploy **every** Edge Function that routes on its path (all of them except `send-email`), then run the production smoke check.
+Edge Function routing fix and hosted-schema exposure. **No API shape changes and no SDK change**: `package.json` and `openapi.yaml` stay at 0.5.5 and the Website keeps `^0.5.5`. One new migration (`20261012090000_expose_api_schemas`): run `supabase db push`. Redeploy **every** Edge Function that routes on its path (all of them except `send-email`), then run the production smoke check.
 
 ### Fixed
 
 - **List and single-resource calls answered `invalid_*_id` / `not_found` on the hosted project.** Every function cut `/functions/v1/<function>` off the pathname with a regex. When the pathname arrives as `/<function>/...` (the gateway has already removed `/functions/v1`), nothing was cut, the function name itself became the first path segment, and the function treated it as a resource id: `GET /faq` answered `400 invalid_faq_id` (`"faq" is not a valid UUID`), `/polls`, `/discussions` and `/discussions/categories` likewise, `GET /events` ran a slug lookup for `events` and answered `500 query_error`, `GET /profiles/me` answered `404 Unknown profiles route`, and `POST /auth/password-reset` answered `404 Unknown auth route`. Routing now goes through `routePath` / `routeSegments` in `_shared/route.ts`, which accept both pathname shapes.
 
+- **Database failures were invisible in the function logs.** Handlers answer a failed query with a generic `500 query_error`, so the real PostgREST cause (missing table, permission denied, schema not exposed) was never recorded. All three Supabase clients now go through `loggingFetch` (`_shared/db-log.ts`), which writes `[postgrest] {method, path, status, code, message, hint}` to the function logs for every failed REST call (not for 401s and not for non-REST calls; `details` is never logged). Responses are unchanged.
+
+- **Every list and profile call answered `500 query_error` on the hosted project.** PostgREST on the hosted project only served `public` and `graphql_public`: `[api] schemas` in `config.toml` applies to `supabase start` only, and neither `db push` nor a function deploy sends it to the hosted project. Every query through `.schema('identity' | 'content' | 'releases' | 'docs')` was therefore refused (`PGRST106 Invalid schema`), which the handlers report as the generic 500, for signed-in and signed-out callers alike. The new migration sets the authenticator role's `pgrst.db_schemas` to the same list as `config.toml` and reloads PostgREST's configuration. `private` stays unexposed.
+
 ### Added
 
+- `supabase/tests/database/api_exposure.sql` (pgTAP) checks that the setting lists `releases`, `identity`, `content`, `docs` and `public` and never `private`.
+- `scripts/ops/static-checks.mjs` check 11 fails when `config.toml` `[api] schemas` and the expose migration list different schemas.
+- The deploy checklists (`deploy.sh`, `deploy.ps1`) and the Deployment page now list the exposed schemas.
+- `supabase/functions/_shared/db-log.test.ts` covers the log line, that the response is returned intact, and that success, 401 and non-REST calls stay quiet.
 - `supabase/functions/_shared/route.test.ts` covers both pathname shapes, trailing slashes, sub-routes, and that a longer function name (`/faqs`) or another function's name is not stripped.
 
 ## 0.5.5
