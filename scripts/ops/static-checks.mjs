@@ -254,6 +254,31 @@ if (!/actionLinkFor\([^)]*allowedOrigins\(/.test(read('supabase/functions/send-e
 if (warnings.length) {
   console.warn(`static-checks: ${warnings.length} warning(s) (fatal with --strict)\n` + warnings.map((w) => '  - ' + w).join('\n'));
 }
+// 11 -- exposed API schemas: config.toml <-> migration -----------------------
+// The hosted project only serves the schemas in the authenticator role's
+// pgrst.db_schemas, which `supabase db push` does not set from config.toml.
+// The expose_api_schemas migration owns that setting; it must list exactly the
+// schemas [api] schemas lists locally, or local and hosted drift apart.
+{
+  const cfg = readFileSync(join(root, 'supabase/config.toml'), 'utf8');
+  const cfgMatch = cfg.match(/^schemas\s*=\s*\[([^\]]*)\]/m);
+  const exposeMig = migs.find((n) => n.endsWith('_expose_api_schemas.sql'));
+  if (!cfgMatch) fail('api-schemas', 'supabase/config.toml has no [api] schemas list');
+  else if (!exposeMig) fail('api-schemas', 'no *_expose_api_schemas.sql migration (hosted PostgREST would not serve identity/content/releases/docs)');
+  else {
+    const local = [...cfgMatch[1].matchAll(/"([^"]+)"/g)].map((m) => m[1]).sort();
+    const sql = readFileSync(join(root, 'supabase/migrations', exposeMig), 'utf8');
+    const mig = sql.match(/pgrst\.db_schemas\s*=\s*'([^']*)'/);
+    if (!mig) fail('api-schemas', `${exposeMig} does not set pgrst.db_schemas`);
+    else {
+      const hosted = mig[1].split(',').map((x) => x.trim()).filter(Boolean).sort();
+      if (local.join(',') !== hosted.join(',')) {
+        fail('api-schemas', `config.toml [api] schemas (${local.join(', ')}) != ${exposeMig} (${hosted.join(', ')})`);
+      }
+    }
+  }
+}
+
 if (failures.length) {
   console.error(`static-checks: ${failures.length} problem(s)\n` + failures.map((f) => '  - ' + f).join('\n'));
   process.exit(1);

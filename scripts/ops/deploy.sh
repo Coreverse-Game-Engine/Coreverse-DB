@@ -70,6 +70,7 @@ supabase db push --dry-run
 
 step "2. Apply migrations to PRODUCTION"
 echo "Includes 20261003094840_username_availability and 20261003095018_account_deletion_readiness"
+echo "and 20261012090000_expose_api_schemas (sets the hosted PostgREST exposed schemas; without it every query answers 500 query_error)."
 echo "(the latter loosens ON DELETE on several FKs -- take/confirm the backup first)."
 if confirm "Run 'supabase db push' against the linked project?"; then supabase db push; else echo "(skipped)"; fi
 
@@ -94,6 +95,7 @@ echo "The gate setting only changes when a function is redeployed: deploy ALL of
 
 step "5. Manual follow-ups (cannot be scripted)"
 cat <<'TXT'
+ [ ] Dashboard -> Settings -> API -> Exposed schemas lists: public, graphql_public, releases, identity, content, docs (set by migration 20261012090000; if you edited it by hand, keep this list)
  [ ] Dashboard -> Authentication -> Hooks -> Send Email: enabled, URL = <project>/functions/v1/send-email, secret matches SEND_EMAIL_HOOK_SECRET
  [ ] Website route /api/auth/confirm is deployed BEFORE the Send Email hook is enabled (the emailed links point at it)
  [ ] Brevo: click tracking is off for transactional email
