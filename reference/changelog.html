@@ -176,7 +176,7 @@
                         <h1 id="changelog"><a class="header" href="#changelog">Changelog</a></h1>
 <p>Release notes for the <code>@Coreverse-Game-Engine/db-client</code> package and the backend it describes. GitHub's auto-generated release notes (grouped by PR label, see <code>.github/release.yml</code>) remain the per-PR record; this page is the consumer-facing summary of what changed <em>for API and SDK users</em>.</p>
 <h2 id="unreleased"><a class="header" href="#unreleased">Unreleased</a></h2>
-<p>Edge Function routing fix. <strong>No API shape changes, no database migration and no SDK change</strong>: <code>package.json</code> and <code>openapi.yaml</code> stay at 0.5.5 and the Website keeps <code>^0.5.5</code>. Redeploy <strong>every</strong> Edge Function that routes on its path (all of them except <code>send-email</code>), then run the production smoke check.</p>
+<p>Edge Function routing fix and hosted-schema exposure. <strong>No API shape changes and no SDK change</strong>: <code>package.json</code> and <code>openapi.yaml</code> stay at 0.5.5 and the Website keeps <code>^0.5.5</code>. One new migration (<code>20261012090000_expose_api_schemas</code>): run <code>supabase db push</code>. Redeploy <strong>every</strong> Edge Function that routes on its path (all of them except <code>send-email</code>), then run the production smoke check.</p>
 <h3 id="fixed"><a class="header" href="#fixed">Fixed</a></h3>
 <ul>
 <li>
@@ -185,9 +185,15 @@
 <li>
 <p><strong>Database failures were invisible in the function logs.</strong> Handlers answer a failed query with a generic <code>500 query_error</code>, so the real PostgREST cause (missing table, permission denied, schema not exposed) was never recorded. All three Supabase clients now go through <code>loggingFetch</code> (<code>_shared/db-log.ts</code>), which writes <code>[postgrest] {method, path, status, code, message, hint}</code> to the function logs for every failed REST call (not for 401s and not for non-REST calls; <code>details</code> is never logged). Responses are unchanged.</p>
 </li>
+<li>
+<p><strong>Every list and profile call answered <code>500 query_error</code> on the hosted project.</strong> PostgREST on the hosted project only served <code>public</code> and <code>graphql_public</code>: <code>[api] schemas</code> in <code>config.toml</code> applies to <code>supabase start</code> only, and neither <code>db push</code> nor a function deploy sends it to the hosted project. Every query through <code>.schema('identity' | 'content' | 'releases' | 'docs')</code> was therefore refused (<code>PGRST106 Invalid schema</code>), which the handlers report as the generic 500, for signed-in and signed-out callers alike. The new migration sets the authenticator role's <code>pgrst.db_schemas</code> to the same list as <code>config.toml</code> and reloads PostgREST's configuration. <code>private</code> stays unexposed.</p>
+</li>
 </ul>
 <h3 id="added"><a class="header" href="#added">Added</a></h3>
 <ul>
+<li><code>supabase/tests/database/api_exposure.sql</code> (pgTAP) checks that the setting lists <code>releases</code>, <code>identity</code>, <code>content</code>, <code>docs</code> and <code>public</code> and never <code>private</code>.</li>
+<li><code>scripts/ops/static-checks.mjs</code> check 11 fails when <code>config.toml</code> <code>[api] schemas</code> and the expose migration list different schemas.</li>
+<li>The deploy checklists (<code>deploy.sh</code>, <code>deploy.ps1</code>) and the Deployment page now list the exposed schemas.</li>
 <li><code>supabase/functions/_shared/db-log.test.ts</code> covers the log line, that the response is returned intact, and that success, 401 and non-REST calls stay quiet.</li>
 <li><code>supabase/functions/_shared/route.test.ts</code> covers both pathname shapes, trailing slashes, sub-routes, and that a longer function name (<code>/faqs</code>) or another function's name is not stripped.</li>
 </ul>
