@@ -132,3 +132,13 @@ export function safeDbErrorMessage(status: number,): string {
   if (status >= 500) return 'Something went wrong processing the request.';
   return 'The request could not be completed.';
 }
+
+// The catch-all answer of a handler: an exception nobody anticipated. The
+// client still gets the generic message, but the cause is written to the
+// function log first -- swallowing it (`catch (_err)`) made a missing secret and
+// a broken RPC look identical, and neither left a trace.
+export function internalErrorResponse(scope: string, err: unknown,): Response {
+  const message = err instanceof Error ? err.message : String(err,);
+  console.error('[internal_error]', JSON.stringify({ scope, message, },),);
+  return errorResponse('internal_error', safeDbErrorMessage(500,), 500,);
+}

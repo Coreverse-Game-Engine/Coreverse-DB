@@ -5,7 +5,13 @@
 
 import { serve, } from '@std/http/server';
 import { createUserClient, } from '../_shared/supabase-client.ts';
-import { errorResponse, jsonResponse, safeDbErrorMessage, withCors, } from '../_shared/http.ts';
+import {
+  errorResponse,
+  internalErrorResponse,
+  jsonResponse,
+  safeDbErrorMessage,
+  withCors,
+} from '../_shared/http.ts';
 import { classifyCaller, withTokenCheck, } from '../_shared/caller.ts';
 import { buildCursorFilter, paginate, parsePagination, } from '../_shared/pagination.ts';
 import { hitRateLimit, } from '../_shared/rate-limit.ts';
@@ -229,7 +235,7 @@ serve(withCors(withTokenCheck(async (req,) => {
     }
 
     return errorResponse('not_found', 'Unknown polls route.', 404,);
-  } catch (_err) {
-    return errorResponse('internal_error', safeDbErrorMessage(500,), 500,);
+  } catch (err) {
+    return internalErrorResponse('polls', err,);
   }
 },),),);
