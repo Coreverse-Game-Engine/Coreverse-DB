@@ -15,8 +15,10 @@ Never commit real values for any of these — use `.env.example` as the template
 Separate from the table above (those are consumed by local
 dev/administration scripts against the DB directly, not by the deployed
 edge functions). `SUPABASE_URL`, `SUPABASE_ANON_KEY` and
-`SERVICE_ROLE_KEY` are auto-injected into every edge function by
-the Supabase runtime; the only one this project manages itself is:
+`SUPABASE_SERVICE_ROLE_KEY` are auto-injected into every edge function by
+the Supabase runtime (note the `SUPABASE_` prefix: there is no injected
+`SERVICE_ROLE_KEY`; `_shared/service-client.ts` reads the injected name first
+and falls back to a manually set `SERVICE_ROLE_KEY`). The ones this project manages itself are:
 
 | Variable                                   | Purpose                                                                                                                                                                                                                                                                                                                                                       |
 |--------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|

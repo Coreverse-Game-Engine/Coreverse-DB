@@ -14,8 +14,12 @@ Edge Function routing fix and hosted-schema exposure. **No API shape changes and
 
 - **Every list and profile call answered `500 query_error` on the hosted project.** PostgREST on the hosted project only served `public` and `graphql_public`: `[api] schemas` in `config.toml` applies to `supabase start` only, and neither `db push` nor a function deploy sends it to the hosted project. Every query through `.schema('identity' | 'content' | 'releases' | 'docs')` was therefore refused (`PGRST106 Invalid schema`), which the handlers report as the generic 500, for signed-in and signed-out callers alike. The new migration sets the authenticator role's `pgrst.db_schemas` to the same list as `config.toml` and reloads PostgREST's configuration. `private` stays unexposed.
 
+- **Creating a discussion and changing the avatar answered `500 internal_error`.** `_shared/service-client.ts` read `SERVICE_ROLE_KEY`, a name the Edge Functions runtime does not inject (it injects `SUPABASE_SERVICE_ROLE_KEY`; the docs wrongly said otherwise). Where nobody had set that secret by hand, `createClient` threw "supabaseKey is required" on every route that needs the service client: the rate limiter (`POST /discussions`, polls, news, auth) and avatar upload/removal. The client now uses `SUPABASE_SERVICE_ROLE_KEY` first and falls back to `SERVICE_ROLE_KEY`, and fails with a readable message when neither exists.
+- **Unexpected exceptions left no trace.** The catch-all of profiles, events, discussions, news, polls and faq returned the generic 500 and discarded the error. They now go through `internalErrorResponse()` (`_shared/http.ts`), which writes `[internal_error] {scope, message}` to the function log; the response is unchanged.
+
 ### Added
 
+- `supabase/functions/_shared/service-client.test.ts` covers the key lookup order, blank values and the missing-key error.
 - `supabase/tests/database/api_exposure.sql` (pgTAP) checks that the setting lists `releases`, `identity`, `content`, `docs` and `public` and never `private`.
 - `scripts/ops/static-checks.mjs` check 11 fails when `config.toml` `[api] schemas` and the expose migration list different schemas.
 - The deploy checklists (`deploy.sh`, `deploy.ps1`) and the Deployment page now list the exposed schemas.
