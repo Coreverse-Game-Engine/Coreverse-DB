@@ -188,9 +188,16 @@
 <li>
 <p><strong>Every list and profile call answered <code>500 query_error</code> on the hosted project.</strong> PostgREST on the hosted project only served <code>public</code> and <code>graphql_public</code>: <code>[api] schemas</code> in <code>config.toml</code> applies to <code>supabase start</code> only, and neither <code>db push</code> nor a function deploy sends it to the hosted project. Every query through <code>.schema('identity' | 'content' | 'releases' | 'docs')</code> was therefore refused (<code>PGRST106 Invalid schema</code>), which the handlers report as the generic 500, for signed-in and signed-out callers alike. The new migration sets the authenticator role's <code>pgrst.db_schemas</code> to the same list as <code>config.toml</code> and reloads PostgREST's configuration. <code>private</code> stays unexposed.</p>
 </li>
+<li>
+<p><strong>Creating a discussion and changing the avatar answered <code>500 internal_error</code>.</strong> <code>_shared/service-client.ts</code> read <code>SERVICE_ROLE_KEY</code>, a name the Edge Functions runtime does not inject (it injects <code>SUPABASE_SERVICE_ROLE_KEY</code>; the docs wrongly said otherwise). Where nobody had set that secret by hand, <code>createClient</code> threw "supabaseKey is required" on every route that needs the service client: the rate limiter (<code>POST /discussions</code>, polls, news, auth) and avatar upload/removal. The client now uses <code>SUPABASE_SERVICE_ROLE_KEY</code> first and falls back to <code>SERVICE_ROLE_KEY</code>, and fails with a readable message when neither exists.</p>
+</li>
+<li>
+<p><strong>Unexpected exceptions left no trace.</strong> The catch-all of profiles, events, discussions, news, polls and faq returned the generic 500 and discarded the error. They now go through <code>internalErrorResponse()</code> (<code>_shared/http.ts</code>), which writes <code>[internal_error] {scope, message}</code> to the function log; the response is unchanged.</p>
+</li>
 </ul>
 <h3 id="added"><a class="header" href="#added">Added</a></h3>
 <ul>
+<li><code>supabase/functions/_shared/service-client.test.ts</code> covers the key lookup order, blank values and the missing-key error.</li>
 <li><code>supabase/tests/database/api_exposure.sql</code> (pgTAP) checks that the setting lists <code>releases</code>, <code>identity</code>, <code>content</code>, <code>docs</code> and <code>public</code> and never <code>private</code>.</li>
 <li><code>scripts/ops/static-checks.mjs</code> check 11 fails when <code>config.toml</code> <code>[api] schemas</code> and the expose migration list different schemas.</li>
 <li>The deploy checklists (<code>deploy.sh</code>, <code>deploy.ps1</code>) and the Deployment page now list the exposed schemas.</li>

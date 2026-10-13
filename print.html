@@ -1671,8 +1671,10 @@ psql &lt;connection-string&gt; -f backup.sql
 <p>Separate from the table above (those are consumed by local
 dev/administration scripts against the DB directly, not by the deployed
 edge functions). <code>SUPABASE_URL</code>, <code>SUPABASE_ANON_KEY</code> and
-<code>SERVICE_ROLE_KEY</code> are auto-injected into every edge function by
-the Supabase runtime; the only one this project manages itself is:</p>
+<code>SUPABASE_SERVICE_ROLE_KEY</code> are auto-injected into every edge function by
+the Supabase runtime (note the <code>SUPABASE_</code> prefix: there is no injected
+<code>SERVICE_ROLE_KEY</code>; <code>_shared/service-client.ts</code> reads the injected name first
+and falls back to a manually set <code>SERVICE_ROLE_KEY</code>). The ones this project manages itself are:</p>
 <div class="table-wrapper"><table><thead><tr><th>Variable</th><th>Purpose</th></tr></thead><tbody>
 <tr><td><code>WEBSITE_ALLOWED_ORIGINS</code></td><td>Comma-separated, exact origins (scheme + host + port, no trailing slash) allowed by CORS (<code>_shared/http.ts withCors</code>) and by <code>POST /auth/password-reset</code>'s <code>redirectTo</code> validation. Also read by <code>send-email</code>: an email link is only built for the Website when the <code>redirect_to</code> origin is listed here, otherwise it falls back to the Supabase verify link.</td></tr>
 <tr><td><code>SEND_EMAIL_HOOK_SECRET</code></td><td>Only read by <code>send-email</code>. Signature secret for Supabase Auth's Send Email hook — copy verbatim (including the <code>v1,whsec_</code> prefix) from Dashboard → Authentication → Hooks → Send Email hook.</td></tr>
@@ -1747,9 +1749,16 @@ even though this endpoint's own validation passed).</p>
 <li>
 <p><strong>Every list and profile call answered <code>500 query_error</code> on the hosted project.</strong> PostgREST on the hosted project only served <code>public</code> and <code>graphql_public</code>: <code>[api] schemas</code> in <code>config.toml</code> applies to <code>supabase start</code> only, and neither <code>db push</code> nor a function deploy sends it to the hosted project. Every query through <code>.schema('identity' | 'content' | 'releases' | 'docs')</code> was therefore refused (<code>PGRST106 Invalid schema</code>), which the handlers report as the generic 500, for signed-in and signed-out callers alike. The new migration sets the authenticator role's <code>pgrst.db_schemas</code> to the same list as <code>config.toml</code> and reloads PostgREST's configuration. <code>private</code> stays unexposed.</p>
 </li>
+<li>
+<p><strong>Creating a discussion and changing the avatar answered <code>500 internal_error</code>.</strong> <code>_shared/service-client.ts</code> read <code>SERVICE_ROLE_KEY</code>, a name the Edge Functions runtime does not inject (it injects <code>SUPABASE_SERVICE_ROLE_KEY</code>; the docs wrongly said otherwise). Where nobody had set that secret by hand, <code>createClient</code> threw "supabaseKey is required" on every route that needs the service client: the rate limiter (<code>POST /discussions</code>, polls, news, auth) and avatar upload/removal. The client now uses <code>SUPABASE_SERVICE_ROLE_KEY</code> first and falls back to <code>SERVICE_ROLE_KEY</code>, and fails with a readable message when neither exists.</p>
+</li>
+<li>
+<p><strong>Unexpected exceptions left no trace.</strong> The catch-all of profiles, events, discussions, news, polls and faq returned the generic 500 and discarded the error. They now go through <code>internalErrorResponse()</code> (<code>_shared/http.ts</code>), which writes <code>[internal_error] {scope, message}</code> to the function log; the response is unchanged.</p>
+</li>
 </ul>
 <h3 id="added"><a class="header" href="#added">Added</a></h3>
 <ul>
+<li><code>supabase/functions/_shared/service-client.test.ts</code> covers the key lookup order, blank values and the missing-key error.</li>
 <li><code>supabase/tests/database/api_exposure.sql</code> (pgTAP) checks that the setting lists <code>releases</code>, <code>identity</code>, <code>content</code>, <code>docs</code> and <code>public</code> and never <code>private</code>.</li>
 <li><code>scripts/ops/static-checks.mjs</code> check 11 fails when <code>config.toml</code> <code>[api] schemas</code> and the expose migration list different schemas.</li>
 <li>The deploy checklists (<code>deploy.sh</code>, <code>deploy.ps1</code>) and the Deployment page now list the exposed schemas.</li>

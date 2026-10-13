@@ -187,8 +187,10 @@
 <p>Separate from the table above (those are consumed by local
 dev/administration scripts against the DB directly, not by the deployed
 edge functions). <code>SUPABASE_URL</code>, <code>SUPABASE_ANON_KEY</code> and
-<code>SERVICE_ROLE_KEY</code> are auto-injected into every edge function by
-the Supabase runtime; the only one this project manages itself is:</p>
+<code>SUPABASE_SERVICE_ROLE_KEY</code> are auto-injected into every edge function by
+the Supabase runtime (note the <code>SUPABASE_</code> prefix: there is no injected
+<code>SERVICE_ROLE_KEY</code>; <code>_shared/service-client.ts</code> reads the injected name first
+and falls back to a manually set <code>SERVICE_ROLE_KEY</code>). The ones this project manages itself are:</p>
 <div class="table-wrapper"><table><thead><tr><th>Variable</th><th>Purpose</th></tr></thead><tbody>
 <tr><td><code>WEBSITE_ALLOWED_ORIGINS</code></td><td>Comma-separated, exact origins (scheme + host + port, no trailing slash) allowed by CORS (<code>_shared/http.ts withCors</code>) and by <code>POST /auth/password-reset</code>'s <code>redirectTo</code> validation. Also read by <code>send-email</code>: an email link is only built for the Website when the <code>redirect_to</code> origin is listed here, otherwise it falls back to the Supabase verify link.</td></tr>
 <tr><td><code>SEND_EMAIL_HOOK_SECRET</code></td><td>Only read by <code>send-email</code>. Signature secret for Supabase Auth's Send Email hook — copy verbatim (including the <code>v1,whsec_</code> prefix) from Dashboard → Authentication → Hooks → Send Email hook.</td></tr>
