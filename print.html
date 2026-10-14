@@ -1758,7 +1758,7 @@ even though this endpoint's own validation passed).</p>
 </ul>
 <h3 id="added"><a class="header" href="#added">Added</a></h3>
 <ul>
-<li><code>supabase/functions/_shared/service-client.test.ts</code> covers the key lookup order, blank values and the missing-key error.</li>
+<li><code>supabase/functions/_shared/service-client.test.ts</code> (importing the dependency-free <code>service-role-key.ts</code>, so CI needs no <code>@types/node</code>) covers the key lookup order, blank values and the missing-key error.</li>
 <li><code>supabase/tests/database/api_exposure.sql</code> (pgTAP) checks that the setting lists <code>releases</code>, <code>identity</code>, <code>content</code>, <code>docs</code> and <code>public</code> and never <code>private</code>.</li>
 <li><code>scripts/ops/static-checks.mjs</code> check 11 fails when <code>config.toml</code> <code>[api] schemas</code> and the expose migration list different schemas.</li>
 <li>The deploy checklists (<code>deploy.sh</code>, <code>deploy.ps1</code>) and the Deployment page now list the exposed schemas.</li>
