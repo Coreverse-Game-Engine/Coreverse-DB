@@ -84,7 +84,7 @@ fi
 step "3b. Secrets currently set on the project (names/digests only)"
 supabase secrets list || true
 echo "Expected: WEBSITE_ALLOWED_ORIGINS (every Website origin, incl. staging) SEND_EMAIL_HOOK_SECRET BREVO_API_KEY BREVO_SENDER_EMAIL BREVO_SENDER_NAME DOCS_REINDEX_TOKEN"
-echo "(SUPABASE_URL / SUPABASE_ANON_KEY / SERVICE_ROLE_KEY are injected by the platform.)"
+echo "(SUPABASE_URL / SUPABASE_ANON_KEY / SUPABASE_SERVICE_ROLE_KEY are injected by the platform.)"
 
 step "4. Edge Functions: ${FUNCTIONS[*]}"
 for fn in "${FUNCTIONS[@]}"; do
