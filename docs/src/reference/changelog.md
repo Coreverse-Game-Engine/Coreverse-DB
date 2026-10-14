@@ -19,7 +19,7 @@ Edge Function routing fix and hosted-schema exposure. **No API shape changes and
 
 ### Added
 
-- `supabase/functions/_shared/service-client.test.ts` covers the key lookup order, blank values and the missing-key error.
+- `supabase/functions/_shared/service-client.test.ts` (importing the dependency-free `service-role-key.ts`, so CI needs no `@types/node`) covers the key lookup order, blank values and the missing-key error.
 - `supabase/tests/database/api_exposure.sql` (pgTAP) checks that the setting lists `releases`, `identity`, `content`, `docs` and `public` and never `private`.
 - `scripts/ops/static-checks.mjs` check 11 fails when `config.toml` `[api] schemas` and the expose migration list different schemas.
 - The deploy checklists (`deploy.sh`, `deploy.ps1`) and the Deployment page now list the exposed schemas.
