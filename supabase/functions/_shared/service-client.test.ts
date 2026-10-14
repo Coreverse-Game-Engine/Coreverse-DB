@@ -1,5 +1,5 @@
 import { assertEquals, assertThrows, } from '@std/assert';
-import { resolveServiceRoleKey, } from './service-client.ts';
+import { resolveServiceRoleKey, } from './service-role-key.ts';
 
 const env = (values: Record<string, string>,) => (name: string,) => values[name];
 
