@@ -123,7 +123,7 @@ if ($Secrets) {
 Step '3b. Secrets currently set on the project (names/digests only)'
 Invoke-Native 'secrets list' { supabase secrets list } -AllowFailure | Out-Null
 Write-Host 'Expected: WEBSITE_ALLOWED_ORIGINS (every Website origin, incl. staging) SEND_EMAIL_HOOK_SECRET BREVO_API_KEY BREVO_SENDER_EMAIL BREVO_SENDER_NAME DOCS_REINDEX_TOKEN'
-Write-Host '(SUPABASE_URL / SUPABASE_ANON_KEY / SERVICE_ROLE_KEY are injected by the platform.)'
+Write-Host '(SUPABASE_URL / SUPABASE_ANON_KEY / SUPABASE_SERVICE_ROLE_KEY are injected by the platform.)'
 
 Step ("4. Edge Functions: {0}" -f ($functions -join ' '))
 $deployed = @(); $failed = @()

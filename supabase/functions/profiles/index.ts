@@ -39,6 +39,7 @@ import { publicUrlWithCacheBust, } from '../_shared/storage.ts';
 import { callerIp, hitRateLimit, } from '../_shared/rate-limit.ts';
 import {
   errorResponse,
+  internalErrorResponse,
   jsonResponse,
   safeDbErrorMessage,
   statusForPgError,
@@ -387,7 +388,7 @@ serve(withCors(async (req,) => {
     }
 
     return errorResponse('method_not_allowed', 'Only GET, PATCH and DELETE are supported.', 405,);
-  } catch (_err) {
-    return errorResponse('internal_error', safeDbErrorMessage(500,), 500,);
+  } catch (err) {
+    return internalErrorResponse('profiles', err,);
   }
 },),);

@@ -9,7 +9,13 @@
 
 import { serve, } from '@std/http/server';
 import { createUserClient, } from '../_shared/supabase-client.ts';
-import { errorResponse, jsonResponse, safeDbErrorMessage, withCors, } from '../_shared/http.ts';
+import {
+  errorResponse,
+  internalErrorResponse,
+  jsonResponse,
+  safeDbErrorMessage,
+  withCors,
+} from '../_shared/http.ts';
 import { withTokenCheck, } from '../_shared/caller.ts';
 import { buildCursorFilter, paginate, parsePagination, } from '../_shared/pagination.ts';
 import { fetchAuthors, unknownAuthor, } from '../_shared/authors.ts';
@@ -175,7 +181,7 @@ serve(withCors(withTokenCheck(async (req,) => {
     }
 
     return errorResponse('not_found', 'Unknown news route.', 404,);
-  } catch (_err) {
-    return errorResponse('internal_error', safeDbErrorMessage(500,), 500,);
+  } catch (err) {
+    return internalErrorResponse('news', err,);
   }
 },),),);
