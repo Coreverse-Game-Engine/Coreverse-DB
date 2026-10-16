@@ -279,6 +279,35 @@ if (warnings.length) {
   }
 }
 
+// 12 -- service_role grants on the API schemas --------------------------------
+// service_role bypasses RLS but not privilege checks, and Supabase only
+// pre-grants it on `public`. Every other exposed schema needs an explicit
+// `grant usage on schema ... to service_role` in some migration, or the
+// service-role client (rate limiter, avatar upload, docs reindex) gets 42501
+// and every such route answers a generic 500.
+{
+  const cfg = readFileSync(join(root, 'supabase/config.toml'), 'utf8');
+  const cfgMatch = cfg.match(/^schemas\s*=\s*\[([^\]]*)\]/m);
+  if (cfgMatch) {
+    const schemas = [...cfgMatch[1].matchAll(/"([^"]+)"/g)].map((m) => m[1])
+      .filter((x) => x !== 'public' && x !== 'graphql_public');
+    const granted = new Set();
+    for (const name of migs) {
+      const sql = readFileSync(join(root, 'supabase/migrations', name), 'utf8');
+      for (const m of sql.matchAll(/grant\s+usage\s+on\s+schema\s+([^;]+?)\s+to\s+([^;]+);/gi)) {
+        const roles = m[2].split(',').map((r) => r.trim().toLowerCase());
+        if (!roles.includes('service_role')) continue;
+        for (const sch of m[1].split(',')) granted.add(sch.trim().toLowerCase());
+      }
+    }
+    for (const sch of schemas) {
+      if (!granted.has(sch)) {
+        fail('service-role-grants', `no migration grants USAGE on schema ${sch} to service_role (service-role calls into ${sch} fail with 42501)`);
+      }
+    }
+  }
+}
+
 if (failures.length) {
   console.error(`static-checks: ${failures.length} problem(s)\n` + failures.map((f) => '  - ' + f).join('\n'));
   process.exit(1);
