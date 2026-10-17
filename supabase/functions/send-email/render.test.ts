@@ -141,6 +141,33 @@ Deno.test('emailContentFor returns the English recovery copy for locale "en"', (
   assertStringIncludes(htmlContent, 'Reset Password',);
 });
 
+Deno.test('emailContentFor adds the recovery code below the link when a token is given', () => {
+  const { htmlContent, } = emailContentFor(
+    'recovery',
+    'en',
+    'https://coreverse.dev/link',
+    '123456',
+  );
+  assertStringIncludes(htmlContent, 'https://coreverse.dev/link',);
+  assertStringIncludes(htmlContent, '<strong>123456</strong>',);
+});
+
+Deno.test('emailContentFor omits the recovery code block without a token', () => {
+  const { htmlContent, } = emailContentFor('recovery', 'en', 'https://coreverse.dev/link',);
+  assertEquals(htmlContent.includes('<strong>',), false,);
+});
+
+Deno.test('emailContentFor HTML-escapes the recovery code', () => {
+  const { htmlContent, } = emailContentFor(
+    'recovery',
+    'tr',
+    'https://coreverse.dev/link',
+    '<b>1</b>',
+  );
+  assertEquals(htmlContent.includes('<b>1</b>',), false,);
+  assertStringIncludes(htmlContent, '&lt;b&gt;1&lt;/b&gt;',);
+});
+
 Deno.test('emailContentFor covers every WEBSITE_LOCALES entry for recovery (no missing translation)', async () => {
   const { WEBSITE_LOCALES, } = await import('../_shared/locales.ts');
   for (const locale of WEBSITE_LOCALES) {

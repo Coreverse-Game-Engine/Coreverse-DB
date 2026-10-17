@@ -87,6 +87,11 @@ Deno.serve(async (req: Request,): Promise<Response> => {
 
   const { user, email_data, } = verified;
   const actionLink = actionLinkFor(supabaseUrl, email_data, allowedOrigins(),);
+  console.log(
+    `send-email: ${email_data.email_action_type} link target ${new URL(actionLink,).origin}${
+      new URL(actionLink,).pathname
+    }`,
+  );
 
   let redirectPathname: string;
   try {

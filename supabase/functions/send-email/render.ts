@@ -100,6 +100,27 @@ const RESET_EMAIL_COPY: Record<WebsiteLocale, { subject: string; body: string; c
   },
 };
 
+// Shown under the recovery button together with email_data.token. Links in
+// Brevo transactional emails are rewritten to a third-party tracking
+// redirect that some networks cannot reach, so the user can always finish
+// the reset by typing this code on the Website's reset form instead.
+const RESET_CODE_COPY: Record<WebsiteLocale, string> = {
+  en: "Can't open the link? Enter this code on the password reset page instead:",
+  tr: 'Bağlantı açılmıyor mu? Bunun yerine şu kodu parola sıfırlama sayfasında girin:',
+  fr: "Le lien ne s'ouvre pas ? Saisissez plutôt ce code sur la page de réinitialisation :",
+  de:
+    'Der Link lässt sich nicht öffnen? Geben Sie stattdessen diesen Code auf der Seite zum Zurücksetzen ein:',
+  es: '¿No se abre el enlace? Introduce este código en la página de restablecimiento:',
+  pt: 'A ligação não abre? Introduza este código na página de redefinição:',
+  cn: '链接无法打开？请在重置密码页面输入此验证码：',
+  ru: 'Ссылка не открывается? Введите этот код на странице сброса пароля:',
+  jp: 'リンクが開けませんか？代わりにパスワードリセットページでこのコードを入力してください：',
+  kr: '링크가 열리지 않나요? 비밀번호 재설정 페이지에서 이 코드를 입력하세요:',
+  pl: 'Link się nie otwiera? Wpisz ten kod na stronie resetowania hasła:',
+  in: 'लिंक नहीं खुल रहा? इसके बजाय पासवर्ड रीसेट पेज पर यह कोड दर्ज करें:',
+  sa: 'لا يفتح الرابط؟ أدخل هذا الرمز في صفحة إعادة تعيين كلمة المرور بدلاً من ذلك:',
+};
+
 // Path of the Website route that completes an emailed action. The
 // Website's route reads `token_hash`, `type` and `next` from the query
 // string and calls supabase.auth.verifyOtp({ token_hash, type }), which
@@ -269,9 +290,12 @@ export function emailContentFor(
 
   if (actionType === 'recovery') {
     const copy = RESET_EMAIL_COPY[locale];
+    const codeBlock = token
+      ? `<p>${RESET_CODE_COPY[locale]}</p><p><strong>${escapeHtml(token,)}</strong></p>`
+      : '';
     return {
       subject: copy.subject,
-      htmlContent: `<p>${copy.body}</p><p><a href="${link}">${copy.cta}</a></p>`,
+      htmlContent: `<p>${copy.body}</p><p><a href="${link}">${copy.cta}</a></p>${codeBlock}`,
     };
   }
 
