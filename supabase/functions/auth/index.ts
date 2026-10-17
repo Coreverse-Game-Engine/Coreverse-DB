@@ -25,6 +25,10 @@
 
 import { serve, } from '@std/http/server';
 import { createAnonClient, } from '../_shared/supabase-client.ts';
+import { createServiceClient, } from '../_shared/service-client.ts';
+import { sendBrevoEmail, } from '../_shared/brevo.ts';
+import { extractLocale, } from '../_shared/locales.ts';
+import { actionLinkFor, emailContentFor, } from '../send-email/render.ts';
 import { allowedOrigins, errorResponse, jsonResponse, withCors, } from '../_shared/http.ts';
 import { callerIp, hitRateLimit, } from '../_shared/rate-limit.ts';
 import { PasswordResetSchema, RESET_REDIRECT_PATH_PATTERN, } from './schemas.ts';
@@ -73,15 +77,11 @@ serve(withCors(async (req,) => {
       );
     }
 
-    // Fire the actual reset email through a plain anon client. The
-    // result is intentionally not branched on: whether the address
-    // exists, and whether Supabase Auth's send succeeded, must not be
-    // observable from this response. redirectTo has already been
-    // validated against WEBSITE_ALLOWED_ORIGINS + the locale path
-    // pattern above -- Supabase Auth separately also checks it against
-    // its own Site URL / Additional Redirect URLs allowlist, so both
-    // allowlists need to list the same reset-password URLs.
-    await createAnonClient().auth.resetPasswordForEmail(email, { redirectTo, },);
+    // The result is intentionally not branched on: whether the address
+    // exists, and whether the send succeeded, must not be observable from
+    // this response. redirectTo has already been validated against
+    // WEBSITE_ALLOWED_ORIGINS + the locale path pattern above.
+    await sendRecoveryEmail(email, redirectTo,);
 
     return jsonResponse({ ok: true, },);
   } catch (err) {
@@ -122,4 +122,48 @@ function validateRedirectTo(redirectTo: string,): string | null {
   }
 
   return null;
+}
+
+// Builds the recovery token with the admin API and mails it directly, so the
+// link always points at the Website origin the caller validated above. Going
+// through resetPasswordForEmail instead would let Supabase Auth silently swap
+// redirectTo for its Site URL whenever the origin is missing from the
+// dashboard's Redirect URLs, and the email would then link to the wrong
+// place. Without BREVO_API_KEY (local stack) it falls back to Supabase Auth's
+// own mailer.
+async function sendRecoveryEmail(email: string, redirectTo: string,): Promise<void> {
+  const brevoApiKey = Deno.env.get('BREVO_API_KEY',);
+  if (!brevoApiKey) {
+    await createAnonClient().auth.resetPasswordForEmail(email, { redirectTo, },);
+    return;
+  }
+
+  try {
+    const { data, error, } = await createServiceClient().auth.admin.generateLink({
+      type: 'recovery',
+      email,
+      options: { redirectTo, },
+    },);
+    if (error || !data.properties) return;
+
+    const { email_otp, hashed_token, } = data.properties;
+    const link = actionLinkFor(Deno.env.get('SUPABASE_URL',)!, {
+      token: email_otp,
+      token_hash: hashed_token,
+      redirect_to: redirectTo,
+      email_action_type: 'recovery',
+      site_url: '',
+      token_new: '',
+      token_hash_new: '',
+    }, allowedOrigins(),);
+    const { subject, htmlContent, } = emailContentFor(
+      'recovery',
+      extractLocale(new URL(redirectTo,).pathname,),
+      link,
+      email_otp,
+    );
+    await sendBrevoEmail(brevoApiKey, { to: email, subject, htmlContent, },);
+  } catch (err) {
+    console.error('auth/password-reset: recovery email failed:', err,);
+  }
 }

@@ -52,11 +52,10 @@
 // ---------------------------------------------------------------------
 
 import { Webhook, } from 'https://esm.sh/standardwebhooks@1.0.0';
+import { sendBrevoEmail, } from '../_shared/brevo.ts';
 import { allowedOrigins, } from '../_shared/http.ts';
 import { extractLocale, } from '../_shared/locales.ts';
 import { actionLinkFor, emailContentFor, type HookPayload, } from './render.ts';
-
-const BREVO_ENDPOINT = 'https://api.brevo.com/v3/smtp/email';
 
 Deno.serve(async (req: Request,): Promise<Response> => {
   if (req.method !== 'POST') {
@@ -108,34 +107,10 @@ Deno.serve(async (req: Request,): Promise<Response> => {
     email_data.token,
   );
 
-  const senderEmail = Deno.env.get('BREVO_SENDER_EMAIL',) ?? 'coreverseengine@gmail.com';
-  const senderName = Deno.env.get('BREVO_SENDER_NAME',) ?? 'CoreVerse Engine';
-
   try {
-    const brevoResponse = await fetch(BREVO_ENDPOINT, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Accept: 'application/json',
-        'api-key': brevoApiKey,
-      },
-      body: JSON.stringify({
-        sender: { name: senderName, email: senderEmail, },
-        to: [{ email: user.email, },],
-        subject,
-        htmlContent,
-      },),
-    },);
-
-    if (!brevoResponse.ok) {
-      console.error(
-        `send-email: Brevo responded with ${brevoResponse.status}:`,
-        await brevoResponse.text(),
-      );
-      return new Response('email provider error', { status: 500, },);
-    }
+    await sendBrevoEmail(brevoApiKey, { to: user.email, subject, htmlContent, },);
   } catch (err) {
-    console.error('send-email: fetch to Brevo failed:', err,);
+    console.error('send-email: sending through Brevo failed:', err,);
     return new Response('email provider error', { status: 500, },);
   }
 
