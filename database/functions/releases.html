@@ -174,7 +174,7 @@
                 <div id="content" class="content">
                     <main>
                         <h1 id="releases-functions"><a class="header" href="#releases-functions">Releases Functions</a></h1>
-<p>All three functions in <code>releases</code> are <code>stable</code> SQL functions, granted to <code>anon</code> and <code>authenticated</code>, returning the same row shape (a release row with <code>artifacts</code> nested as a <code>jsonb</code> array) so the API's <code>Release</code>/<code>Artifact</code> schema maps onto them 1:1.</p>
+<p>The three read functions in <code>releases</code> are <code>stable</code> SQL functions, granted to <code>anon</code> and <code>authenticated</code>, returning the same row shape (a release row with <code>artifacts</code> nested as a <code>jsonb</code> array) so the API's <code>Release</code>/<code>Artifact</code> schema maps onto them 1:1.</p>
 <div class="table-wrapper"><table><thead><tr><th>Function</th><th>Signature</th><th>Does</th></tr></thead><tbody>
 <tr><td><code>get_by_version</code></td><td><code>(p_version text) → table(...)</code></td><td>One release by exact version string</td></tr>
 <tr><td><code>get_latest</code></td><td><code>(p_status text default 'stable') → table(...)</code></td><td>The highest-versioned release with the given status, ordered by <code>(version_major, version_minor, version_patch) desc</code></td></tr>
@@ -183,6 +183,8 @@
 </div>
 <p>Each aggregates <code>engine_artifacts</code> per release with <code>jsonb_agg(jsonb_build_object(...)) filter (where a.id is not null)</code>, coalescing to <code>'[]'::jsonb</code> for a release with no artifacts yet, so the API never has to special-case a <code>null</code> artifacts array.</p>
 <p>See <a href="../domains/releases.html">Domains › Releases</a>, <a href="../tables/releases.html">Tables › Releases</a>, and <a href="../../api/resources/releases.html">API › Releases</a>.</p>
+<h2 id="releasesplan_delta-060"><a class="header" href="#releasesplan_delta-060"><code>releases.plan_delta</code> (0.6.0)</a></h2>
+<p><code>plan_delta(p_from text, p_to text, p_os text, p_architecture text, p_max_steps int default 5, p_max_ratio numeric default 0.6) → jsonb</code>, <code>stable</code>, granted to <code>anon</code>, <code>authenticated</code> and <code>service_role</code>. Returns <code>null</code> when the target or source release, or the target's artifact for the platform, does not exist (the API answers <code>404</code>). Otherwise it walks the <code>engine_deltas</code> graph with a recursive query (at most <code>p_max_steps</code> hops, never past the target version) and picks the chain with the fewest bytes, ties broken by fewest steps. It recommends <code>delta</code> only when the chain exists, the target has a manifest, and the chain is at most <code>p_max_ratio</code> of the full artifact; otherwise <code>full</code> with a <code>reason</code> (<code>not_newer</code>, <code>no_manifest</code>, <code>no_chain</code>, <code>too_large</code>). Storage paths are returned as paths; the <code>releases</code> Edge Function turns them into public URLs. See <a href="../../api/resources/releases.html">API › Releases</a>.</p>
 
                     </main>
 

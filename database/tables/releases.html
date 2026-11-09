@@ -196,10 +196,25 @@
 <tr><td><code>size_bytes</code></td><td><code>bigint</code></td><td><code>&gt; 0</code></td></tr>
 <tr><td><code>min_requirements</code></td><td><code>jsonb</code></td><td></td></tr>
 <tr><td><code>compiler</code></td><td><code>jsonb</code></td><td></td></tr>
+<tr><td><code>manifest_path</code> / <code>manifest_sha256</code> / <code>manifest_size_bytes</code></td><td><code>text</code> / <code>text</code> / <code>bigint</code>, nullable</td><td>0.6.0. File manifest of this build in the <code>engine-deltas</code> bucket. All three are set together or all null (check constraint)</td></tr>
 <tr><td><code>created_at</code></td><td><code>timestamptz</code></td><td></td></tr>
 </tbody></table>
 </div>
 <p>Unique on <code>(release_id, os, architecture)</code> — at most one artifact per platform per release. <strong>RLS:</strong> public read on both tables; no <code>anon</code>/<code>authenticated</code> write policies at all.</p>
+<h2 id="releasesengine_deltas-060"><a class="header" href="#releasesengine_deltas-060"><code>releases.engine_deltas</code> (0.6.0)</a></h2>
+<div class="table-wrapper"><table><thead><tr><th>Column</th><th>Type</th><th>Notes</th></tr></thead><tbody>
+<tr><td><code>id</code></td><td><code>uuid</code>, PK</td><td></td></tr>
+<tr><td><code>from_release_id</code> / <code>to_release_id</code></td><td><code>uuid</code></td><td>Composite foreign keys <code>(release, os, architecture)</code> → <code>engine_artifacts</code>, <code>on delete cascade</code>; <code>from &lt;&gt; to</code>; a trigger requires <code>to</code> to be a newer version than <code>from</code></td></tr>
+<tr><td><code>os</code> / <code>architecture</code></td><td><code>text</code></td><td>Same values as <code>engine_artifacts</code></td></tr>
+<tr><td><code>storage_path</code></td><td><code>text</code></td><td>Object path in the <code>engine-deltas</code> bucket</td></tr>
+<tr><td><code>sha256</code></td><td><code>text</code></td><td>Must match <code>^[a-f0-9]{64}$</code></td></tr>
+<tr><td><code>size_bytes</code></td><td><code>bigint</code></td><td><code>&gt; 0</code></td></tr>
+<tr><td><code>algorithm</code></td><td><code>text</code></td><td><code>bsdiff</code></td></tr>
+<tr><td><code>format_version</code></td><td><code>int</code></td><td><code>&gt;= 1</code>, default 1</td></tr>
+<tr><td><code>created_at</code></td><td><code>timestamptz</code></td><td></td></tr>
+</tbody></table>
+</div>
+<p>Unique on <code>(from_release_id, to_release_id, os, architecture)</code>. <strong>RLS:</strong> public read; no write policies for <code>anon</code>/<code>authenticated</code>.</p>
 <p>See <a href="../functions/releases.html">Functions › Releases</a> and <a href="../../api/resources/releases.html">API › Releases</a>.</p>
 
                     </main>

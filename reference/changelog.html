@@ -175,8 +175,21 @@
                     <main>
                         <h1 id="changelog"><a class="header" href="#changelog">Changelog</a></h1>
 <p>Release notes for the <code>@Coreverse-Game-Engine/db-client</code> package and the backend it describes. GitHub's auto-generated release notes (grouped by PR label, see <code>.github/release.yml</code>) remain the per-PR record; this page is the consumer-facing summary of what changed <em>for API and SDK users</em>.</p>
-<h2 id="unreleased"><a class="header" href="#unreleased">Unreleased</a></h2>
-<p>Edge Function routing fix and hosted-schema exposure. <strong>No API shape changes and no SDK change</strong>: <code>package.json</code> and <code>openapi.yaml</code> stay at 0.5.5 and the Website keeps <code>^0.5.5</code>. Two new migrations (<code>20261012134916_expose_api_schemas</code>, <code>20261015090000_grant_service_role_api_schemas</code>): run <code>supabase db push</code>. Redeploy <strong>every</strong> Edge Function that routes on its path (all of them except <code>send-email</code>), then run the production smoke check.</p>
+<h2 id="060"><a class="header" href="#060">0.6.0</a></h2>
+<p>Delta (incremental) Engine updates, plus the fixes that were waiting under "Unreleased". <strong><code>package.json</code> and <code>openapi.yaml</code> are at 0.6.0</strong>; the Website and Launcher bump <code>db-client</code> to <code>^0.6.0</code> after regenerating (<code>pnpm run generate</code>). One new migration (<code>20261108100000_create_engine_deltas</code>): run <code>supabase db push</code>. Redeploy the <code>releases</code> Edge Function, and — as before — every Edge Function that routes on its path (all except <code>send-email</code>), then run the production smoke check.</p>
+<h3 id="added-delta-updates"><a class="header" href="#added-delta-updates">Added (delta updates)</a></h3>
+<ul>
+<li><strong><code>GET /releases/{version}/delta?from=&amp;os=&amp;architecture=</code></strong> (<code>getReleaseDeltaPlan</code>, schema <code>DeltaPlan</code>): plans an update from an installed older version to <code>{version}</code> — an ordered chain of delta packages plus the target's file manifest, or <code>recommended: "full"</code> with a reason (<code>not_newer</code>, <code>no_manifest</code>, <code>no_chain</code>, <code>too_large</code>). The chain is capped at 5 steps and 60 % of the full artifact. Public, no token.</li>
+<li><strong><code>releases.engine_deltas</code></strong> table and <strong><code>engine_artifacts.manifest_*</code></strong> columns (nullable, so every existing artifact keeps working and simply has no manifest yet), <strong><code>releases.plan_delta</code></strong> function, and the public <strong><code>engine-deltas</code></strong> Storage bucket (read-only for clients; written with the service role).</li>
+<li><strong><code>scripts/ops/publish-delta.mjs</code></strong>: validates and uploads a manifest or a delta package and records its path, hash and size. <code>--dry-run</code> checks without sending anything.</li>
+<li><strong>Static check 13</strong> fails when a migration lets clients write to the <code>engine-deltas</code> bucket. New smoke checks for the delta route's validation.</li>
+<li>Tests: <code>supabase/tests/database/releases_deltas.sql</code> (19 pgTAP checks: chain choice, step and ratio limits, every fallback reason, direction trigger, platform foreign keys, manifest constraint, RLS, bucket policy), <code>supabase/functions/releases/delta.test.ts</code>, and delta cases in <code>schemas.test.ts</code>.</li>
+<li>Docs: file formats for manifests and delta packages and the rules the Launcher follows are in <a href="../database/domains/releases.html">Database › Domains › Releases</a>.</li>
+</ul>
+<h3 id="not-changed"><a class="header" href="#not-changed">Not changed</a></h3>
+<p>Existing endpoints, the <code>Release</code> and <code>Artifact</code> response shapes and all existing tables keep their behavior. The SDK gains one operation and one type; <code>src/generated</code> must be regenerated.</p>
+<h2 id="earlier-fixes-shipped-with-060"><a class="header" href="#earlier-fixes-shipped-with-060">Earlier fixes shipped with 0.6.0</a></h2>
+<p>Edge Function routing fix and hosted-schema exposure. Two migrations (<code>20261012134916_expose_api_schemas</code>, <code>20261015090000_grant_service_role_api_schemas</code>).</p>
 <h3 id="fixed"><a class="header" href="#fixed">Fixed</a></h3>
 <ul>
 <li>

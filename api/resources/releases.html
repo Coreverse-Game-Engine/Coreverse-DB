@@ -178,10 +178,19 @@
 <tr><td><code>GET</code></td><td><code>/releases</code></td><td>Public</td><td>List releases, optionally filtered by <code>status</code>, paginated</td></tr>
 <tr><td><code>GET</code></td><td><code>/releases/latest</code></td><td>Public</td><td>The latest release for a given <code>status</code> (default <code>stable</code>)</td></tr>
 <tr><td><code>GET</code></td><td><code>/releases/{version}</code></td><td>Public</td><td>One release by exact version string</td></tr>
+<tr><td><code>GET</code></td><td><code>/releases/{version}/delta</code></td><td>Public</td><td>Plan a delta update from <code>?from=</code> to <code>{version}</code> (see below)</td></tr>
 </tbody></table>
 </div>
 <p>Every response nests a release's platform artifacts as an <code>artifacts[]</code> array (see <code>Release.yaml</code> / <code>Artifact.yaml</code>), matching <code>releases.get_by_version</code> / <code>get_latest</code> / <code>list_releases</code> 1:1 (see <a href="../../database/functions/releases.html">Database › Functions › Releases</a>).</p>
 <p><code>GET /releases/{version}</code> returns <code>404</code> for an unknown version, not <code>400</code> — the version string itself is free-form text, so a malformed version is indistinguishable from "not found" at this layer.</p>
+<h2 id="get-releasesversiondelta"><a class="header" href="#get-releasesversiondelta"><code>GET /releases/{version}/delta</code></a></h2>
+<p>Query: <code>from</code> (installed version), <code>os</code> (<code>windows</code>|<code>linux</code>|<code>macos</code>), <code>architecture</code> (<code>x86_64</code>|<code>arm64</code>) — all required. <code>{version}</code> is the target. Response: <code>DeltaPlan</code> (<code>openapi/schemas/DeltaPlan.yaml</code>).</p>
+<p>The Launcher calls this before installing a newer Engine over an older one it already has. The answer is either:</p>
+<ul>
+<li><code>recommended: "delta"</code> — <code>steps[]</code> is an ordered chain of delta packages (oldest first) that turns <code>from</code> into <code>{version}</code>, and <code>to_manifest</code> lists every file of the target tree with its SHA-256. Every <code>url</code> is a public <code>engine-deltas</code> object; each has a <code>sha256</code> and <code>size_bytes</code> to verify.</li>
+<li><code>recommended: "full"</code> — download <code>full.download_url</code> instead. <code>reason</code> says why: <code>not_newer</code>, <code>no_manifest</code> (the target has no manifest yet), <code>no_chain</code> (no chain of at most <code>max_steps</code> = 5 deltas), or <code>too_large</code> (the best chain is more than <code>max_ratio</code> = 60 % of the full artifact). <code>steps</code> is empty.</li>
+</ul>
+<p><code>full</code> is always present, so a failed delta update (any hash mismatch) can fall back to the verified full artifact. Errors: <code>400 invalid_version</code> (the path version is malformed, so <code>latest</code> is rejected), <code>400 invalid_query</code> (missing or invalid <code>from</code>/<code>os</code>/<code>architecture</code>), <code>404 not_found</code> (unknown target or source release, or the target has no artifact for the platform).</p>
 
                     </main>
 

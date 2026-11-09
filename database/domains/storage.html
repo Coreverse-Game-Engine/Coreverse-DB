@@ -179,10 +179,13 @@
 <div class="table-wrapper"><table><thead><tr><th>Bucket</th><th>Visibility</th><th>Naming</th><th>Limits</th></tr></thead><tbody>
 <tr><td><code>avatars</code></td><td>Public</td><td>Flat: <code>{user_id}.png</code></td><td>2 MB, <code>image/png</code> only</td></tr>
 <tr><td><code>project-archives</code></td><td>Private</td><td><code>{owner_id}/{project_id}.tar.zst</code></td><td>No bucket-level size limit (falls back to the project plan's global upload cap)</td></tr>
+<tr><td><code>engine-deltas</code></td><td>Public</td><td><code>{os}-{architecture}/{version}/manifest.json</code>, <code>{os}-{architecture}/{from}__{to}/delta.zip</code></td><td>No bucket-level size limit; JSON, ZIP or octet-stream</td></tr>
 </tbody></table>
 </div>
 <h2 id="avatars"><a class="header" href="#avatars"><code>avatars</code></a></h2>
 <p>Public read, self-only write. Because the object name is always exactly <code>{user_id}.png</code>, uploading a new avatar overwrites the previous one in place — there's no orphaned-old-avatar cleanup to do, by construction.</p>
+<h2 id="engine-deltas"><a class="header" href="#engine-deltas"><code>engine-deltas</code></a></h2>
+<p>Public read, service-role-only write: file manifests and delta packages for incremental Engine updates (see <a href="releases.html">Domains › Releases</a>). There are no client-side write policies.</p>
 <h2 id="project-archives"><a class="header" href="#project-archives"><code>project-archives</code></a></h2>
 <p>Private bucket, owner-only <em>direct</em> Storage access (the <code>storage.objects</code> RLS policies check that the first path segment matches <code>auth.uid()</code>). <strong>Team-member reads do not go through Storage RLS at all</strong> — they go through the <code>projects</code> Edge Function's <code>/projects/{id}/download</code> endpoint, which:</p>
 <ol>
