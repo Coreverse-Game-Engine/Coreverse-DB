@@ -5,7 +5,7 @@
  * Centralized data-access API for the Coreverse ecosystem. Coreverse DB defines and serves all data operations; Coreverse Launcher and Coreverse Website consume this API and never access Postgres/Supabase directly.
  * Access model: the Supabase platform JWT gate is OFF for `releases`, `news`, `events`, `faq`, `polls`, `discussions`, `docs`, `auth`, `profiles` and `send-email`, and ON for `teams`, `requests` and `projects`. Signed-out callers can read public content (a `GET` on any public-content route answers 200); every write needs a user session and answers 401 `unauthorized` from the function without one. `POST /auth/password-reset` and `GET /profiles/username-availability` also work signed out; every other `/profiles` route authenticates the caller inside the function.
  *
- * OpenAPI spec version: 0.5.5
+ * OpenAPI spec version: 0.6.0
  */
 
 export * from "./acceptMembershipRequest200";
@@ -225,6 +225,23 @@ export * from "./getReleaseByVersion400";
 export * from "./getReleaseByVersion400Error";
 export * from "./getReleaseByVersion404";
 export * from "./getReleaseByVersion404Error";
+export * from "./getReleaseDeltaPlan200";
+export * from "./getReleaseDeltaPlan200Architecture";
+export * from "./getReleaseDeltaPlan200FromManifest";
+export * from "./getReleaseDeltaPlan200Full";
+export * from "./getReleaseDeltaPlan200Os";
+export * from "./getReleaseDeltaPlan200Reason";
+export * from "./getReleaseDeltaPlan200Recommended";
+export * from "./getReleaseDeltaPlan200StepsItem";
+export * from "./getReleaseDeltaPlan200StepsItemAlgorithm";
+export * from "./getReleaseDeltaPlan200ToManifest";
+export * from "./getReleaseDeltaPlan400";
+export * from "./getReleaseDeltaPlan400Error";
+export * from "./getReleaseDeltaPlan404";
+export * from "./getReleaseDeltaPlan404Error";
+export * from "./getReleaseDeltaPlanArchitecture";
+export * from "./getReleaseDeltaPlanOs";
+export * from "./getReleaseDeltaPlanParams";
 export * from "./inviteToTeam201";
 export * from "./inviteToTeam201Status";
 export * from "./inviteToTeam201Type";

@@ -5,7 +5,7 @@
  * Centralized data-access API for the Coreverse ecosystem. Coreverse DB defines and serves all data operations; Coreverse Launcher and Coreverse Website consume this API and never access Postgres/Supabase directly.
  * Access model: the Supabase platform JWT gate is OFF for `releases`, `news`, `events`, `faq`, `polls`, `discussions`, `docs`, `auth`, `profiles` and `send-email`, and ON for `teams`, `requests` and `projects`. Signed-out callers can read public content (a `GET` on any public-content route answers 200); every write needs a user session and answers 401 `unauthorized` from the function without one. `POST /auth/password-reset` and `GET /profiles/username-availability` also work signed out; every other `/profiles` route authenticates the caller inside the function.
  *
- * OpenAPI spec version: 0.5.5
+ * OpenAPI spec version: 0.6.0
  */
 import { useQuery } from "@tanstack/react-query";
 import type {
@@ -27,6 +27,10 @@ import type {
   GetReleaseByVersion200,
   GetReleaseByVersion400,
   GetReleaseByVersion404,
+  GetReleaseDeltaPlan200,
+  GetReleaseDeltaPlan400,
+  GetReleaseDeltaPlan404,
+  GetReleaseDeltaPlanParams,
   ListReleases200Item,
   ListReleases400,
   ListReleasesParams,
@@ -623,6 +627,237 @@ export function useGetReleaseByVersion<
   queryKey: DataTag<QueryKey, TData, TError>;
 } {
   const queryOptions = getGetReleaseByVersionQueryOptions(version, options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<
+    TData,
+    TError
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+export type getReleaseDeltaPlanResponse200 = {
+  data: GetReleaseDeltaPlan200;
+  status: 200;
+};
+
+export type getReleaseDeltaPlanResponse400 = {
+  data: GetReleaseDeltaPlan400;
+  status: 400;
+};
+
+export type getReleaseDeltaPlanResponse404 = {
+  data: GetReleaseDeltaPlan404;
+  status: 404;
+};
+
+export type getReleaseDeltaPlanResponseSuccess =
+  getReleaseDeltaPlanResponse200 & {
+    headers: Headers;
+  };
+export type getReleaseDeltaPlanResponseError = (
+  getReleaseDeltaPlanResponse400 | getReleaseDeltaPlanResponse404
+) & {
+  headers: Headers;
+};
+
+export type getReleaseDeltaPlanResponse =
+  getReleaseDeltaPlanResponseSuccess | getReleaseDeltaPlanResponseError;
+
+export const getGetReleaseDeltaPlanUrl = (
+  version: string,
+  params: GetReleaseDeltaPlanParams,
+) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : String(value));
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/releases/${version}/delta?${stringifiedParams}`
+    : `/releases/${version}/delta`;
+};
+
+/**
+ * Used by the Launcher to update an installed Engine version without downloading the full artifact. Returns the target's file manifest and an ordered chain of delta packages (oldest first) that turns `from` into `{version}`, or `recommended: full` with a `reason` when a full download is the better choice (no chain of at most `max_steps` deltas, the chain is larger than `max_ratio` of the full artifact, the target has no manifest yet, or `from` is not older than the target). `steps` is empty unless `recommended` is `delta`. `full` is always present so a failed delta update can fall back to the full artifact, verified with its `sha256`.
+ * @summary Plan a delta update from an older release to this one
+ */
+export const getReleaseDeltaPlan = async (
+  version: string,
+  params: GetReleaseDeltaPlanParams,
+  options?: Parameters<typeof coreverseFetch>[1],
+): Promise<getReleaseDeltaPlanResponse> => {
+  return coreverseFetch<getReleaseDeltaPlanResponse>(
+    getGetReleaseDeltaPlanUrl(version, params),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getGetReleaseDeltaPlanQueryKey = (
+  version: string,
+  params?: GetReleaseDeltaPlanParams,
+) => {
+  return [`/releases/${version}/delta`, ...(params ? [params] : [])] as const;
+};
+
+export const getGetReleaseDeltaPlanQueryOptions = <
+  TData = Awaited<ReturnType<typeof getReleaseDeltaPlan>>,
+  TError = GetReleaseDeltaPlan400 | GetReleaseDeltaPlan404,
+>(
+  version: string,
+  params: GetReleaseDeltaPlanParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof getReleaseDeltaPlan>>,
+        TError,
+        TData
+      >
+    >;
+    request?: SecondParameter<typeof coreverseFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGetReleaseDeltaPlanQueryKey(version, params);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getReleaseDeltaPlan>>
+  > = ({ signal }) =>
+    getReleaseDeltaPlan(version, params, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: version !== null && version !== undefined,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getReleaseDeltaPlan>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type GetReleaseDeltaPlanQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getReleaseDeltaPlan>>
+>;
+export type GetReleaseDeltaPlanQueryError =
+  GetReleaseDeltaPlan400 | GetReleaseDeltaPlan404;
+
+export function useGetReleaseDeltaPlan<
+  TData = Awaited<ReturnType<typeof getReleaseDeltaPlan>>,
+  TError = GetReleaseDeltaPlan400 | GetReleaseDeltaPlan404,
+>(
+  version: string,
+  params: GetReleaseDeltaPlanParams,
+  options: {
+    query: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof getReleaseDeltaPlan>>,
+        TError,
+        TData
+      >
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getReleaseDeltaPlan>>,
+          TError,
+          Awaited<ReturnType<typeof getReleaseDeltaPlan>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof coreverseFetch>;
+  },
+  queryClient?: QueryClient,
+): DefinedUseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+export function useGetReleaseDeltaPlan<
+  TData = Awaited<ReturnType<typeof getReleaseDeltaPlan>>,
+  TError = GetReleaseDeltaPlan400 | GetReleaseDeltaPlan404,
+>(
+  version: string,
+  params: GetReleaseDeltaPlanParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof getReleaseDeltaPlan>>,
+        TError,
+        TData
+      >
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getReleaseDeltaPlan>>,
+          TError,
+          Awaited<ReturnType<typeof getReleaseDeltaPlan>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof coreverseFetch>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+export function useGetReleaseDeltaPlan<
+  TData = Awaited<ReturnType<typeof getReleaseDeltaPlan>>,
+  TError = GetReleaseDeltaPlan400 | GetReleaseDeltaPlan404,
+>(
+  version: string,
+  params: GetReleaseDeltaPlanParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof getReleaseDeltaPlan>>,
+        TError,
+        TData
+      >
+    >;
+    request?: SecondParameter<typeof coreverseFetch>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+/**
+ * @summary Plan a delta update from an older release to this one
+ */
+
+export function useGetReleaseDeltaPlan<
+  TData = Awaited<ReturnType<typeof getReleaseDeltaPlan>>,
+  TError = GetReleaseDeltaPlan400 | GetReleaseDeltaPlan404,
+>(
+  version: string,
+  params: GetReleaseDeltaPlanParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof getReleaseDeltaPlan>>,
+        TError,
+        TData
+      >
+    >;
+    request?: SecondParameter<typeof coreverseFetch>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+} {
+  const queryOptions = getGetReleaseDeltaPlanQueryOptions(
+    version,
+    params,
+    options,
+  );
 
   const query = useQuery(queryOptions, queryClient) as UseQueryResult<
     TData,

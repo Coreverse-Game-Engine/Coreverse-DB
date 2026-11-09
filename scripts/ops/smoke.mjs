@@ -235,6 +235,14 @@ await check('releases: GET /releases signed out -> 200', async () => {
   const r = await call('GET', '/releases');
   expect(r.status === 200, `expected 200, got ${brief(r)}`);
 });
+await check('releases: GET /releases/1.0.0/delta without query -> 400 invalid_query', async () => {
+  const r = await call('GET', '/releases/1.0.0/delta');
+  expect(r.status === 400 && r.json?.error === 'invalid_query', `expected 400 invalid_query, got ${brief(r)}`);
+});
+await check('releases: GET /releases/latest/delta -> 400 invalid_version', async () => {
+  const r = await call('GET', '/releases/latest/delta?from=1.0.0&os=linux&architecture=x86_64');
+  expect(r.status === 400 && r.json?.error === 'invalid_version', `expected 400 invalid_version, got ${brief(r)}`);
+});
 
 // --- signed-in callers ---------------------------------------------------------
 await check('signed-in: GET /releases with a valid token -> 200', needsToken(async () => {

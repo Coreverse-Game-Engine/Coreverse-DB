@@ -26,6 +26,9 @@
 //  10. the Edge Function import map used by `supabase functions deploy`
 //      (supabase/functions/import_map.json) matches the repo-root deno.json imports,
 //      and no nested supabase/functions/**/deno.json exists (see check 10)
+//  13. the `engine-deltas` bucket is written only with the service role: no
+//      migration may add an INSERT/UPDATE/DELETE/ALL policy on storage.objects
+//      for it
 
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { dirname, join, relative, resolve } from 'node:path';
@@ -304,6 +307,19 @@ if (warnings.length) {
       if (!granted.has(sch)) {
         fail('service-role-grants', `no migration grants USAGE on schema ${sch} to service_role (service-role calls into ${sch} fail with 42501)`);
       }
+    }
+  }
+}
+
+// 13 -- engine-deltas bucket: no client-side write policies ---------------------
+// Manifests and delta packages are what the Launcher turns into an installed
+// Engine; a policy that let any signed-in user write them would let them ship
+// code to every Launcher. Writes must stay service_role only.
+for (const name of migs) {
+  const sql = readFileSync(join(root, 'supabase/migrations', name), 'utf8');
+  for (const m of sql.matchAll(/create\s+policy\s+\S+\s+on\s+storage\.objects\s+for\s+(insert|update|delete|all)\b[^;]*;/gi)) {
+    if (/engine-deltas/i.test(m[0])) {
+      fail('engine-deltas', `${name} creates a client-side ${m[1].toUpperCase()} policy on the engine-deltas bucket (writes must be service_role only)`);
     }
   }
 }

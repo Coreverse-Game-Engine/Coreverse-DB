@@ -5,7 +5,7 @@
  * Centralized data-access API for the Coreverse ecosystem. Coreverse DB defines and serves all data operations; Coreverse Launcher and Coreverse Website consume this API and never access Postgres/Supabase directly.
  * Access model: the Supabase platform JWT gate is OFF for `releases`, `news`, `events`, `faq`, `polls`, `discussions`, `docs`, `auth`, `profiles` and `send-email`, and ON for `teams`, `requests` and `projects`. Signed-out callers can read public content (a `GET` on any public-content route answers 200); every write needs a user session and answers 401 `unauthorized` from the function without one. `POST /auth/password-reset` and `GET /profiles/username-availability` also work signed out; every other `/profiles` route authenticates the caller inside the function.
  *
- * OpenAPI spec version: 0.5.5
+ * OpenAPI spec version: 0.6.0
  */
 /**
  * Trivial acknowledgement body for actions that don't return a resource.
@@ -916,6 +916,259 @@ export const GetReleaseByVersion404Error = {
 export type GetReleaseByVersion404 = {
   /** Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check). */
   error: GetReleaseByVersion404Error;
+  /** Human-readable detail, for logging/debugging. Never contains raw Postgres/PostgREST error text (constraint names, column names, internal query shape) -- see safeDbErrorMessage() in supabase/functions/_shared/http.ts. Not meant to be shown verbatim to end users; Website should key UI copy off `error`. */
+  message: string;
+};
+
+export type GetReleaseDeltaPlanParams = {
+  /**
+   * The installed version to update from.
+   * @pattern ^\d+\.\d+\.\d+$
+   */
+  from: string;
+  os: GetReleaseDeltaPlanOs;
+  architecture: GetReleaseDeltaPlanArchitecture;
+};
+
+export type GetReleaseDeltaPlanOs =
+  (typeof GetReleaseDeltaPlanOs)[keyof typeof GetReleaseDeltaPlanOs];
+
+export const GetReleaseDeltaPlanOs = {
+  windows: "windows",
+  linux: "linux",
+  macos: "macos",
+} as const;
+
+export type GetReleaseDeltaPlanArchitecture =
+  (typeof GetReleaseDeltaPlanArchitecture)[keyof typeof GetReleaseDeltaPlanArchitecture];
+
+export const GetReleaseDeltaPlanArchitecture = {
+  x86_64: "x86_64",
+  arm64: "arm64",
+} as const;
+
+export type GetReleaseDeltaPlan200Os =
+  (typeof GetReleaseDeltaPlan200Os)[keyof typeof GetReleaseDeltaPlan200Os];
+
+export const GetReleaseDeltaPlan200Os = {
+  windows: "windows",
+  linux: "linux",
+  macos: "macos",
+} as const;
+
+export type GetReleaseDeltaPlan200Architecture =
+  (typeof GetReleaseDeltaPlan200Architecture)[keyof typeof GetReleaseDeltaPlan200Architecture];
+
+export const GetReleaseDeltaPlan200Architecture = {
+  x86_64: "x86_64",
+  arm64: "arm64",
+} as const;
+
+export type GetReleaseDeltaPlan200Recommended =
+  (typeof GetReleaseDeltaPlan200Recommended)[keyof typeof GetReleaseDeltaPlan200Recommended];
+
+export const GetReleaseDeltaPlan200Recommended = {
+  delta: "delta",
+  full: "full",
+} as const;
+
+/**
+ * `delta`: a chain was found and is small enough. `not_newer`: `from` is not older than the target. `no_manifest`: the target artifact has no manifest yet. `no_chain`: no chain of at most `max_steps` deltas exists. `too_large`: the best chain is larger than `max_ratio` of the full artifact.
+ */
+export type GetReleaseDeltaPlan200Reason =
+  (typeof GetReleaseDeltaPlan200Reason)[keyof typeof GetReleaseDeltaPlan200Reason];
+
+export const GetReleaseDeltaPlan200Reason = {
+  delta: "delta",
+  not_newer: "not_newer",
+  no_manifest: "no_manifest",
+  no_chain: "no_chain",
+  too_large: "too_large",
+} as const;
+
+/**
+ * The full artifact of the target (the fallback).
+ */
+export type GetReleaseDeltaPlan200Full = {
+  download_url: string;
+  /** @pattern ^[a-f0-9]{64}$ */
+  sha256: string;
+  size_bytes: number;
+};
+
+/**
+ * File manifest of the target version, or null when it has none.
+ * @nullable
+ */
+export type GetReleaseDeltaPlan200ToManifest = {
+  url: string;
+  /** @pattern ^[a-f0-9]{64}$ */
+  sha256: string;
+  size_bytes: number;
+} | null;
+
+/**
+ * File manifest of the installed version, or null when it has none.
+ * @nullable
+ */
+export type GetReleaseDeltaPlan200FromManifest = {
+  url: string;
+  /** @pattern ^[a-f0-9]{64}$ */
+  sha256: string;
+  size_bytes: number;
+} | null;
+
+export type GetReleaseDeltaPlan200StepsItemAlgorithm =
+  (typeof GetReleaseDeltaPlan200StepsItemAlgorithm)[keyof typeof GetReleaseDeltaPlan200StepsItemAlgorithm];
+
+export const GetReleaseDeltaPlan200StepsItemAlgorithm = {
+  bsdiff: "bsdiff",
+} as const;
+
+export type GetReleaseDeltaPlan200StepsItem = {
+  from_version: string;
+  to_version: string;
+  url: string;
+  /** @pattern ^[a-f0-9]{64}$ */
+  sha256: string;
+  size_bytes: number;
+  algorithm: GetReleaseDeltaPlan200StepsItemAlgorithm;
+  /** @minimum 1 */
+  format_version: number;
+};
+
+/**
+ * How to update an installed Engine version to a newer one. Every file the Launcher downloads is listed with its `sha256` and `size_bytes`; the Launcher verifies each one, and the rebuilt tree against the target manifest, before registering the new version. On any mismatch it falls back to `full`.
+ */
+export type GetReleaseDeltaPlan200 = {
+  from_version: string;
+  to_version: string;
+  os: GetReleaseDeltaPlan200Os;
+  architecture: GetReleaseDeltaPlan200Architecture;
+  recommended: GetReleaseDeltaPlan200Recommended;
+  /** `delta`: a chain was found and is small enough. `not_newer`: `from` is not older than the target. `no_manifest`: the target artifact has no manifest yet. `no_chain`: no chain of at most `max_steps` deltas exists. `too_large`: the best chain is larger than `max_ratio` of the full artifact. */
+  reason: GetReleaseDeltaPlan200Reason;
+  /** The full artifact of the target (the fallback). */
+  full: GetReleaseDeltaPlan200Full;
+  /**
+   * File manifest of the target version, or null when it has none.
+   * @nullable
+   */
+  to_manifest: GetReleaseDeltaPlan200ToManifest;
+  /**
+   * File manifest of the installed version, or null when it has none.
+   * @nullable
+   */
+  from_manifest: GetReleaseDeltaPlan200FromManifest;
+  /** Ordered delta packages, oldest first. Empty unless `recommended` is `delta`. */
+  steps: GetReleaseDeltaPlan200StepsItem[];
+  /**
+   * Total size of the best chain found, or null when none was found.
+   * @nullable
+   */
+  delta_bytes: number | null;
+  /** Longest chain the planner considers. */
+  max_steps: number;
+  /** A chain larger than this fraction of the full artifact is not recommended. */
+  max_ratio: number;
+};
+
+/**
+ * Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check).
+ */
+export type GetReleaseDeltaPlan400Error =
+  (typeof GetReleaseDeltaPlan400Error)[keyof typeof GetReleaseDeltaPlan400Error];
+
+export const GetReleaseDeltaPlan400Error = {
+  account_has_content: "account_has_content",
+  already_decided: "already_decided",
+  already_voted: "already_voted",
+  internal_error: "internal_error",
+  invalid_body: "invalid_body",
+  invalid_discussion_id: "invalid_discussion_id",
+  invalid_event_id: "invalid_event_id",
+  invalid_faq_id: "invalid_faq_id",
+  invalid_locale: "invalid_locale",
+  invalid_news_id: "invalid_news_id",
+  invalid_poll_id: "invalid_poll_id",
+  invalid_project_id: "invalid_project_id",
+  invalid_query: "invalid_query",
+  invalid_redirect: "invalid_redirect",
+  invalid_reply_id: "invalid_reply_id",
+  invalid_request_id: "invalid_request_id",
+  invalid_team_id: "invalid_team_id",
+  invalid_user_id: "invalid_user_id",
+  invalid_version: "invalid_version",
+  method_not_allowed: "method_not_allowed",
+  misconfigured: "misconfigured",
+  missing_file: "missing_file",
+  not_found: "not_found",
+  poll_closed: "poll_closed",
+  poll_not_found: "poll_not_found",
+  query_error: "query_error",
+  rate_limited: "rate_limited",
+  rpc_error: "rpc_error",
+  storage_error: "storage_error",
+  too_large: "too_large",
+  unauthorized: "unauthorized",
+  unsupported_type: "unsupported_type",
+  username_taken: "username_taken",
+  vote_rejected: "vote_rejected",
+} as const;
+
+export type GetReleaseDeltaPlan400 = {
+  /** Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check). */
+  error: GetReleaseDeltaPlan400Error;
+  /** Human-readable detail, for logging/debugging. Never contains raw Postgres/PostgREST error text (constraint names, column names, internal query shape) -- see safeDbErrorMessage() in supabase/functions/_shared/http.ts. Not meant to be shown verbatim to end users; Website should key UI copy off `error`. */
+  message: string;
+};
+
+/**
+ * Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check).
+ */
+export type GetReleaseDeltaPlan404Error =
+  (typeof GetReleaseDeltaPlan404Error)[keyof typeof GetReleaseDeltaPlan404Error];
+
+export const GetReleaseDeltaPlan404Error = {
+  account_has_content: "account_has_content",
+  already_decided: "already_decided",
+  already_voted: "already_voted",
+  internal_error: "internal_error",
+  invalid_body: "invalid_body",
+  invalid_discussion_id: "invalid_discussion_id",
+  invalid_event_id: "invalid_event_id",
+  invalid_faq_id: "invalid_faq_id",
+  invalid_locale: "invalid_locale",
+  invalid_news_id: "invalid_news_id",
+  invalid_poll_id: "invalid_poll_id",
+  invalid_project_id: "invalid_project_id",
+  invalid_query: "invalid_query",
+  invalid_redirect: "invalid_redirect",
+  invalid_reply_id: "invalid_reply_id",
+  invalid_request_id: "invalid_request_id",
+  invalid_team_id: "invalid_team_id",
+  invalid_user_id: "invalid_user_id",
+  invalid_version: "invalid_version",
+  method_not_allowed: "method_not_allowed",
+  misconfigured: "misconfigured",
+  missing_file: "missing_file",
+  not_found: "not_found",
+  poll_closed: "poll_closed",
+  poll_not_found: "poll_not_found",
+  query_error: "query_error",
+  rate_limited: "rate_limited",
+  rpc_error: "rpc_error",
+  storage_error: "storage_error",
+  too_large: "too_large",
+  unauthorized: "unauthorized",
+  unsupported_type: "unsupported_type",
+  username_taken: "username_taken",
+  vote_rejected: "vote_rejected",
+} as const;
+
+export type GetReleaseDeltaPlan404 = {
+  /** Short machine-readable error code. This is a closed set -- every value an Edge Function can actually return is listed below. When a function starts returning a new code, add it here in the same PR (nothing enforces this automatically yet; it's a review-time check). */
+  error: GetReleaseDeltaPlan404Error;
   /** Human-readable detail, for logging/debugging. Never contains raw Postgres/PostgREST error text (constraint names, column names, internal query shape) -- see safeDbErrorMessage() in supabase/functions/_shared/http.ts. Not meant to be shown verbatim to end users; Website should key UI copy off `error`. */
   message: string;
 };
