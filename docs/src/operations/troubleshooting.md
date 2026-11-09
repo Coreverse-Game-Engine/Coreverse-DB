@@ -18,3 +18,7 @@ The OpenAPI contract changed but `pnpm generate` wasn't run and committed afterw
 ## RLS policy seems to "not apply" during manual testing
 
 Check whether you're testing as the `postgres` superuser or another role that bypasses RLS by default (e.g. via `psql` without `set role`) — RLS is not evaluated for roles with `BYPASSRLS`. Use the [RLS Testing](../development/rls-testing.md) pattern (`set local role authenticated; set local request.jwt.claims ...`) to actually exercise policies.
+
+## Edge Function answers `500 internal_error` / `query_error` on rate-limited or avatar routes while plain reads work
+
+`POST /discussions`, replies, polls, news, `GET /profiles/username-availability`, `POST /auth/password-reset` and `POST/DELETE /profiles/me/avatar` are the routes that use the service-role client; ordinary reads use the caller's own client. If only those fail, look in the function logs for `permission denied for schema identity` (`[postgrest]` or `[internal_error]` line). `service_role` bypasses RLS but not privilege checks, and Supabase grants it privileges only on `public`, so each API schema needs an explicit grant (migration `20261015090000_grant_service_role_api_schemas`). Confirm with `select has_schema_privilege('service_role', 'identity', 'USAGE');` in the SQL editor, then run `supabase db push`.

@@ -23,6 +23,7 @@ import {
   RenameTeamSchema,
   UuidSchema,
 } from './schemas.ts';
+import { routeSegments, } from '../_shared/route.ts';
 
 // The RPCs behind create/rename/join-requests/invites/ownership-transfer
 // only return an id (or nothing) -- they're SECURITY DEFINER functions
@@ -65,10 +66,7 @@ async function fetchMembershipRequest(
 
 serve(withCors(async (req,) => {
   const url = new URL(req.url,);
-  const segments = url.pathname
-    .replace(/^\/functions\/v1\/teams\/?/, '',)
-    .split('/',)
-    .filter(Boolean,);
+  const segments = routeSegments(url, 'teams',);
 
   const supabase = createUserClient(req,);
 

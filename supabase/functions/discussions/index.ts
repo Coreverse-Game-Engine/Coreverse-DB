@@ -27,7 +27,13 @@
 
 import { serve, } from '@std/http/server';
 import { createUserClient, } from '../_shared/supabase-client.ts';
-import { errorResponse, jsonResponse, safeDbErrorMessage, withCors, } from '../_shared/http.ts';
+import {
+  errorResponse,
+  internalErrorResponse,
+  jsonResponse,
+  safeDbErrorMessage,
+  withCors,
+} from '../_shared/http.ts';
 import { withTokenCheck, } from '../_shared/caller.ts';
 import {
   buildCursorFilter,
@@ -47,6 +53,7 @@ import {
   UpdateReplySchema,
   UuidSchema,
 } from './schemas.ts';
+import { routeSegments, } from '../_shared/route.ts';
 
 const DISCUSSION_COLUMNS =
   'id, title, body, author_id, category, is_locked, reply_count, last_activity_at, created_at, updated_at';
@@ -72,10 +79,7 @@ function toExcerpt(body: string,): string {
 
 serve(withCors(withTokenCheck(async (req,) => {
   const url = new URL(req.url,);
-  const segments = url.pathname
-    .replace(/^\/functions\/v1\/discussions\/?/, '',)
-    .split('/',)
-    .filter(Boolean,);
+  const segments = routeSegments(url, 'discussions',);
 
   const supabase = createUserClient(req,);
 
@@ -404,7 +408,7 @@ serve(withCors(withTokenCheck(async (req,) => {
     }
 
     return errorResponse('not_found', 'Unknown discussions route.', 404,);
-  } catch (_err) {
-    return errorResponse('internal_error', safeDbErrorMessage(500,), 500,);
+  } catch (err) {
+    return internalErrorResponse('discussions', err,);
   }
 },),),);

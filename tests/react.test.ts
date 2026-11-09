@@ -1,4 +1,4 @@
-import { existsSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
 // src/react.ts is a pure `export * from "./generated/react/*"` barrel for
@@ -8,10 +8,11 @@ import { describe, expect, it } from "vitest";
 // tests/index.test.ts for the same guard/rationale.
 //
 // One hook per tag is checked below by name. These names are derived
-// deterministically from each operation's operationId (useQuery: true is
-// set in orval.config.ts, so every operation -- GET or not -- becomes a
-// `use<PascalCaseOperationId>` hook), so they're stable across
-// regenerations unless the underlying operationId changes.
+// deterministically from each operation's operationId (every operation
+// becomes a `use<PascalCaseOperationId>` hook: GET operations are useQuery
+// hooks, every other verb is a useMutation hook, see orval.config.ts), so
+// they're stable across regenerations unless the underlying operationId
+// changes.
 const generatedReactExists = existsSync(new URL("../src/generated/react", import.meta.url));
 
 describe.skipIf(!generatedReactExists)("src/react.ts barrel", () => {
@@ -67,6 +68,87 @@ describe.skipIf(!generatedReactExists)("src/react.ts barrel", () => {
     const react = (await import("../src/react")) as Record<string, unknown>;
 
     expect(typeof react.requestPasswordReset).toBe("function");
+  });
+});
+
+// Reads every operation (verb + operationId) straight from openapi/paths/*.yaml,
+// the same source orval.config.ts derives its mutation overrides from.
+const readOperations = (): { verb: string; operationId: string }[] => {
+  const pathsDir = new URL("../openapi/paths/", import.meta.url);
+  const operations: { verb: string; operationId: string }[] = [];
+
+  for (const file of readdirSync(pathsDir).filter((name) => name.endsWith(".yaml"))) {
+    const source = readFileSync(new URL(file, pathsDir), "utf8");
+    const pattern = /^ {2}(get|post|put|patch|delete):\n(?: {4}.*\n)*? {4}operationId: (\w+)/gm;
+    for (const match of source.matchAll(pattern)) {
+      operations.push({ verb: match[1]!, operationId: match[2]! });
+    }
+  }
+
+  return operations;
+};
+
+const pascalCase = (value: string): string => value.charAt(0).toUpperCase() + value.slice(1);
+
+const hookExportPattern = /^export (?:const|function) (use[A-Z]\w*)/gm;
+
+// Returns the generated source of one hook: every overload plus the
+// implementation, up to the next differently named hook export.
+const readHookSource = (hookName: string): string | undefined => {
+  const reactDir = new URL("../src/generated/react/", import.meta.url);
+
+  for (const tag of readdirSync(reactDir)) {
+    const file = new URL(`${tag}/${tag}.ts`, reactDir);
+    if (!existsSync(file)) continue;
+
+    const source = readFileSync(file, "utf8");
+    const exports = Array.from(source.matchAll(hookExportPattern), (match) => ({
+      name: match[1]!,
+      index: match.index!,
+    }));
+    const first = exports.findIndex((entry) => entry.name === hookName);
+    if (first === -1) continue;
+
+    const next = exports.slice(first).find((entry) => entry.name !== hookName);
+    return source.slice(exports[first]!.index, next?.index ?? source.length);
+  }
+
+  return undefined;
+};
+
+describe.skipIf(!generatedReactExists)("src/react.ts hook kinds", () => {
+  it("generates a useQuery hook for every GET operation and a useMutation hook for every other verb", async () => {
+    const react = (await import("../src/react")) as Record<string, unknown>;
+    const operations = readOperations();
+
+    expect(operations.length).toBeGreaterThan(50);
+
+    for (const { verb, operationId } of operations) {
+      const hookName = `use${pascalCase(operationId)}`;
+      const label = `${operationId} (${verb.toUpperCase()})`;
+
+      expect(typeof react[hookName], `${hookName} must be exported`).toBe("function");
+
+      const source = readHookSource(hookName);
+      expect(source, `${hookName} must be generated`).toBeDefined();
+
+      if (verb === "get") {
+        expect(source, `${label} must call useQuery`).toContain("useQuery(");
+        expect(source, `${label} must not call useMutation`).not.toContain("useMutation(");
+      } else {
+        expect(source, `${label} must call useMutation`).toContain("useMutation(");
+        expect(source, `${label} must not call useQuery`).not.toContain("useQuery(");
+      }
+    }
+  });
+
+  it("builds mutation options whose mutationFn calls the plain fetch function", async () => {
+    const react = (await import("../src/react")) as Record<string, unknown>;
+    const getOptions = react.getCastVoteMutationOptions as () => { mutationFn?: unknown; mutationKey?: unknown };
+    const options = getOptions();
+
+    expect(typeof options.mutationFn).toBe("function");
+    expect(options.mutationKey).toEqual(["castVote"]);
   });
 });
 

@@ -19,7 +19,13 @@
 //   7. migration filenames cited in comments/docs exist
 //   8. the platform JWT gate is off for exactly the functions that are meant
 //      to serve signed-out callers, and those functions still authenticate
-//      the routes that need a user themselves
+//      the routes that need a user themselves (withTokenCheck, getUser())
+//   9. the emailed-link contract with the Website: the send-email hook and
+//      the local email templates build the same /api/auth/confirm URL, and
+//      the hook checks the redirect origin against WEBSITE_ALLOWED_ORIGINS
+//  10. the Edge Function import map used by `supabase functions deploy`
+//      (supabase/functions/import_map.json) matches the repo-root deno.json imports,
+//      and no nested supabase/functions/**/deno.json exists (see check 10)
 
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { dirname, join, relative, resolve } from 'node:path';
@@ -141,7 +147,12 @@ for (const f of scan) {
 // function opts out here. Every opt-out is a hole in that gate, so the list is
 // pinned: adding a function means editing this list on purpose, together with
 // docs/src/security/authentication.md.
-const EXPECTED_JWT_EXEMPT = ['auth', 'profiles', 'send-email'];
+//
+// PUBLIC_CONTENT functions serve signed-out reads; they must wrap their handler
+// in withTokenCheck so that, without the gate, an unusable token and any write
+// without a user token still answer 401 from the function itself.
+const PUBLIC_CONTENT = ['discussions', 'docs', 'events', 'faq', 'news', 'polls', 'releases'];
+const EXPECTED_JWT_EXEMPT = ['auth', 'profiles', 'send-email', ...PUBLIC_CONTENT].sort();
 const exempt = [];
 for (const section of read('supabase/config.toml').split(/^(?=\[)/m)) {
   const head = section.match(/^\[functions\.([a-z0-9_-]+)\]/);
@@ -151,6 +162,11 @@ exempt.sort();
 if (exempt.join(',') !== EXPECTED_JWT_EXEMPT.join(',')) {
   fail('jwt-gate', `config.toml has verify_jwt = false for [${exempt.join(', ')}], expected exactly [${EXPECTED_JWT_EXEMPT.join(', ')}]`);
 }
+// teams, requests and projects need a signed-in user on every route, so they
+// keep the gate on; name them so a silent opt-out is reported precisely.
+for (const fn of ['teams', 'requests', 'projects']) {
+  if (exempt.includes(fn)) fail('jwt-gate', `${fn} must keep the platform JWT gate on (every route needs a signed-in user)`);
+}
 // profiles runs without the gate, so /me and /me/avatar rely on this call.
 if (!/auth\.getUser\(\)/.test(read('supabase/functions/profiles/index.ts'))) {
   fail('jwt-gate', 'supabase/functions/profiles/index.ts no longer calls auth.getUser(); with the gate off, /profiles/me would be unauthenticated');
@@ -159,10 +175,139 @@ if (!/auth\.getUser\(\)/.test(read('supabase/functions/profiles/index.ts'))) {
 if (!/hitRateLimit\(/.test(read('supabase/functions/auth/index.ts'))) {
   fail('jwt-gate', 'supabase/functions/auth/index.ts no longer rate limits; it is deployed without the JWT gate');
 }
+// Every public-content function must wrap its handler in withTokenCheck.
+for (const fn of PUBLIC_CONTENT) {
+  const src = read(`supabase/functions/${fn}/index.ts`);
+  if (!/serve\(\s*withCors\(\s*withTokenCheck\(/.test(src)) {
+    fail('jwt-gate', `supabase/functions/${fn}/index.ts is not wrapped in serve(withCors(withTokenCheck(...))); it runs without the platform JWT gate, so anonymous writes and bad tokens would reach its routes`);
+  }
+  const allowsAnonymousWrites = /anonymousWrites:\s*true/.test(src);
+  if (fn === 'docs' && !allowsAnonymousWrites) {
+    fail('jwt-gate', 'docs must pass { anonymousWrites: true } to withTokenCheck: POST /docs/reindex is authenticated by X-Reindex-Token, not by a user JWT');
+  }
+  if (fn !== 'docs' && allowsAnonymousWrites) {
+    fail('jwt-gate', `${fn} passes { anonymousWrites: true } to withTokenCheck; only docs (shared-secret reindex) may accept anonymous writes`);
+  }
+}
+// The one anonymous write must stay protected by its shared secret.
+if (!/X-Reindex-Token/.test(read('supabase/functions/docs/index.ts'))) {
+  fail('jwt-gate', 'supabase/functions/docs/index.ts no longer checks X-Reindex-Token; POST /docs/reindex would be unauthenticated');
+}
+
+// 9 -- emailed-link contract with the Website ------------------------------
+// The hook (hosted) and the templates under supabase/templates (local stack)
+// must send users to the same Website route with the same query parameters,
+// otherwise a local end-to-end run would pass while production links break.
+const renderSource = read('supabase/functions/send-email/render.ts');
+const confirmPath = renderSource.match(/export const WEBSITE_CONFIRM_PATH = '([^']+)'/)?.[1];
+if (!confirmPath) {
+  fail('email-links', "supabase/functions/send-email/render.ts no longer exports WEBSITE_CONFIRM_PATH = '...'");
+} else {
+  const configToml = read('supabase/config.toml');
+  for (const [template, type] of [['confirmation', 'signup'], ['recovery', 'recovery']]) {
+    const file = `supabase/templates/${template}.html`;
+    if (!existsSync(join(root, file))) {
+      fail('email-links', `${file} is missing (local stack template for the ${type} email)`);
+      continue;
+    }
+    const expected = `${confirmPath}?token_hash={{ .TokenHash }}&type=${type}&next=/`;
+    if (!read(file).includes(expected)) {
+      fail('email-links', `${file} must link to "${expected}..." to match send-email/render.ts`);
+    }
+    if (!configToml.includes(`content_path = "./${file}"`)) {
+      fail('email-links', `supabase/config.toml has no [auth.email.template.${template}] pointing at ./${file}`);
+    }
+  }
+}
+if (!/actionLinkFor\([^)]*allowedOrigins\(/.test(read('supabase/functions/send-email/index.ts'))) {
+  fail('email-links', 'supabase/functions/send-email/index.ts must pass allowedOrigins() to actionLinkFor so a token is only ever sent to an allowed Website origin');
+}
+
+// 10 -- Edge Function import map for `supabase functions deploy` ---------
+// The bundler cannot see the repo-root deno.json, so the same `imports` live in
+// supabase/functions/import_map.json (passed via --import-map by deploy.sh/.ps1).
+// It is deliberately NOT named deno.json: Deno treats a nested deno.json as its
+// own config for `deno fmt` / `deno lint`, which silently replaces the root fmt
+// settings (single quotes, 100 cols) with defaults and fails `deno fmt --check`.
+{
+  const mapPath = 'supabase/functions/import_map.json';
+  const nested = walk('supabase/functions', '.json').filter((f) => /(^|[\\/])deno\.jsonc?$/.test(f));
+  for (const f of nested) fail('import-map', `${f} must not exist: a nested deno.json overrides the root fmt/lint config for supabase/functions (use import_map.json)`);
+  if (!existsSync(join(root, mapPath))) {
+    fail('import-map', `${mapPath} is missing: \`supabase functions deploy\` cannot resolve bare imports (@std/http/server, zod, ...)`);
+  } else {
+    const rootImports = JSON.parse(read('deno.json')).imports ?? {};
+    const mapImports = JSON.parse(read(mapPath)).imports ?? {};
+    if (JSON.stringify(Object.entries(rootImports).sort()) !== JSON.stringify(Object.entries(mapImports).sort())) {
+      fail('import-map', `${mapPath} "imports" differs from the root deno.json "imports"; keep them identical`);
+    }
+    const bare = new Set();
+    for (const f of walk('supabase/functions', '.ts')) {
+      for (const m of read(f).matchAll(/from\s+['"]([^'"./][^'"]*)['"]/g)) {
+        if (!/^(https?:|jsr:|npm:|node:)/.test(m[1])) bare.add(m[1]);
+      }
+    }
+    for (const spec of bare) if (!(spec in mapImports)) fail('import-map', `functions import "${spec}" but ${mapPath} has no mapping for it`);
+  }
+}
 
 if (warnings.length) {
   console.warn(`static-checks: ${warnings.length} warning(s) (fatal with --strict)\n` + warnings.map((w) => '  - ' + w).join('\n'));
 }
+// 11 -- exposed API schemas: config.toml <-> migration -----------------------
+// The hosted project only serves the schemas in the authenticator role's
+// pgrst.db_schemas, which `supabase db push` does not set from config.toml.
+// The expose_api_schemas migration owns that setting; it must list exactly the
+// schemas [api] schemas lists locally, or local and hosted drift apart.
+{
+  const cfg = readFileSync(join(root, 'supabase/config.toml'), 'utf8');
+  const cfgMatch = cfg.match(/^schemas\s*=\s*\[([^\]]*)\]/m);
+  const exposeMig = migs.find((n) => n.endsWith('_expose_api_schemas.sql'));
+  if (!cfgMatch) fail('api-schemas', 'supabase/config.toml has no [api] schemas list');
+  else if (!exposeMig) fail('api-schemas', 'no *_expose_api_schemas.sql migration (hosted PostgREST would not serve identity/content/releases/docs)');
+  else {
+    const local = [...cfgMatch[1].matchAll(/"([^"]+)"/g)].map((m) => m[1]).sort();
+    const sql = readFileSync(join(root, 'supabase/migrations', exposeMig), 'utf8');
+    const mig = sql.match(/pgrst\.db_schemas\s*=\s*'([^']*)'/);
+    if (!mig) fail('api-schemas', `${exposeMig} does not set pgrst.db_schemas`);
+    else {
+      const hosted = mig[1].split(',').map((x) => x.trim()).filter(Boolean).sort();
+      if (local.join(',') !== hosted.join(',')) {
+        fail('api-schemas', `config.toml [api] schemas (${local.join(', ')}) != ${exposeMig} (${hosted.join(', ')})`);
+      }
+    }
+  }
+}
+
+// 12 -- service_role grants on the API schemas --------------------------------
+// service_role bypasses RLS but not privilege checks, and Supabase only
+// pre-grants it on `public`. Every other exposed schema needs an explicit
+// `grant usage on schema ... to service_role` in some migration, or the
+// service-role client (rate limiter, avatar upload, docs reindex) gets 42501
+// and every such route answers a generic 500.
+{
+  const cfg = readFileSync(join(root, 'supabase/config.toml'), 'utf8');
+  const cfgMatch = cfg.match(/^schemas\s*=\s*\[([^\]]*)\]/m);
+  if (cfgMatch) {
+    const schemas = [...cfgMatch[1].matchAll(/"([^"]+)"/g)].map((m) => m[1])
+      .filter((x) => x !== 'public' && x !== 'graphql_public');
+    const granted = new Set();
+    for (const name of migs) {
+      const sql = readFileSync(join(root, 'supabase/migrations', name), 'utf8');
+      for (const m of sql.matchAll(/grant\s+usage\s+on\s+schema\s+([^;]+?)\s+to\s+([^;]+);/gi)) {
+        const roles = m[2].split(',').map((r) => r.trim().toLowerCase());
+        if (!roles.includes('service_role')) continue;
+        for (const sch of m[1].split(',')) granted.add(sch.trim().toLowerCase());
+      }
+    }
+    for (const sch of schemas) {
+      if (!granted.has(sch)) {
+        fail('service-role-grants', `no migration grants USAGE on schema ${sch} to service_role (service-role calls into ${sch} fail with 42501)`);
+      }
+    }
+  }
+}
+
 if (failures.length) {
   console.error(`static-checks: ${failures.length} problem(s)\n` + failures.map((f) => '  - ' + f).join('\n'));
   process.exit(1);

@@ -2,6 +2,135 @@
 
 Release notes for the `@Coreverse-Game-Engine/db-client` package and the backend it describes. GitHub's auto-generated release notes (grouped by PR label, see `.github/release.yml`) remain the per-PR record; this page is the consumer-facing summary of what changed *for API and SDK users*.
 
+## Unreleased
+
+Edge Function routing fix and hosted-schema exposure. **No API shape changes and no SDK change**: `package.json` and `openapi.yaml` stay at 0.5.5 and the Website keeps `^0.5.5`. Two new migrations (`20261012134916_expose_api_schemas`, `20261015090000_grant_service_role_api_schemas`): run `supabase db push`. Redeploy **every** Edge Function that routes on its path (all of them except `send-email`), then run the production smoke check.
+
+### Fixed
+
+- **List and single-resource calls answered `invalid_*_id` / `not_found` on the hosted project.** Every function cut `/functions/v1/<function>` off the pathname with a regex. When the pathname arrives as `/<function>/...` (the gateway has already removed `/functions/v1`), nothing was cut, the function name itself became the first path segment, and the function treated it as a resource id: `GET /faq` answered `400 invalid_faq_id` (`"faq" is not a valid UUID`), `/polls`, `/discussions` and `/discussions/categories` likewise, `GET /events` ran a slug lookup for `events` and answered `500 query_error`, `GET /profiles/me` answered `404 Unknown profiles route`, and `POST /auth/password-reset` answered `404 Unknown auth route`. Routing now goes through `routePath` / `routeSegments` in `_shared/route.ts`, which accept both pathname shapes.
+
+- **Database failures were invisible in the function logs.** Handlers answer a failed query with a generic `500 query_error`, so the real PostgREST cause (missing table, permission denied, schema not exposed) was never recorded. All three Supabase clients now go through `loggingFetch` (`_shared/db-log.ts`), which writes `[postgrest] {method, path, status, code, message, hint}` to the function logs for every failed REST call (not for 401s and not for non-REST calls; `details` is never logged). Responses are unchanged.
+
+- **Every list and profile call answered `500 query_error` on the hosted project.** PostgREST on the hosted project only served `public` and `graphql_public`: `[api] schemas` in `config.toml` applies to `supabase start` only, and neither `db push` nor a function deploy sends it to the hosted project. Every query through `.schema('identity' | 'content' | 'releases' | 'docs')` was therefore refused (`PGRST106 Invalid schema`), which the handlers report as the generic 500, for signed-in and signed-out callers alike. The new migration sets the authenticator role's `pgrst.db_schemas` to the same list as `config.toml` and reloads PostgREST's configuration. `private` stays unexposed.
+
+- **Creating a discussion and changing the avatar answered `500 internal_error`.** `_shared/service-client.ts` read `SERVICE_ROLE_KEY`, a name the Edge Functions runtime does not inject (it injects `SUPABASE_SERVICE_ROLE_KEY`; the docs wrongly said otherwise). Where nobody had set that secret by hand, `createClient` threw "supabaseKey is required" on every route that needs the service client: the rate limiter (`POST /discussions`, polls, news, auth) and avatar upload/removal. The client now uses `SUPABASE_SERVICE_ROLE_KEY` first and falls back to `SERVICE_ROLE_KEY`, and fails with a readable message when neither exists.
+- **Creating a discussion and changing the avatar still answered `500` after the key fix: `service_role` had no privileges on the API schemas.** No migration ever granted `service_role` anything on `identity`, `content`, `docs` or `releases`; they granted `USAGE` and table/function privileges to `anon` and `authenticated` only. `service_role` bypasses RLS, but that does not skip privilege checks, and Supabase pre-grants it only on `public`. Every service-role call into these schemas therefore failed with `42501 permission denied for schema ...`: the rate limiter (`identity.hit_rate_limit`, used by `POST /discussions`, replies, polls, news, `GET /profiles/username-availability` and `POST /auth/password-reset`), the avatar routes (`identity.profiles`) and `POST /docs/reindex` (`docs.*`). The rate limiter throws on an RPC error on purpose, so those routes answered `500 internal_error`; the avatar routes answered the same generic message as `query_error`. The new migration grants `service_role` `USAGE` on the four schemas, all privileges on their tables and sequences, `EXECUTE` on their functions, and sets default privileges so later objects are covered. `private` stays closed. Nothing else changes: no API shape, SDK or Website change.
+- **Unexpected exceptions left no trace.** The catch-all of profiles, events, discussions, news, polls and faq returned the generic 500 and discarded the error. They now go through `internalErrorResponse()` (`_shared/http.ts`), which writes `[internal_error] {scope, message}` to the function log; the response is unchanged.
+
+### Added
+
+- `supabase/functions/_shared/service-client.test.ts` (importing the dependency-free `service-role-key.ts`, so CI needs no `@types/node`) covers the key lookup order, blank values and the missing-key error.
+- `supabase/tests/database/api_exposure.sql` (pgTAP) checks that the setting lists `releases`, `identity`, `content`, `docs` and `public` and never `private`.
+- `scripts/ops/static-checks.mjs` check 11 fails when `config.toml` `[api] schemas` and the expose migration list different schemas.
+- The deploy checklists (`deploy.sh`, `deploy.ps1`) and the Deployment page now list the exposed schemas.
+- `supabase/tests/database/service_role_grants.sql` (pgTAP) checks `service_role`'s schema, table and function privileges and actually calls `identity.hit_rate_limit` and reads `identity.profiles` / `docs.pages` after `set local role service_role`; the existing suites never ran as `service_role`.
+- `scripts/ops/static-checks.mjs` check 12 fails when an exposed schema has no migration granting it `USAGE` to `service_role`.
+- `supabase/functions/_shared/db-log.test.ts` covers the log line, that the response is returned intact, and that success, 401 and non-REST calls stay quiet.
+- `supabase/functions/_shared/route.test.ts` covers both pathname shapes, trailing slashes, sub-routes, and that a longer function name (`/faqs`) or another function's name is not stripped.
+
+## 0.5.5
+
+SDK fix release. **No API shape changes, no database migration and no Edge Function changes**: only the published package (`@Coreverse-Game-Engine/db-client`) changes. Run `pnpm run generate` and commit the result (the generated files carry the spec version in their header), then publish.
+
+### Fixed
+
+- **The React hooks never received the configuration.** The base entry (`@Coreverse-Game-Engine/db-client`) and the React entry (`@Coreverse-Game-Engine/db-client/react`) are bundled separately (`splitting: false`), so each contained its own copy of `src/client/http.ts` with its own module-level `config`. A consumer calls `configureCoreverseClient()` from the base entry, which configured only the base entry's copy; every hook from `/react` then threw `Coreverse DB client used before configureCoreverseClient() was called`. The configuration is now stored on `globalThis` under a registered symbol, so every bundled copy (and a duplicate install of the package) shares one configuration.
+- **`error instanceof CoreverseApiError` failed for errors thrown by a React hook.** Same cause: the hook's error was an instance of the `/react` copy of the class, not of the one the consumer imported from the base entry. `CoreverseApiError` now answers `instanceof` with a registered-symbol brand on the instance (`static [Symbol.hasInstance]`), so it works across copies. The brand is a non-enumerable property; `status`, `code` and `body` are unchanged.
+
+### Added
+
+- `tests/client/http.test.ts` covers a second copy of the client using the configuration set through the first, `instanceof` across copies, and that unrelated errors are not matched.
+
+### Notes for consumers
+
+- No call-site changes. Bump the dependency to `^0.5.5` (for pnpm with `minimumReleaseAge`, also add `0.5.5` to the exclude list until the package is old enough).
+- `configureCoreverseClient()` is global per JavaScript realm. A server process that configures the client in more than one place (for example a Next.js server that configures it both for Server Actions and for server-rendered client components) now shares one configuration, and the last call wins.
+
+## 0.5.4
+
+Auth-email release. **No API shape changes and no database migration.** Only the `send-email` Edge Function changes, so redeploy that one function (`supabase functions deploy send-email`); the package version moves so that it matches the deployed backend and the spec. Run `pnpm run generate` and commit the result: the generated files carry the spec version in their header.
+
+### Changed
+
+- **Emailed links go to the Website, not to Supabase.** For `signup`, `recovery`, `magiclink` and `invite` the button in the email now points at the Website's confirm route, `<origin>/api/auth/confirm?token_hash=<hash>&type=<action>&next=<path>`, instead of Supabase Auth's `/auth/v1/verify`. The Website completes the action itself with `verifyOtp({ token_hash, type })`, which needs no PKCE code verifier. A link therefore also works when it is opened on another device or browser than the one that started the signup or reset, and it no longer depends on the project's Site URL.
+- `<origin>` and `<path>` come from the `redirect_to` the Website passed to Supabase Auth (`emailRedirectTo` on signup, `redirectTo` on password reset); `next` is its path without query string or hash. The origin must be listed in `WEBSITE_ALLOWED_ORIGINS`. If it is not, or if `redirect_to` is not a URL, the email falls back to the Supabase verify link instead of failing. `email_change` keeps the Supabase verify link, and `reauthentication` has no link.
+- `POST /auth/password-reset` is unchanged: `redirectTo` is still validated as `/{locale}/reset-password` on an allowed origin. The email link built from it now carries `next=/{locale}/reset-password`.
+
+### Added
+
+- `supabase/templates/confirmation.html` and `recovery.html`, wired in `supabase/config.toml`, so the local stack sends the same Website link (caught by Inbucket). The hosted project does not use them: its emails go through the hook.
+- `scripts/ops/static-checks.mjs` check 9 fails if the hook's confirm path, the local templates and the `[auth.email.template.*]` entries drift apart, or if the hook stops passing `WEBSITE_ALLOWED_ORIGINS` to the link builder.
+- `render.test.ts` covers the Website link for every supported action type, the `next` handling, and every fallback (origin not allowed, prefix-lookalike origin, empty `redirect_to`, `email_change`).
+
+### Operations
+
+- **The Website's `/api/auth/confirm` route must be live before the hook sends these links.** Deploying 0.5.4 changes nothing for users while the Send Email hook is not enabled in the Dashboard (Supabase's own mailer is still in use). Enable the hook only after the Website route is deployed; with the hook enabled, an older Website would send users to a missing page.
+- Brevo wraps links in a click-tracking redirect domain when tracking is on for the account. Turn click tracking off for transactional email: a tracked link adds a hop to a one-time token link, and tracking domains are often flagged by mail filters.
+- Supabase Auth's Redirect URLs must still list every Website origin: Auth replaces a `redirect_to` that is not listed with the Site URL, and the email would then be built for that origin.
+
+## 0.5.3
+
+SDK fix release. **No API shape changes, no database migration and no Edge Function redeploy**; the backend is identical to 0.5.2.
+
+### Fixed
+
+- **React hooks: every write operation was generated as a query.** `override.query.useQuery: true` in `orval.config.ts` made Orval emit `useQuery` hooks for POST, PATCH, PUT and DELETE operations too. `useCastVote`, `useCreateDiscussion`, `useReplyToDiscussion`, `useUpdateMyProfile`, `useDeleteMyAccount` and the other 33 write hooks therefore ran their request when the component mounted, cached the response under a `["POST", url, body]` key, and had no `mutate`. All 38 non-GET operations are now `useMutation` hooks (GET operations stay `useQuery` hooks) (`use<OperationId>(options?, queryClient?)`) with a matching `get<OperationId>MutationOptions` helper, and the `get<OperationId>QueryKey` / `get<OperationId>QueryOptions` exports of those operations are gone.
+- **Generated headers described the 0.5.1 access model.** The generated files and `openapi/openapi.yaml` (`info.description`, `bearerAuth` description) still said the platform JWT gate is on for the public-content functions. They now describe the 0.5.2 model: signed-out reads work, writes need a session.
+
+### Changed
+
+- `orval.config.ts` derives every operation's verb from `openapi/paths/*.yaml` and pins its hook kind per operation (GET: `useQuery`, every other verb: `useMutation`), so a newly added operation cannot regress to the wrong kind.
+- `tests/react.test.ts` checks, for every operation in the spec, that GET operations export `get<OperationId>QueryOptions` (and no mutation helper) and every other verb exports `get<OperationId>MutationOptions` (and no query helper).
+
+### Migrating from 0.5.2
+
+Hooks of write operations changed shape. Variables are passed to `mutate` / `mutateAsync` as one object: path parameters by name, the request body as `data`, query parameters as `params`.
+
+```ts
+// 0.5.2 (a query that fired on mount -- never worked as a write)
+const vote = useCastVote(pollId, { option_id: optionId });
+
+// 0.5.3
+const vote = useCastVote();
+vote.mutate({ pollId, data: { option_id: optionId } });
+```
+
+Hooks of GET operations, the plain fetch functions (`castVote(pollId, body)`) and the Zod schemas are unchanged.
+
+## 0.5.2
+
+Access-model release. **No API shape changes and no database migration**; the SDK surface is identical to 0.5.1 (the package version moves so that it matches the deployed backend and the spec). **Redeploy every Edge Function**: the JWT gate is a deploy-time setting.
+
+### Access model: signed-out visitors can read public content
+
+0.5.1 kept the platform JWT gate on for every function except `send-email`, `auth` and `profiles`, so a signed-out visitor got `401` on releases, news, events, FAQ, polls, discussions and docs. 0.5.2 reverses that for public content: the gate is now **off** for `releases`, `news`, `events`, `faq`, `polls`, `discussions` and `docs` (declared `verify_jwt = false` in `supabase/config.toml`). It stays **on** for `teams`, `requests` and `projects`, where every route needs a signed-in user.
+
+- **Reading needs no token.** A signed-out `GET` on any public-content route answers `200`. Row visibility is unchanged and still decided by RLS: `anon` sees only published news and events, aggregated poll results, and never another user's vote.
+- **Writing still needs a session, and says so clearly.** Every public-content function wraps its handler in `withTokenCheck` (`supabase/functions/_shared/caller.ts`): any write without a user token answers `401` with `{ "error": "unauthorized", "message": "A valid session is required." }`, and a malformed or expired token answers `401 unauthorized` on reads and writes alike. Clients should treat that `401` as "show the sign-in screen" (the Website does this for commenting, replying, voting and posting) and as "refresh the session" when a token was sent.
+- **`GET /polls`** no longer queries the caller's own votes for a signed-out request. `anon` has no `select` grant on `poll_votes`, so that query would have failed on every public list request; `my_option_id` is `null` for signed-out callers, as documented.
+- **`POST /docs/reindex`** no longer needs a JWT: the CI job sends only `X-Reindex-Token`, which is checked before anything is written. (0.5.1 listed this as a known limitation.)
+
+### Changed
+
+- `supabase/config.toml` declares `verify_jwt = false` for the seven public-content functions, with a comment explaining the model and why `teams`, `requests` and `projects` keep the gate.
+- `scripts/ops/static-checks.mjs` pins the new list of ten gate-exempt functions, fails if a public-content function loses `withTokenCheck`, if anything but `docs` allows anonymous writes, if `docs` stops checking `X-Reindex-Token`, or if `teams`, `requests` or `projects` opt out of the gate.
+- `scripts/ops/smoke.mjs` is rewritten for the new model. Signed-out reads must answer `200`; signed-out writes and a malformed token must answer `401 unauthorized` **from the function** (not the gateway); `POST /docs/reindex` without its secret must answer `401`; `teams`, `requests` and `projects` must still reject signed-out callers; a CORS preflight on a gated function is checked on the real project. `COREVERSE_TEST_TOKEN` is now optional and only adds signed-in checks.
+- `scripts/ops/deploy.sh` verifies that all ten gate-exempt functions are declared in `config.toml`, and reminds you to redeploy every function and to check `WEBSITE_ALLOWED_ORIGINS`.
+- OpenAPI: `info.description` and the `bearerAuth` description state the access model above. No operation changed. An operation marked "Public" now really is reachable signed out, except in `teams`, `requests` and `projects`.
+- Docs: Security › Authentication, API › Authentication, Architecture › Security model, Development › Edge Functions and Operations › Production Verification describe the new model.
+
+### Operations
+
+- **Set `WEBSITE_ALLOWED_ORIGINS` for every origin that will call the API** (production, staging, previews; `http://localhost:3000` only for a development project), then `supabase secrets set`. Without the Website's origin in the list the browser blocks every response, signed in or not, even though the request reaches the function.
+- Redeploy all functions (`deploy.sh --apply`), then run `scripts/ops/smoke.mjs`.
+
+### Known limitations
+
+- Signed-out reads have no per-caller rate limit of their own; only the platform's limits apply. `GET /discussions?q=` runs a full-text search, so put rate limiting in front of the read endpoints if they are abused.
+- Because the gate is off, a forged token that looks like a user JWT passes the early `withTokenCheck` test and is rejected later, by PostgREST or `auth.getUser()`, with that layer's status code rather than the function's `unauthorized` body. It never reaches data.
+- The Deno tests, pgTAP suite and the smoke test against the real project have to be run on your side; they could not run in the environment this change was prepared in.
+
 ## 0.5.1
 
 Access-model and operations release. **No API shape changes and no database migration**; the SDK surface is identical to 0.5.0 (the package version moves only so that it matches the deployed backend and the spec).

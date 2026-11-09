@@ -1,5 +1,5 @@
 import { assertEquals, assertStringIncludes, } from '@std/assert';
-import { actionLinkFor, emailContentFor, } from './render.ts';
+import { actionLinkFor, emailContentFor, WEBSITE_CONFIRM_PATH, } from './render.ts';
 
 const BASE_EMAIL_DATA = {
   token: 'otp-123',
@@ -35,6 +35,87 @@ Deno.test('actionLinkFor carries a non-recovery action_type through untouched', 
   assertEquals(new URL(link,).searchParams.get('type',), 'magiclink',);
 });
 
+const WEBSITE_ORIGINS = ['https://coreverse.dev', 'http://localhost:3000',];
+
+Deno.test('actionLinkFor points recovery at the Website confirm route when the origin is allowed', () => {
+  const link = actionLinkFor('https://xyzcompany.supabase.co', BASE_EMAIL_DATA, WEBSITE_ORIGINS,);
+  const url = new URL(link,);
+
+  assertEquals(url.origin + url.pathname, `https://coreverse.dev${WEBSITE_CONFIRM_PATH}`,);
+  assertEquals(url.searchParams.get('token_hash',), 'hash-abc',);
+  assertEquals(url.searchParams.get('type',), 'recovery',);
+  assertEquals(url.searchParams.get('next',), '/en/reset-password',);
+  assertEquals(url.searchParams.has('redirect_to',), false,);
+});
+
+Deno.test('actionLinkFor builds the signup link with the locale path as next', () => {
+  const link = actionLinkFor('https://xyzcompany.supabase.co', {
+    ...BASE_EMAIL_DATA,
+    email_action_type: 'signup',
+    redirect_to: 'http://localhost:3000/tr',
+  }, WEBSITE_ORIGINS,);
+  const url = new URL(link,);
+
+  assertEquals(url.origin + url.pathname, `http://localhost:3000${WEBSITE_CONFIRM_PATH}`,);
+  assertEquals(url.searchParams.get('type',), 'signup',);
+  assertEquals(url.searchParams.get('next',), '/tr',);
+});
+
+Deno.test('actionLinkFor drops the query string and hash of redirect_to from next', () => {
+  const link = actionLinkFor('https://xyzcompany.supabase.co', {
+    ...BASE_EMAIL_DATA,
+    redirect_to: 'https://coreverse.dev/en/reset-password?x=1#frag',
+  }, WEBSITE_ORIGINS,);
+  assertEquals(new URL(link,).searchParams.get('next',), '/en/reset-password',);
+});
+
+Deno.test('actionLinkFor covers signup, recovery, magiclink and invite', () => {
+  for (const type of ['signup', 'recovery', 'magiclink', 'invite',]) {
+    const link = actionLinkFor('https://xyzcompany.supabase.co', {
+      ...BASE_EMAIL_DATA,
+      email_action_type: type,
+    }, WEBSITE_ORIGINS,);
+    const url = new URL(link,);
+    assertEquals(url.pathname, WEBSITE_CONFIRM_PATH,);
+    assertEquals(url.searchParams.get('type',), type,);
+  }
+});
+
+Deno.test('actionLinkFor falls back to the Supabase verify link for an origin that is not allowed', () => {
+  const link = actionLinkFor('https://xyzcompany.supabase.co', {
+    ...BASE_EMAIL_DATA,
+    redirect_to: 'https://evil.example/en/reset-password',
+  }, WEBSITE_ORIGINS,);
+  const url = new URL(link,);
+
+  assertEquals(url.origin + url.pathname, 'https://xyzcompany.supabase.co/auth/v1/verify',);
+  assertEquals(url.searchParams.get('redirect_to',), 'https://evil.example/en/reset-password',);
+});
+
+Deno.test('actionLinkFor falls back to the Supabase verify link when redirect_to is not a URL', () => {
+  const link = actionLinkFor('https://xyzcompany.supabase.co', {
+    ...BASE_EMAIL_DATA,
+    redirect_to: '',
+  }, WEBSITE_ORIGINS,);
+  assertEquals(new URL(link,).pathname, '/auth/v1/verify',);
+});
+
+Deno.test('actionLinkFor keeps the Supabase verify link for email_change', () => {
+  const link = actionLinkFor('https://xyzcompany.supabase.co', {
+    ...BASE_EMAIL_DATA,
+    email_action_type: 'email_change',
+  }, WEBSITE_ORIGINS,);
+  assertEquals(new URL(link,).pathname, '/auth/v1/verify',);
+});
+
+Deno.test('actionLinkFor does not match an allowed origin by prefix', () => {
+  const link = actionLinkFor('https://xyzcompany.supabase.co', {
+    ...BASE_EMAIL_DATA,
+    redirect_to: 'https://coreverse.dev.evil.example/en/reset-password',
+  }, WEBSITE_ORIGINS,);
+  assertEquals(new URL(link,).pathname, '/auth/v1/verify',);
+});
+
 // ---------------------------------------------------------------------
 // emailContentFor
 // ---------------------------------------------------------------------
@@ -58,6 +139,33 @@ Deno.test('emailContentFor returns the English recovery copy for locale "en"', (
   );
   assertEquals(subject, 'Reset your Coreverse Engine password',);
   assertStringIncludes(htmlContent, 'Reset Password',);
+});
+
+Deno.test('emailContentFor adds the recovery code below the link when a token is given', () => {
+  const { htmlContent, } = emailContentFor(
+    'recovery',
+    'en',
+    'https://coreverse.dev/link',
+    '123456',
+  );
+  assertStringIncludes(htmlContent, 'https://coreverse.dev/link',);
+  assertStringIncludes(htmlContent, '<strong>123456</strong>',);
+});
+
+Deno.test('emailContentFor omits the recovery code block without a token', () => {
+  const { htmlContent, } = emailContentFor('recovery', 'en', 'https://coreverse.dev/link',);
+  assertEquals(htmlContent.includes('<strong>',), false,);
+});
+
+Deno.test('emailContentFor HTML-escapes the recovery code', () => {
+  const { htmlContent, } = emailContentFor(
+    'recovery',
+    'tr',
+    'https://coreverse.dev/link',
+    '<b>1</b>',
+  );
+  assertEquals(htmlContent.includes('<b>1</b>',), false,);
+  assertStringIncludes(htmlContent, '&lt;b&gt;1&lt;/b&gt;',);
 });
 
 Deno.test('emailContentFor covers every WEBSITE_LOCALES entry for recovery (no missing translation)', async () => {

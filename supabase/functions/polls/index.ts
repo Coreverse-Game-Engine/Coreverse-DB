@@ -5,11 +5,18 @@
 
 import { serve, } from '@std/http/server';
 import { createUserClient, } from '../_shared/supabase-client.ts';
-import { errorResponse, jsonResponse, safeDbErrorMessage, withCors, } from '../_shared/http.ts';
+import {
+  errorResponse,
+  internalErrorResponse,
+  jsonResponse,
+  safeDbErrorMessage,
+  withCors,
+} from '../_shared/http.ts';
 import { classifyCaller, withTokenCheck, } from '../_shared/caller.ts';
 import { buildCursorFilter, paginate, parsePagination, } from '../_shared/pagination.ts';
 import { hitRateLimit, } from '../_shared/rate-limit.ts';
 import { CastVoteSchema, CreatePollSchema, UuidSchema, } from './schemas.ts';
+import { routeSegments, } from '../_shared/route.ts';
 
 const POLL_COLUMNS =
   'id, question, closes_at, created_at, options:poll_options(id, label, display_order)';
@@ -25,10 +32,7 @@ function isClosed(closesAt: string | null,): boolean {
 
 serve(withCors(withTokenCheck(async (req,) => {
   const url = new URL(req.url,);
-  const segments = url.pathname
-    .replace(/^\/functions\/v1\/polls\/?/, '',)
-    .split('/',)
-    .filter(Boolean,);
+  const segments = routeSegments(url, 'polls',);
 
   const supabase = createUserClient(req,);
 
@@ -231,7 +235,7 @@ serve(withCors(withTokenCheck(async (req,) => {
     }
 
     return errorResponse('not_found', 'Unknown polls route.', 404,);
-  } catch (_err) {
-    return errorResponse('internal_error', safeDbErrorMessage(500,), 500,);
+  } catch (err) {
+    return internalErrorResponse('polls', err,);
   }
 },),),);

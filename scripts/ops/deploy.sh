@@ -48,15 +48,29 @@ fi
 echo "commit: $(git rev-parse --short HEAD) ($(git branch --show-current))"
 REF_FILE=supabase/.temp/project-ref
 if [[ -f "$REF_FILE" ]]; then echo "linked project ref: $(cat "$REF_FILE")"; else echo "NOT LINKED -- run: supabase link --project-ref <ref>" >&2; [[ "$APPLY" == "1" ]] && exit 1; fi
-for fn in send-email auth profiles; do
+# Functions deployed WITHOUT the platform JWT gate (see supabase/config.toml and
+# docs/src/security/authentication.md). A missing section would silently leave
+# the gate on, and signed-out visitors would get 401 on public content again.
+JWT_EXEMPT=(send-email auth profiles releases news events faq polls discussions docs)
+for fn in "${JWT_EXEMPT[@]}"; do
   grep -q "^\[functions\.$fn\]" supabase/config.toml || { echo "config.toml has no [functions.$fn] section (verify_jwt = false)" >&2; exit 1; }
 done
+
+# `supabase functions deploy` needs an import map for the bare specifiers
+# (`@std/http/server`, `zod`, ...); the repo-root deno.json is not used for
+# bundling. We pass supabase/functions/import_map.json explicitly (--import-map)
+# so nothing depends on CLI discovery. Do NOT add a supabase/functions/deno.json:
+# `deno fmt` would pick it up as a nested config and drop the fmt settings.
+IMPORT_MAP=supabase/functions/import_map.json
+[[ -f "$IMPORT_MAP" ]] || { echo "$IMPORT_MAP is missing (import map for 'supabase functions deploy')" >&2; exit 1; }
+node scripts/ops/static-checks.mjs --strict >/dev/null || { echo "static checks failed -- run: node scripts/ops/static-checks.mjs --strict" >&2; exit 1; }
 
 step "1. Pending migrations (read-only)"
 supabase db push --dry-run
 
 step "2. Apply migrations to PRODUCTION"
 echo "Includes 20261003094840_username_availability and 20261003095018_account_deletion_readiness"
+echo "and 20261012090000_expose_api_schemas (sets the hosted PostgREST exposed schemas; without it every query answers 500 query_error)."
 echo "(the latter loosens ON DELETE on several FKs -- take/confirm the backup first)."
 if confirm "Run 'supabase db push' against the linked project?"; then supabase db push; else echo "(skipped)"; fi
 
@@ -70,19 +84,24 @@ fi
 step "3b. Secrets currently set on the project (names/digests only)"
 supabase secrets list || true
 echo "Expected: WEBSITE_ALLOWED_ORIGINS (every Website origin, incl. staging) SEND_EMAIL_HOOK_SECRET BREVO_API_KEY BREVO_SENDER_EMAIL BREVO_SENDER_NAME DOCS_REINDEX_TOKEN"
-echo "(SUPABASE_URL / SUPABASE_ANON_KEY / SERVICE_ROLE_KEY are injected by the platform.)"
+echo "(SUPABASE_URL / SUPABASE_ANON_KEY / SUPABASE_SERVICE_ROLE_KEY are injected by the platform.)"
 
 step "4. Edge Functions: ${FUNCTIONS[*]}"
 for fn in "${FUNCTIONS[@]}"; do
-  if confirm "Deploy function '$fn'?"; then supabase functions deploy "$fn"; else echo "(skipped $fn)"; fi
+  if confirm "Deploy function '$fn'?"; then supabase functions deploy "$fn" --import-map "$IMPORT_MAP"; else echo "(skipped $fn)"; fi
 done
-echo "send-email, auth and profiles pick up verify_jwt=false from supabase/config.toml; every other function keeps the JWT gate on."
+echo "${JWT_EXEMPT[*]} pick up verify_jwt=false from supabase/config.toml (do not add flags that override it); teams, requests and projects keep the JWT gate on."
+echo "The gate setting only changes when a function is redeployed: deploy ALL of them for 0.5.2, not just the ones whose code changed."
 
 step "5. Manual follow-ups (cannot be scripted)"
 cat <<'TXT'
+ [ ] Dashboard -> Settings -> API -> Exposed schemas lists: public, graphql_public, releases, identity, content, docs (set by migration 20261012090000; if you edited it by hand, keep this list)
  [ ] Dashboard -> Authentication -> Hooks -> Send Email: enabled, URL = <project>/functions/v1/send-email, secret matches SEND_EMAIL_HOOK_SECRET
+ [ ] Website route /api/auth/confirm is deployed BEFORE the Send Email hook is enabled (the emailed links point at it)
+ [ ] Brevo: click tracking is off for transactional email
  [ ] Dashboard -> Authentication -> URL Configuration: Site URL + Redirect URLs match the Website origin(s) (incl. /*/reset-password)
  [ ] Dashboard -> Authentication -> Rate limits / password policy reviewed (config.toml is local-only)
+ [ ] Secret WEBSITE_ALLOWED_ORIGINS lists every Website origin (production, staging, previews; http://localhost:3000 only for a dev project)
  [ ] Then run the smoke test:  COREVERSE_BASE_URL=... COREVERSE_ALLOWED_ORIGIN=... node scripts/ops/smoke.mjs
  [ ] Then the manual checks in docs/src/operations/production-verification.md (6C)
 TXT

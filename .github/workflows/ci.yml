@@ -150,6 +150,21 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
+      # package.json makes Deno use a manual node_modules/ directory, so any
+      # type-check that touches an npm type reference (supabase-js ->
+      # @types/node) fails on a bare runner with "Could not find @types/node
+      # in a node_modules folder". Installing the dependencies gives CI the same
+      # node_modules/ a local `deno task test` runs with.
+      - uses: pnpm/action-setup@v6
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
       - uses: denoland/setup-deno@v2
         with:
           deno-version: v2.x

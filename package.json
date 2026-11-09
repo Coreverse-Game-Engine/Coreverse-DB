@@ -1,6 +1,6 @@
 {
   "name": "@Coreverse-Game-Engine/db-client",
-  "version": "0.5.1",
+  "version": "0.6.0",
   "description": "Typed TypeScript client (+ optional TanStack Query React hooks) for the Coreverse DB API, generated from openapi/openapi.yaml.",
   "type": "module",
   "license": "GPL-3.0-only",
@@ -90,7 +90,7 @@
     "react": "^19.2.8",
     "tsup": "^8.5.1",
     "typescript": "npm:@typescript/typescript6@^6.0.2",
-    "vitest": "^5.0.1"
+    "vitest": "^5.1.0"
   },
-  "packageManager": "pnpm@12.8.1+sha512.f64ba907507f5ceafe06c8d38e6052d0179444580ec1279ddd5bfc11cb48aa8a2644b66598e07e761da84872a9fc57d5f902b87fa49d024198d558612aabbe45"
+  "packageManager": "pnpm@12.18.0+sha512.9d7882d5dc82147ecfc4e062aa34834e0ad0296710a1837a1115ae012127d36b7109e321ac1598a1dd0a65597681b1e99917e12ed0d749eae91187943363beb3"
 }

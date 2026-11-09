@@ -12,6 +12,7 @@ import { createUserClient, } from '../_shared/supabase-client.ts';
 import { createServiceClient, } from '../_shared/service-client.ts';
 import { errorResponse, jsonResponse, withCors, } from '../_shared/http.ts';
 import { CreateProjectSchema, UpdateProjectSchema, UuidSchema, } from './schemas.ts';
+import { routeSegments, } from '../_shared/route.ts';
 
 const DOWNLOAD_URL_TTL_SECONDS = 300; // 5 minutes
 
@@ -20,10 +21,7 @@ const SELECT_COLUMNS =
 
 serve(withCors(async (req,) => {
   const url = new URL(req.url,);
-  const segments = url.pathname
-    .replace(/^\/functions\/v1\/projects\/?/, '',)
-    .split('/',)
-    .filter(Boolean,);
+  const segments = routeSegments(url, 'projects',);
 
   const supabase = createUserClient(req,);
 
