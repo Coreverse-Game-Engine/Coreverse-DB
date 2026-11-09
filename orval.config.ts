@@ -38,6 +38,7 @@ const externalRefsAllow = [
   "./schemas/Ok.yaml",
   "./schemas/Release.yaml",
   "./schemas/Artifact.yaml",
+  "./schemas/DeltaPlan.yaml",
   "./schemas/Profile.yaml",
   "./schemas/Team.yaml",
   "./schemas/TeamMember.yaml",

@@ -5,7 +5,7 @@
  * Centralized data-access API for the Coreverse ecosystem. Coreverse DB defines and serves all data operations; Coreverse Launcher and Coreverse Website consume this API and never access Postgres/Supabase directly.
  * Access model: the Supabase platform JWT gate is OFF for `releases`, `news`, `events`, `faq`, `polls`, `discussions`, `docs`, `auth`, `profiles` and `send-email`, and ON for `teams`, `requests` and `projects`. Signed-out callers can read public content (a `GET` on any public-content route answers 200); every write needs a user session and answers 401 `unauthorized` from the function without one. `POST /auth/password-reset` and `GET /profiles/username-availability` also work signed out; every other `/profiles` route authenticates the caller inside the function.
  *
- * OpenAPI spec version: 0.5.5
+ * OpenAPI spec version: 0.6.0
  */
 import * as zod from "zod";
 
@@ -184,4 +184,122 @@ export const GetReleaseByVersionResponse = zod
   })
   .describe(
     "Coreverse Engine release metadata. Contains no binaries -- see artifacts[] for per-OS\/architecture downloads.\n",
+  );
+
+/**
+ * Used by the Launcher to update an installed Engine version without downloading the full artifact. Returns the target's file manifest and an ordered chain of delta packages (oldest first) that turns `from` into `{version}`, or `recommended: full` with a `reason` when a full download is the better choice (no chain of at most `max_steps` deltas, the chain is larger than `max_ratio` of the full artifact, the target has no manifest yet, or `from` is not older than the target). `steps` is empty unless `recommended` is `delta`. `full` is always present so a failed delta update can fall back to the full artifact, verified with its `sha256`.
+ * @summary Plan a delta update from an older release to this one
+ */
+export const getReleaseDeltaPlanPathVersionRegExp = new RegExp(
+  "^\\d+\\.\\d+\\.\\d+$",
+);
+
+export const GetReleaseDeltaPlanParams = zod.object({
+  version: zod
+    .string()
+    .regex(getReleaseDeltaPlanPathVersionRegExp)
+    .describe("The target version (the one to update to)."),
+});
+
+export const getReleaseDeltaPlanQueryFromRegExp = new RegExp(
+  "^\\d+\\.\\d+\\.\\d+$",
+);
+
+export const GetReleaseDeltaPlanQueryParams = zod.object({
+  from: zod
+    .string()
+    .regex(getReleaseDeltaPlanQueryFromRegExp)
+    .describe("The installed version to update from."),
+  os: zod.enum(["windows", "linux", "macos"]),
+  architecture: zod.enum(["x86_64", "arm64"]),
+});
+
+export const getReleaseDeltaPlanResponseFullSha256RegExp = new RegExp(
+  "^[a-f0-9]{64}$",
+);
+export const getReleaseDeltaPlanResponseToManifestSha256RegExp = new RegExp(
+  "^[a-f0-9]{64}$",
+);
+export const getReleaseDeltaPlanResponseFromManifestSha256RegExp = new RegExp(
+  "^[a-f0-9]{64}$",
+);
+export const getReleaseDeltaPlanResponseStepsItemSha256RegExp = new RegExp(
+  "^[a-f0-9]{64}$",
+);
+
+export const GetReleaseDeltaPlanResponse = zod
+  .object({
+    from_version: zod.string(),
+    to_version: zod.string(),
+    os: zod.enum(["windows", "linux", "macos"]),
+    architecture: zod.enum(["x86_64", "arm64"]),
+    recommended: zod.enum(["delta", "full"]),
+    reason: zod
+      .enum(["delta", "not_newer", "no_manifest", "no_chain", "too_large"])
+      .describe(
+        "`delta`: a chain was found and is small enough. `not_newer`: `from` is not older than the target. `no_manifest`: the target artifact has no manifest yet. `no_chain`: no chain of at most `max_steps` deltas exists. `too_large`: the best chain is larger than `max_ratio` of the full artifact.\n",
+      ),
+    full: zod
+      .object({
+        download_url: zod.url(),
+        sha256: zod.string().regex(getReleaseDeltaPlanResponseFullSha256RegExp),
+        size_bytes: zod.int(),
+      })
+      .describe("The full artifact of the target (the fallback)."),
+    to_manifest: zod
+      .object({
+        url: zod.url(),
+        sha256: zod
+          .string()
+          .regex(getReleaseDeltaPlanResponseToManifestSha256RegExp),
+        size_bytes: zod.int(),
+      })
+      .nullable()
+      .describe(
+        "File manifest of the target version, or null when it has none.",
+      ),
+    from_manifest: zod
+      .object({
+        url: zod.url(),
+        sha256: zod
+          .string()
+          .regex(getReleaseDeltaPlanResponseFromManifestSha256RegExp),
+        size_bytes: zod.int(),
+      })
+      .nullable()
+      .describe(
+        "File manifest of the installed version, or null when it has none.",
+      ),
+    steps: zod
+      .array(
+        zod.object({
+          from_version: zod.string(),
+          to_version: zod.string(),
+          url: zod.url(),
+          sha256: zod
+            .string()
+            .regex(getReleaseDeltaPlanResponseStepsItemSha256RegExp),
+          size_bytes: zod.int(),
+          algorithm: zod.enum(["bsdiff"]),
+          format_version: zod.int().min(1),
+        }),
+      )
+      .describe(
+        "Ordered delta packages, oldest first. Empty unless `recommended` is `delta`.",
+      ),
+    delta_bytes: zod
+      .int()
+      .nullable()
+      .describe(
+        "Total size of the best chain found, or null when none was found.",
+      ),
+    max_steps: zod.int().describe("Longest chain the planner considers."),
+    max_ratio: zod
+      .number()
+      .describe(
+        "A chain larger than this fraction of the full artifact is not recommended.",
+      ),
+  })
+  .describe(
+    "How to update an installed Engine version to a newer one. Every file the Launcher downloads is listed with its `sha256` and `size_bytes`; the Launcher verifies each one, and the rebuilt tree against the target manifest, before registering the new version. On any mismatch it falls back to `full`.\n",
   );

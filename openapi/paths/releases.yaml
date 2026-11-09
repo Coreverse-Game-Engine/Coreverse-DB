@@ -102,3 +102,67 @@ byVersion:
           application/json:
             schema:
               $ref: '../schemas/Error.yaml'
+
+delta:
+  get:
+    summary: Plan a delta update from an older release to this one
+    description: >
+      Used by the Launcher to update an installed Engine version without
+      downloading the full artifact. Returns the target's file manifest
+      and an ordered chain of delta packages (oldest first) that turns
+      `from` into `{version}`, or `recommended: full` with a `reason`
+      when a full download is the better choice (no chain of at most
+      `max_steps` deltas, the chain is larger than `max_ratio` of the
+      full artifact, the target has no manifest yet, or `from` is not
+      older than the target). `steps` is empty unless `recommended` is
+      `delta`. `full` is always present so a failed delta update can fall
+      back to the full artifact, verified with its `sha256`.
+    operationId: getReleaseDeltaPlan
+    tags: [releases]
+    security: []
+    parameters:
+      - name: version
+        in: path
+        required: true
+        description: The target version (the one to update to).
+        schema:
+          type: string
+          pattern: '^\d+\.\d+\.\d+$'
+      - name: from
+        in: query
+        required: true
+        description: The installed version to update from.
+        schema:
+          type: string
+          pattern: '^\d+\.\d+\.\d+$'
+      - name: os
+        in: query
+        required: true
+        schema:
+          type: string
+          enum: [windows, linux, macos]
+      - name: architecture
+        in: query
+        required: true
+        schema:
+          type: string
+          enum: [x86_64, arm64]
+    responses:
+      '200':
+        description: The update plan.
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/DeltaPlan.yaml'
+      '400':
+        description: Malformed version, or a missing or invalid query parameter.
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/Error.yaml'
+      '404':
+        description: Unknown target or source release, or no artifact for the platform on the target.
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/Error.yaml'

@@ -6,6 +6,10 @@ See [Database › Domains › Storage](../database/domains/storage.md) for the b
 
 Public bucket for reads (`avatars_public_read`), but as of `20260912085602_avatar_upload_and_rate_limit.sql` there are no client-side write policies at all — `avatars_self_write`/`_update`/`_delete` were dropped. All writes now go through `POST /profiles/me/avatar` (see [API › Profiles](../api/resources/profiles.md)), which validates the upload server-side and writes it to Storage with the **service role**, bypassing RLS entirely. This closed a gap the old self-write policy couldn't cover: format/size were previously only as trustworthy as the client, whereas the Edge Function now checks both itself. Accepts PNG or WebP, up to 5 MB (widened from PNG-only, 2 MB). The Edge Function reads the caller's existing `avatar_path` before writing, so switching between PNG and WebP removes the old object instead of leaving it orphaned.
 
+## `engine-deltas`
+
+Public bucket for reads (`engine_deltas_bucket_public_read`) and **no client-side write policy at all**: objects are written only by `scripts/ops/publish-delta.mjs` with the service role. This matters more than for avatars: a manifest or delta package ends up as files on a user's machine, so anyone who could write to the bucket could ship code to every Launcher. Static check 13 fails the build if a migration adds an INSERT/UPDATE/DELETE/ALL policy for the bucket. Reads are public by design (the Launcher updates before sign-in). Because the files are public, integrity does not rest on the bucket: the SHA-256 of every object is stored in the database (`engine_artifacts.manifest_sha256`, `engine_deltas.sha256`) and the Launcher verifies it, then verifies the rebuilt tree against the manifest.
+
 ## `project-archives`
 
 Private bucket. Two different access paths exist, deliberately kept separate:
