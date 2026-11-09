@@ -18,7 +18,7 @@ info:
     `GET /profiles/username-availability` also work signed out; every
     other `/profiles` route authenticates the caller inside the
     function.
-  version: 0.5.5
+  version: 0.6.0
   license:
     name: GPL-3.0-only
     identifier: GPL-3.0-only
@@ -31,7 +31,7 @@ tags:
   - name: auth
     description: Unauthenticated account-recovery actions.
   - name: releases
-    description: Coreverse Engine release metadata and per-platform artifacts.
+    description: Coreverse Engine release metadata, per-platform artifacts and delta-update plans.
   - name: teams
     description: Teams, membership, roles, and bidirectional join/invite/ownership-transfer requests.
   - name: requests
@@ -59,6 +59,8 @@ paths:
     $ref: './paths/releases.yaml#/latest'
   /releases/{version}:
     $ref: './paths/releases.yaml#/byVersion'
+  /releases/{version}/delta:
+    $ref: './paths/releases.yaml#/delta'
   /teams:
     $ref: './paths/teams.yaml#/create'
   /teams/{teamId}:

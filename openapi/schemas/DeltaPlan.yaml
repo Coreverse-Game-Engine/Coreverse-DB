@@ -1,0 +1,122 @@
+type: object
+description: >
+  How to update an installed Engine version to a newer one. Every file
+  the Launcher downloads is listed with its `sha256` and `size_bytes`;
+  the Launcher verifies each one, and the rebuilt tree against the
+  target manifest, before registering the new version. On any mismatch
+  it falls back to `full`.
+required:
+  - from_version
+  - to_version
+  - os
+  - architecture
+  - recommended
+  - reason
+  - full
+  - to_manifest
+  - from_manifest
+  - steps
+  - delta_bytes
+  - max_steps
+  - max_ratio
+properties:
+  from_version:
+    type: string
+  to_version:
+    type: string
+  os:
+    type: string
+    enum: [windows, linux, macos]
+  architecture:
+    type: string
+    enum: [x86_64, arm64]
+  recommended:
+    type: string
+    enum: [delta, full]
+  reason:
+    type: string
+    enum: [delta, not_newer, no_manifest, no_chain, too_large]
+    description: >
+      `delta`: a chain was found and is small enough. `not_newer`: `from`
+      is not older than the target. `no_manifest`: the target artifact has
+      no manifest yet. `no_chain`: no chain of at most `max_steps` deltas
+      exists. `too_large`: the best chain is larger than `max_ratio` of
+      the full artifact.
+  full:
+    type: object
+    description: The full artifact of the target (the fallback).
+    required: [download_url, sha256, size_bytes]
+    properties:
+      download_url:
+        type: string
+        format: uri
+      sha256:
+        type: string
+        pattern: '^[a-f0-9]{64}$'
+      size_bytes:
+        type: integer
+        format: int64
+  to_manifest:
+    description: File manifest of the target version, or null when it has none.
+    type: [object, 'null']
+    required: [url, sha256, size_bytes]
+    properties:
+      url:
+        type: string
+        format: uri
+      sha256:
+        type: string
+        pattern: '^[a-f0-9]{64}$'
+      size_bytes:
+        type: integer
+        format: int64
+  from_manifest:
+    description: File manifest of the installed version, or null when it has none.
+    type: [object, 'null']
+    required: [url, sha256, size_bytes]
+    properties:
+      url:
+        type: string
+        format: uri
+      sha256:
+        type: string
+        pattern: '^[a-f0-9]{64}$'
+      size_bytes:
+        type: integer
+        format: int64
+  steps:
+    type: array
+    description: Ordered delta packages, oldest first. Empty unless `recommended` is `delta`.
+    items:
+      type: object
+      required: [from_version, to_version, url, sha256, size_bytes, algorithm, format_version]
+      properties:
+        from_version:
+          type: string
+        to_version:
+          type: string
+        url:
+          type: string
+          format: uri
+        sha256:
+          type: string
+          pattern: '^[a-f0-9]{64}$'
+        size_bytes:
+          type: integer
+          format: int64
+        algorithm:
+          type: string
+          enum: [bsdiff]
+        format_version:
+          type: integer
+          minimum: 1
+  delta_bytes:
+    description: Total size of the best chain found, or null when none was found.
+    type: [integer, 'null']
+    format: int64
+  max_steps:
+    type: integer
+    description: Longest chain the planner considers.
+  max_ratio:
+    type: number
+    description: A chain larger than this fraction of the full artifact is not recommended.
