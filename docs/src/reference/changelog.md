@@ -2,9 +2,26 @@
 
 Release notes for the `@Coreverse-Game-Engine/db-client` package and the backend it describes. GitHub's auto-generated release notes (grouped by PR label, see `.github/release.yml`) remain the per-PR record; this page is the consumer-facing summary of what changed *for API and SDK users*.
 
-## Unreleased
+## 0.6.0
 
-Edge Function routing fix and hosted-schema exposure. **No API shape changes and no SDK change**: `package.json` and `openapi.yaml` stay at 0.5.5 and the Website keeps `^0.5.5`. Two new migrations (`20261012134916_expose_api_schemas`, `20261015090000_grant_service_role_api_schemas`): run `supabase db push`. Redeploy **every** Edge Function that routes on its path (all of them except `send-email`), then run the production smoke check.
+Delta (incremental) Engine updates, plus the fixes that were waiting under "Unreleased". **`package.json` and `openapi.yaml` are at 0.6.0**; the Website and Launcher bump `db-client` to `^0.6.0` after regenerating (`pnpm run generate`). One new migration (`20261108100000_create_engine_deltas`): run `supabase db push`. Redeploy the `releases` Edge Function, and — as before — every Edge Function that routes on its path (all except `send-email`), then run the production smoke check.
+
+### Added (delta updates)
+
+- **`GET /releases/{version}/delta?from=&os=&architecture=`** (`getReleaseDeltaPlan`, schema `DeltaPlan`): plans an update from an installed older version to `{version}` — an ordered chain of delta packages plus the target's file manifest, or `recommended: "full"` with a reason (`not_newer`, `no_manifest`, `no_chain`, `too_large`). The chain is capped at 5 steps and 60 % of the full artifact. Public, no token.
+- **`releases.engine_deltas`** table and **`engine_artifacts.manifest_*`** columns (nullable, so every existing artifact keeps working and simply has no manifest yet), **`releases.plan_delta`** function, and the public **`engine-deltas`** Storage bucket (read-only for clients; written with the service role).
+- **`scripts/ops/publish-delta.mjs`**: validates and uploads a manifest or a delta package and records its path, hash and size. `--dry-run` checks without sending anything.
+- **Static check 13** fails when a migration lets clients write to the `engine-deltas` bucket. New smoke checks for the delta route's validation.
+- Tests: `supabase/tests/database/releases_deltas.sql` (19 pgTAP checks: chain choice, step and ratio limits, every fallback reason, direction trigger, platform foreign keys, manifest constraint, RLS, bucket policy), `supabase/functions/releases/delta.test.ts`, and delta cases in `schemas.test.ts`.
+- Docs: file formats for manifests and delta packages and the rules the Launcher follows are in [Database › Domains › Releases](../database/domains/releases.md).
+
+### Not changed
+
+Existing endpoints, the `Release` and `Artifact` response shapes and all existing tables keep their behavior. The SDK gains one operation and one type; `src/generated` must be regenerated.
+
+## Earlier fixes shipped with 0.6.0
+
+Edge Function routing fix and hosted-schema exposure. Two migrations (`20261012134916_expose_api_schemas`, `20261015090000_grant_service_role_api_schemas`).
 
 ### Fixed
 

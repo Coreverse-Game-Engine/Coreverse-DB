@@ -4,14 +4,19 @@ Supabase Storage is a platform service, not a PostgreSQL application schema — 
 
 ## Buckets
 
-| Bucket             | Visibility | Naming                            | Limits                                                                          |
-|--------------------|------------|-----------------------------------|---------------------------------------------------------------------------------|
-| `avatars`          | Public     | Flat: `{user_id}.png`             | 2 MB, `image/png` only                                                          |
-| `project-archives` | Private    | `{owner_id}/{project_id}.tar.zst` | No bucket-level size limit (falls back to the project plan's global upload cap) |
+| Bucket             | Visibility | Naming                                                                                      | Limits                                                                          |
+|--------------------|------------|---------------------------------------------------------------------------------------------|---------------------------------------------------------------------------------|
+| `avatars`          | Public     | Flat: `{user_id}.png`                                                                       | 2 MB, `image/png` only                                                          |
+| `project-archives` | Private    | `{owner_id}/{project_id}.tar.zst`                                                           | No bucket-level size limit (falls back to the project plan's global upload cap) |
+| `engine-deltas`    | Public     | `{os}-{architecture}/{version}/manifest.json`, `{os}-{architecture}/{from}__{to}/delta.zip` | No bucket-level size limit; JSON, ZIP or octet-stream                           |
 
 ## `avatars`
 
 Public read, self-only write. Because the object name is always exactly `{user_id}.png`, uploading a new avatar overwrites the previous one in place — there's no orphaned-old-avatar cleanup to do, by construction.
+
+## `engine-deltas`
+
+Public read, service-role-only write: file manifests and delta packages for incremental Engine updates (see [Domains › Releases](releases.md)). There are no client-side write policies.
 
 ## `project-archives`
 
