@@ -23,5 +23,16 @@ export const LatestQuerySchema = z.object({
   status: z.enum(STATUS_VALUES,).default('stable',),
 },);
 
+export const OS_VALUES = ['windows', 'linux', 'macos',] as const;
+export const ARCHITECTURE_VALUES = ['x86_64', 'arm64',] as const;
+
+// GET /releases/{version}/delta?from=&os=&architecture=
+export const DeltaQuerySchema = z.object({
+  from: VersionParamSchema,
+  os: z.enum(OS_VALUES,),
+  architecture: z.enum(ARCHITECTURE_VALUES,),
+},);
+
 export type ListQuery = z.infer<typeof ListQuerySchema>;
 export type LatestQuery = z.infer<typeof LatestQuerySchema>;
+export type DeltaQuery = z.infer<typeof DeltaQuerySchema>;
